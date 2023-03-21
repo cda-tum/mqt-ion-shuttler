@@ -1,0 +1,31 @@
+name: Test run
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test_bindings:
+    name: Run script on example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: "3.10"
+      - name: Install package
+        run: |
+          pip install -U pip setuptools wheel
+          pip install .
+      - name: Test package
+        run: python run.py algorithms/qft_05.json
