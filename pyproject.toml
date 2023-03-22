@@ -1,5 +1,5 @@
 [project]
-name = "mqt.shuttling"
+name = "mqt.ion-shuttler"
 description = "A solver for the shuttling problem in QCCD quantum computers"
 readme = "README.md"
 authors = [

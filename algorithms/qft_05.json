@@ -1,6 +1,6 @@
 {
   "arch": [3, 3, 1, 1],
-  "timesteps": 30,
+  "max_timesteps": 30,
   "qu_alg": [
     [4],
     [0, 4],
