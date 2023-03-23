@@ -4,6 +4,7 @@ import math
 import pathlib
 import random
 import sys
+import time
 
 from Memory_grid import MemorySAT, create_graph
 
@@ -16,7 +17,9 @@ if __name__ == "__main__":
     with pathlib.Path(args.config_file).open("r") as f:
         config = json.load(f)
     arch = config["arch"]
-    timesteps = config["timesteps"]
+    max_timesteps = config["max_timesteps"]
+    num_ion_chains = config["num_ion_chains"]
+
     qu_alg = [(q[0] if len(q) == 1 else tuple(q)) for q in config["qu_alg"]]
 
     ### create graph
@@ -30,7 +33,7 @@ if __name__ == "__main__":
     rand = False
     if rand is True:
         random.seed(0)
-        random_starting_traps = random.sample(range(n_of_traps), (math.ceil(0.5 * n_of_traps)))
+        random_starting_traps = random.sample(range(n_of_traps), (num_ion_chains))
         starting_traps = []
         for trap in random_starting_traps:
             starting_traps.append(
@@ -41,7 +44,7 @@ if __name__ == "__main__":
     else:
         starting_traps = [
             edges for edges in graph.edges() if graph.get_edge_data(edges[0], edges[1])["edge_type"] == "trap"
-        ][: int(0.5 * n_of_traps) + 1]
+        ][: num_ion_chains]
     number_of_registers = len(starting_traps)
 
     # place ions onto traps (ion0 on starting_trap0)
@@ -49,12 +52,19 @@ if __name__ == "__main__":
     for ion, idx in enumerate(starting_traps):
         graph[idx[0]][idx[1]]["ion_chain"] = ion
         ions.append(ion)
+    start = time.time()
+    for timesteps in range(2, max_timesteps + 1):
+        print(f"{time.time() - start:.1f}s Checking for {timesteps} timesteps... ", end="")
+        SAT = MemorySAT(graph, ion_chain_size_horizontal, ion_chain_size_vertical, ions, timesteps)
 
-    SAT = MemorySAT(graph, ion_chain_size_horizontal, ion_chain_size_vertical, ions, timesteps)
+        MemorySAT.create_constraints(SAT, starting_traps)
+        is_satisfied = MemorySAT.evaluate(SAT, qu_alg, number_of_registers)
 
-    MemorySAT.create_constraints(SAT, starting_traps)
-    is_satisfied = MemorySAT.evaluate(SAT, qu_alg, number_of_registers)
-    if args.plot:
-        MemorySAT.plot(SAT, show_ions=True)
-    if not is_satisfied:
+        if is_satisfied:
+            print(f"{time.time() - start:.1f}s Found satisfying solution with {timesteps} time steps.")
+            if args.plot:
+                MemorySAT.plot(SAT, show_ions=True)
+            break
+    else:
+        print(f"{time.time() - start:.1f}s Reached {max_timesteps} time steps without a satisfying solution.")
         sys.exit(1)
