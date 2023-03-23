@@ -17,12 +17,9 @@ if __name__ == "__main__":
     with pathlib.Path(args.config_file).open("r") as f:
         config = json.load(f)
     arch = config["arch"]
-<<<<<<< Updated upstream
     max_timesteps = config["max_timesteps"]
-=======
-    timesteps = config["timesteps"]
     num_ion_chains = config["num_ion_chains"]
->>>>>>> Stashed changes
+
     qu_alg = [(q[0] if len(q) == 1 else tuple(q)) for q in config["qu_alg"]]
 
     ### create graph
