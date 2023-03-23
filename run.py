@@ -18,6 +18,8 @@ if __name__ == "__main__":
         config = json.load(f)
     arch = config["arch"]
     max_timesteps = config["max_timesteps"]
+    num_ion_chains = config["num_ion_chains"]
+
     qu_alg = [(q[0] if len(q) == 1 else tuple(q)) for q in config["qu_alg"]]
 
     ### create graph
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     rand = False
     if rand is True:
         random.seed(0)
-        random_starting_traps = random.sample(range(n_of_traps), (math.ceil(0.5 * n_of_traps)))
+        random_starting_traps = random.sample(range(n_of_traps), (num_ion_chains))
         starting_traps = []
         for trap in random_starting_traps:
             starting_traps.append(
@@ -42,7 +44,7 @@ if __name__ == "__main__":
     else:
         starting_traps = [
             edges for edges in graph.edges() if graph.get_edge_data(edges[0], edges[1])["edge_type"] == "trap"
-        ][: int(0.5 * n_of_traps) + 1]
+        ][: num_ion_chains]
     number_of_registers = len(starting_traps)
 
     # place ions onto traps (ion0 on starting_trap0)
