@@ -9,8 +9,9 @@
 
 # MQT IonShuttler
 
-This a tool for generating optimal shuttling schedules for grid-like memory zones inside trapped-ion quantum computers.
-It is part of the Munich Quantum Toolkit (MQT; formerly known as JKQ and developed by the [Institute for Integrated Circuits](https://iic.jku.at/eda/) at the [Johannes Kepler University Linz](https://jku.at)).
+This a tool for generating optimal shuttling schedules for grid-like memory zones inside trapped-ion quantum computers, based on the paper *Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers* by D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille in ASP-DAC 2024.
+
+MQT IonShuttler is part of the Munich Quantum Toolkit (MQT) developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/).
 
 If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de](mailto:quantum.cda@xcit.tum.de) or by creating an [issue](#) on GitHub.
 
