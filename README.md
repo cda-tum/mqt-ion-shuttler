@@ -9,7 +9,7 @@
 
 # MQT IonShuttler
 
-This a tool for generating optimal shuttling schedules for grid-like memory zones inside trapped-ion quantum computers, based on the paper *Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers* by D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille in ASP-DAC 2024.
+This a tool for generating shuttling schedules for grid-like memory zones inside trapped-ion quantum computers. The tool supports optimal shuttling schedules for small architectures and also includes a preliminary option to produce heuristic shuttling schedules for large devices. The optimal solution is based on the paper *Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers* by D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille in ASP-DAC 2024. The heuristic solution is based on the paper *Shuttling for Scalable Trapped-Ion Quantum Computers* by D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille.
 
 MQT IonShuttler is part of the Munich Quantum Toolkit (MQT) developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/).
 
@@ -19,6 +19,7 @@ If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de]
 
 We strongly recommend using [virtual environments](https://docs.python.org/3/library/venv.html) to set up the tool and install the dependencies
 
+# Exact Solution
 ```commandline
 $ python3 -m venv .venv
 $ . .venv/bin/activate
@@ -33,6 +34,21 @@ The script supports an additional `--plot` argument to plot the result.
 An overview over all parameters is printed with the `--help` parameter.
 The architecture and the algorithm are specified in json files.
 You can find examples in the [`algorithms/`](algorithms/) folder.
+
+# Heuristic Solution
+```commandline
+$ python3 -m venv .venv
+$ . .venv/bin/activate
+(.venv) $ pip install .
+(.venv) $ python3 run_heuristic.py --help
+[...]
+(.venv) $ python3 run_heuristic.py algorithms_heuristic/qft_24.json
+...
+```
+
+An overview over all parameters is printed with the `--help` parameter.
+The architecture and the algorithm are specified in json files.
+You can find examples in the [`algorithms_heuristic/`](algorithms_heuristic/) folder.
 
 ## Acknowledgements
 
