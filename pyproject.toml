@@ -12,7 +12,9 @@ requires-python = ">=3.8"
 dependencies = [
     "z3-solver==4.12.1.0",
     "matplotlib==3.7.1",
-    "networkx==3.0"
+    "networkx==3.0",
+    "qiskit==1.0.0",
+    "more_itertools==10.1.0"
 ]
 
 version = "0.1"
@@ -84,3 +86,6 @@ line-length = 120
 
 [tool.black]
 line-length = 120
+
+[tool.setuptools]
+py-modules = []
