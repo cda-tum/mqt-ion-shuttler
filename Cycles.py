@@ -737,24 +737,6 @@ class MemoryZone:
 
     def bfs_free_edge(self, node, other_next_edges):
         state_idxs = self.get_state_idxs()
-        # if node == (0, 0):
-        #     for edge_idc in self.bfs_top_left:
-        #         if get_idx_from_idc(self.idc_dict, edge_idc) not in state_idxs:
-        #             return edge_idc
-        # elif node == self.graph_creator.exit:
-
-        #     for i in list(self.bfs_exit):
-
-        #     for s in nx.edge_bfs(self.mz_graph, self.graph_creator.exit):
-
-        #     for edge_idc in self.bfs_exit:
-
-        #         if get_idx_from_idc(self.idc_dict, edge_idc) not in state_idxs:
-        #             return edge_idc
-        # else:
-        #     for edge_idc in nx.edge_bfs(self.mz_graph, node):
-        #         if get_idx_from_idc(self.idc_dict, edge_idc) not in state_idxs:
-        #             return edge_idc
         other_next_edges_idxs = [get_idx_from_idc(self.idc_dict, next_edge) for next_edge in other_next_edges]
         for edge_idc in nx.edge_bfs(self.mz_graph, node):
             if (
