@@ -764,38 +764,6 @@ class MemoryZone:
                 return edge_idc
         return None
 
-    # def combine_paths_over_pz(self, path0, path1):
-    #     # combines paths over processing zone
-    #     # always adds start of path1 to path0
-    #     # -> end of combined path is end of path0 (even if path1 would have different end (very unlikely edge case
-    #     # (next edge is free for path0, path1 takes neighbour edge of that free next edge, since bfs search starts at top of graph)))
-
-    #     # new: if path0 doesn't start at processing zone -> was already combined with other chain -> extract path after processing zone (path0[1:])
-    #     if path0[0][0] != self.graph_creator.processing_zone:
-    #         # extract path after self.graph_creator.processing_zone
-    #         assert path0[1][0] == self.graph_creator.processing_zone
-    #         path_from_pz = path0[1:]
-    #     else:
-    #         path_from_pz = path0
-
-    #     path_to_pz = get_path_to_node(
-    #         self.graph,
-    #         path1[0][0],
-    #         self.graph_creator.processing_zone,
-    #         exclude_first_entry_connection=False,
-    #         exclude_exit=False,
-    #     )
-    #     return path_to_pz + path_from_pz
-
-    # def find_least_import_chain_in_pz(self, seq, ions_in_pz):
-    #     for num in seq:
-    #         if num in ions_in_pz:
-    #             ions_in_pz.remove(num)
-    #             if len(ions_in_pz) == 1:
-    #                 return ions_in_pz[0]
-    #             print(ions_in_pz)
-    #     return ions_in_pz[-1]
-
     def find_least_import_chain_in_parking(self, seq, ions_in_parking):
         for num in seq:
             if num in ions_in_parking:
