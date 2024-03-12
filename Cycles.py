@@ -698,13 +698,12 @@ class MemoryZone:
             ) > 0 and self.graph_creator.processing_zone not in nodes1.intersection(nodes2):
                 junction_shared_pairs.append((circle1, circle2))
 
-        free_circle_combs = [
-            circle_idx_pair
-            for circle_idx_pair in combinations_of_circles
-            if (circle_idx_pair not in junction_shared_pairs)
-        ]
-
-        return junction_shared_pairs, free_circle_combs
+        # free_circle_combs = [
+        #     circle_idx_pair
+        #     for circle_idx_pair in combinations_of_circles
+        #     if (circle_idx_pair not in junction_shared_pairs and (circle_idx_pair[1], circle_idx_pair[0]) not in junction_shared_pairs)
+        # ]
+        return junction_shared_pairs  # , free_circle_combs
 
     # change: if list in other list -> take longer list, delete other
     # if list can be connected to other list -> combine and delete both
