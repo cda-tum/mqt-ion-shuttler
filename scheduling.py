@@ -9,10 +9,10 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.converters import circuit_to_dagdependency
 
-from compilation import is_qasm_file, manual_copy_dag, remove_node, update_sequence
+from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
 from Cycles import get_idc_from_idx, get_idx_from_idc
 
-save_plot = False
+save_plot = True
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
     run_folder = Path(f'plots/run_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
@@ -133,16 +133,22 @@ def create_move_list(memorygrid, sequence, max_length=10):
     return move_list
 
 
-def create_initial_sequence(distance_map, filename):
+def create_initial_sequence(distance_map, filename, compilation):
     # assert file is a qasm file
     assert is_qasm_file(filename), "The file is not a valid QASM file."
 
     # generate sequence
-    qc = QuantumCircuit.from_qasm_file(filename)
-    dag_dep = circuit_to_dagdependency(qc)
+    if compilation is False:
+        seq = parse_qasm(filename)
+        next_node = None
+        dag_dep = None
+    else:
+        qc = QuantumCircuit.from_qasm_file(filename)
+        dag_dep = circuit_to_dagdependency(qc)
 
-    gate_ids, next_node = update_sequence(dag_dep, distance_map)
-    seq = [tuple(gate) for gate in gate_ids]
+        gate_ids, next_node = update_sequence(dag_dep, distance_map)
+        seq = [tuple(gate) for gate in gate_ids]
+
     flat_seq = [item for sublist in seq for item in sublist]
 
     return seq, flat_seq, dag_dep, next_node
@@ -185,12 +191,14 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
             all_circles[rotate_chain] = [edge_idc, next_edge]
             # block moves to pz if parking is full (now blocks if parking not open and chain moving in exit and its next edge is in state_idxs)
             if (
-                get_idx_from_idc(memorygrid.idc_dict, next_edge)
-                in [
-                    *memorygrid.graph_creator.path_to_pz_idxs,
-                    get_idx_from_idc(memorygrid.idc_dict, memorygrid.graph_creator.parking_edge),
-                ]
-                and parking_open is False
+                #     get_idx_from_idc(memorygrid.idc_dict, next_edge)
+                #     in [
+                #         *memorygrid.graph_creator.path_to_pz_idxs,
+                #         get_idx_from_idc(memorygrid.idc_dict, memorygrid.graph_creator.parking_edge),
+                #     ]
+                #     and
+                parking_open
+                is False
             ) and (get_idx_from_idc(memorygrid.idc_dict, next_edge) in memorygrid.state_idxs):
                 all_circles[rotate_chain] = [edge_idc, edge_idc]
 
@@ -246,7 +254,7 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
                 ]
 
             # else -> chain_to_park not needed right now
-            # if new gate can be executed -> bring everything to a stop in entry
+            # if new gate can be executed -> bring everything to a stop in enxit
             elif new_gate_starting:
                 # if chain to park should move to entry -> all chains with next edge in exit -> stop move
                 for chain, edge_idc in in_and_into_exit_moves.items():
@@ -267,15 +275,16 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
                     memorygrid.graph_creator.path_from_pz[0],
                 ]
         else:
-            # else bring everything to a stop in entry
+            # else bring everything to a stop in exit
             # same as above
             for chain, edge_idc in in_and_into_exit_moves.items():
                 all_circles[chain] = [edge_idc, edge_idc]
+
             # maybe already covered above
-            all_circles[chain_to_move_out_of_pz] = (
-                memorygrid.graph_creator.path_to_pz[-1],
-                memorygrid.graph_creator.path_to_pz[-1],
-            )
+            # all_circles[chain_to_move_out_of_pz] = (
+            #     memorygrid.graph_creator.path_to_pz[-1],
+            #     memorygrid.graph_creator.path_to_pz[-1],
+            # )
 
     return all_circles, rotate_entry, chain_to_move_out_of_pz
 
@@ -306,8 +315,8 @@ def rotate_free_circles(memorygrid, all_circles, free_circle_seq_idxs, rotate_en
         ]
         # rotate chains
         _new_state_dict = memorygrid.rotate(free_circle_idxs[seq_idx])
-        if rotate_entry:
-            memorygrid.ion_chains[chain_to_move_out_of_pz] = memorygrid.graph_creator.path_from_pz[0]
+    if rotate_entry:
+        memorygrid.ion_chains[chain_to_move_out_of_pz] = memorygrid.graph_creator.path_from_pz[0]
 
 
 def update_sequence_and_process_gate(
@@ -367,17 +376,22 @@ def update_sequence_and_process_gate(
                     next_gate_is_two_qubit_gate,
                 )
 
-            for _ in gate:
-                flat_seq.pop(0)
+            # for _ in gate:
+            #     flat_seq.pop(0)
             time_in_pz_counter = 0
             gate_execution_finished = True
 
-            # update dag
-            remove_node(dag_dep, next_node)
-            dag_dep = manual_copy_dag(dag_dep)
+            if dag_dep is None:
+                assert next_node is None
+                seq.pop(0)
+            else:
+                # update dag
+                remove_node(dag_dep, next_node)
+                dag_dep = manual_copy_dag(dag_dep)
+                new_dist_map = memorygrid.update_distance_map()
+                gate_ids, next_node = update_sequence(dag_dep, new_dist_map)
+                seq = [tuple(gate) for gate in gate_ids]
 
-            gate_ids, next_node = update_sequence(dag_dep, memorygrid.distance_map)
-            seq = [tuple(gate) for gate in gate_ids]
             flat_seq = [item for sublist in seq for item in sublist]
             next_gate_is_two_qubit_gate = len(seq[0]) == 2
 
@@ -416,7 +430,6 @@ def check_duplicates(lst, memorygrid, parking_idc, max_number_parking):
     # Count occurrences of each integer
     counts = Counter(lst)
 
-    # Check if any integer occurs more than once (except for 48)
     for num, count in counts.items():
         if num != parking_idx and count > 1:
             message = f"More than one chain in edge {get_idc_from_idx(memorygrid.idc_dict, num)}!"
@@ -436,7 +449,7 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
     timestep = 0
     next_node = next_node_initial
     while timestep < max_timesteps:
-        print("timestep: ", timestep)
+        print("\ntimestep: ", timestep)
         rotate_entry = False
 
         # update state idxs
@@ -446,10 +459,10 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
 
         # preprocess (move chains within junctions)
         memorygrid = preprocess(memorygrid, flat_seq)
-        memorygrid.update_distance_map()
+
         # move list
         move_list = create_move_list(memorygrid, flat_seq, max_length)
-        # memorygrid.state_idxs updated in create_move_list
+        # memorygrid.state_idxs are updated in create_move_list
         # create circles for moves
         all_circles, rotate_entry, chain_to_move_out_of_pz = create_circles_for_moves(
             memorygrid, move_list, flat_seq, gate_execution_finished, new_gate_starting

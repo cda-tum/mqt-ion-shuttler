@@ -426,6 +426,7 @@ class MemoryZone:
         self.distance_map = {}
         for ion_chain, edge_idx in enumerate(self.get_state_idxs()):
             self.distance_map[ion_chain] = self.dist_dict[get_idc_from_idx(self.idc_dict, edge_idx)]
+        return self.distance_map
 
     def count_chains_in_pz(self):
         return len([chain_idx for chain_idx in self.get_state_idxs() if chain_idx in self.graph_creator.pz_edges_idx])

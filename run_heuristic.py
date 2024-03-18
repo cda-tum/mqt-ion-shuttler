@@ -13,13 +13,14 @@ from scheduling import create_initial_sequence, create_starting_config, run_simu
 # num_ion_chains = config["num_ion_chains"]
 # filename = config["qu_alg"]
 
-archs = [[12, 12, 3, 3]]  # [4, 4, 2, 2], [7, 7, 1, 1], [10, 10, 1, 1], [3, 3, 5, 5]]
+# archs = [[12, 12, 3, 3]]  # [4, 4, 2, 2], [7, 7, 1, 1], [10, 10, 1, 1], [3, 3, 5, 5]]
 # arch = [10, 10, 2, 2]
-# arch = [4, 4, 2, 2]
+archs = [[8, 8, 2, 2]]
+compilation = False
 for arch in archs:
-    filename = "QASM_files/qft_62qubits.qasm"
-    num_ion_chains = 62
-    max_timesteps = 100000
+    num_ion_chains = 24
+    filename = "QASM_files/qft_%squbits.qasm" % num_ion_chains
+    max_timesteps = 100000000
 
     seed = 0
     m, n, v, h = arch
@@ -47,5 +48,7 @@ for arch in archs:
     )
 
     memorygrid.update_distance_map()
-    seq, flat_seq, dag_dep, next_node_initial = create_initial_sequence(memorygrid.distance_map, filename)
+    seq, flat_seq, dag_dep, next_node_initial = create_initial_sequence(
+        memorygrid.distance_map, filename, compilation=compilation
+    )
     run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10, show_plot=False)
