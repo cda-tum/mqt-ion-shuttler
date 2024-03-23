@@ -1,3 +1,9 @@
+import math
+import time
+from pathlib import Path
+
+import numpy as np
+
 from Cycles import GraphCreator, MemoryZone
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
 
@@ -15,40 +21,82 @@ from scheduling import create_initial_sequence, create_starting_config, run_simu
 
 # archs = [[12, 12, 3, 3]]  # [4, 4, 2, 2], [7, 7, 1, 1], [10, 10, 1, 1], [3, 3, 5, 5]]
 # arch = [10, 10, 2, 2]
-archs = [[8, 8, 2, 2]]
-compilation = False
+
+# archs =  [[2, 2, 1, 100]]#, [2, 2, 1, 11], [2, 2, 1, 19], [2, 2, 1, 29], [2, 2, 1, 100],
+archs = [
+    [4, 2, 1, 1],
+    [6, 2, 1, 1],
+    [8, 2, 1, 1],
+    [10, 2, 1, 1],
+    [10, 2, 5, 5],  # [10, 2, 10, 10],
+    [2, 4, 1, 1],
+    [2, 6, 1, 1],
+    [2, 8, 1, 1],
+    [2, 10, 1, 1],
+    [2, 10, 5, 5],  # [2, 10, 10, 10],
+    [3, 3, 1, 1],
+    [4, 4, 1, 1],
+    [5, 5, 1, 1],
+    [6, 6, 1, 1],
+    [10, 10, 1, 1],
+]  # , [20, 20, 1, 1], [5, 5, 10, 10]]
+seeds = [0]
+compilation = True
 for arch in archs:
-    num_ion_chains = 24
-    filename = "QASM_files/qft_%squbits.qasm" % num_ion_chains
-    max_timesteps = 100000000
+    timestep_arr = []
+    cpu_time_arr = []
+    start_time = time.time()
+    for seed in seeds:
+        m, n, v, h = arch
+        # create dummy graph
+        graph = GraphCreator(m, n, v, h).get_graph()
+        n_of_traps = len(
+            [trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"]
+        )
+        num_ion_chains = math.ceil(n_of_traps / 2)
+        ion_chains, number_of_registers = create_starting_config(num_ion_chains, graph, seed=seed)
 
-    seed = 0
-    m, n, v, h = arch
-    # create dummy graph
-    graph = GraphCreator(m, n, v, h).get_graph()
-    n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
-    ion_chains, number_of_registers = create_starting_config(num_ion_chains, graph, seed=seed)
+        # filename = "QASM_files/GHZ/ghz_nativegates_quantinuum_tket_%s.qasm" % num_ion_chains #qft_%squbits.qasm" % num_ion_chains
+        filename = "QASM_files/Graph_state/graphstate_nativegates_quantinuum_tket_%s.qasm" % num_ion_chains
+        max_timesteps = 100000000
 
-    print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
+        print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 
-    time_2qubit_gate = 3
-    time_1qubit_gate = 1
-    max_chains_in_parking = 3
+        time_2qubit_gate = 3
+        time_1qubit_gate = 1
+        max_chains_in_parking = 3
 
-    memorygrid = MemoryZone(
-        m,
-        n,
-        v,
-        h,
-        ion_chains,
-        max_timesteps,
-        max_chains_in_parking,
-        time_2qubit_gate=time_2qubit_gate,
-        time_1qubit_gate=time_1qubit_gate,
-    )
+        memorygrid = MemoryZone(
+            m,
+            n,
+            v,
+            h,
+            ion_chains,
+            max_timesteps,
+            max_chains_in_parking,
+            time_2qubit_gate=time_2qubit_gate,
+            time_1qubit_gate=time_1qubit_gate,
+        )
 
-    memorygrid.update_distance_map()
-    seq, flat_seq, dag_dep, next_node_initial = create_initial_sequence(
-        memorygrid.distance_map, filename, compilation=compilation
-    )
-    run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10, show_plot=False)
+        memorygrid.update_distance_map()
+        seq, flat_seq, dag_dep, next_node_initial = create_initial_sequence(
+            memorygrid.distance_map, filename, compilation=compilation
+        )
+        timestep = run_simulation(
+            memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10, show_plot=False
+        )
+        timestep_arr.append(timestep)
+        cpu_time_arr.append(time.time() - start_time)
+
+    timestep_mean = np.mean(timestep_arr)
+    cpu_time_mean = np.mean(cpu_time_arr)
+    # results[j] = timestep_mean
+    # cpu_time_results[j] = cpu_time_mean
+
+    # Create a Path object for the file
+    file_path = Path("graph_state_benchmark_results.txt")
+
+    # Open the file using the Path object
+    with file_path.open("a") as file:
+        line = f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} & {number_of_registers}/{n_of_traps} & {len(seq)} & {timestep_mean} & & {cpu_time_mean} {'s'} \\\\"
+        file.write(line + "\n")

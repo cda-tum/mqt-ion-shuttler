@@ -11,9 +11,11 @@ def is_qasm_file(filename):
         return False
 
     try:
-        with Path.open(filename) as file:
-            # Read the first line of the file
-            first_line = file.readline()
+        file_path = Path(filename)
+        with Path.open(file_path) as file:
+            # Read the first line of the file (7th line, specific to MQT Bench)
+            for _f in range(7):
+                first_line = file.readline()
             # Check if the first line contains the OPENQASM identifier
             return "OPENQASM" in first_line
     except OSError:
@@ -44,7 +46,6 @@ def parse_qasm(filename):
                 qubits = extract_qubits_from_gate(line)
                 if qubits:
                     gates_and_qubits.append(tuple(qubits))
-
     return gates_and_qubits
 
 

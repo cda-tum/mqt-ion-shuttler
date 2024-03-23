@@ -317,7 +317,7 @@ class GraphCreator:
         edge_labels = nx.get_edge_attributes(self.networkx_graph, "ion_chain")
 
         # plt.figure(figsize=(25, 15))
-        plt.figure(figsize=(15, 8))
+        plt.figure(figsize=(self.n * self.ion_chain_size_horizontal, self.m * self.ion_chain_size_vertical))
         nx.draw_networkx(
             self.networkx_graph,
             pos=pos,
@@ -410,8 +410,8 @@ class MemoryZone:
         )
 
         # precalulculate bfs for top left and exit
-        self.bfs_top_left = nx.edge_bfs(self.mz_graph, (0, 0))
-        self.bfs_exit = nx.edge_bfs(self.mz_graph, self.graph_creator.exit)
+        # self.bfs_top_left = nx.edge_bfs(self.mz_graph, (0, 0))
+        # self.bfs_exit = nx.edge_bfs(self.mz_graph, self.graph_creator.exit)
 
     # get edge idxs of ion chains
     def get_state_idxs(self):
@@ -676,27 +676,33 @@ class MemoryZone:
             nodes2 = get_circle_nodes(circle2)
 
             # following clause is only to allow some cases that the assert would stop
-            if (
-                len(nodes1) != 0
-                and len(nodes2) != 0
-                and get_idx_from_idc(self.idc_dict, circles_dict[circle1][-1])
-                != get_idx_from_idc(self.idc_dict, self.graph_creator.parking_edge)
-                and not (
-                    len(nodes1.intersection(nodes2).intersection(junction_nodes)) > 0
-                    and self.graph_creator.processing_zone not in nodes1.intersection(nodes2)
-                )
-                # added new clause that it is allowed if they block each other (this is the if statement below, that adds the circles to junction_shared_pairs and thus the first blocks the second)
-            ):
-                # assert that circles don't end in same edge (just sanity check at this point - exceptions are added in if clause above after being checked)
-                assert get_idx_from_idc(self.idc_dict, circles_dict[circle1][-1]) != (
-                    get_idx_from_idc(self.idc_dict, circles_dict[circle2][-1])
-                ), "circles end in same edge, was in if statement below as: or (get_idx_from_idc(self.idc_dict, circles_dict[circle1][-1]) == (get_idx_from_idc(self.idc_dict, circles_dict[circle2][-1]))), -> problem with circles: {}, {}".format(
-                    circles_dict[circle1], circles_dict[circle2]
-                )
+            # if (
+            #     len(nodes1) != 0
+            #     and len(nodes2) != 0
+            #     and get_idx_from_idc(self.idc_dict, circles_dict[circle1][-1])
+            #     != get_idx_from_idc(self.idc_dict, self.graph_creator.parking_edge)
+            #     and not (
+            #         len(nodes1.intersection(nodes2).intersection(junction_nodes)) > 0
+            #         and self.graph_creator.processing_zone not in nodes1.intersection(nodes2)
+            #     )
+            #     # added new clause that it is allowed if they block each other (this is the if statement below, that adds the circles to junction_shared_pairs and thus the first blocks the second)
+            # ):
+            #     # assert that circles don't end in same edge (just sanity check at this point - exceptions are added in if clause above after being checked)
+            #     assert get_idx_from_idc(self.idc_dict, circles_dict[circle1][-1]) != (
+            #         get_idx_from_idc(self.idc_dict, circles_dict[circle2][-1])
+            #     ), "circles end in same edge, was in if statement below as: or (get_idx_from_idc(self.idc_dict, circles_dict[circle1][-1]) == (get_idx_from_idc(self.idc_dict, circles_dict[circle2][-1]))), -> problem with circles: {}, {}".format(
+            #         circles_dict[circle1], circles_dict[circle2]
+            #     )
+
             # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)
-            if len(
-                nodes1.intersection(nodes2).intersection(junction_nodes)
-            ) > 0 and self.graph_creator.processing_zone not in nodes1.intersection(nodes2):
+            # extra: if both end in same edge -> don't execute (scenario where path out of pz ends in same edge as next edge for other)
+            if (
+                len(nodes1.intersection(nodes2).intersection(junction_nodes)) > 0
+                and self.graph_creator.processing_zone not in nodes1.intersection(nodes2)
+            ) or (
+                get_idx_from_idc(self.idc_dict, circles_dict[circle1][-1])
+                == (get_idx_from_idc(self.idc_dict, circles_dict[circle2][-1]))
+            ):
                 junction_shared_pairs.append((circle1, circle2))
 
         # free_circle_combs = [
