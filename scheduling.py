@@ -13,7 +13,7 @@ from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
 from Cycles import get_idc_from_idx, get_idx_from_idc
 
-save_plot = False
+save_plot = True
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
     run_folder = Path(f'plots/run_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
@@ -240,9 +240,6 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
             not memorygrid.check_if_edge_is_filled(next_edge)
             or get_idx_from_idc(memorygrid.idc_dict, edge_idc) in memorygrid.graph_creator.path_from_pz_idxs[:-1]
         ):
-            # print("edge_idc: ", edge_idc)
-            # print("next_edge: ", next_edge)
-            # print("next edge filled", memorygrid.check_if_edge_is_filled(next_edge))
             all_circles[rotate_chain] = [edge_idc, next_edge]
 
         # moves with circle
@@ -473,25 +470,18 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
         state_idxs = memorygrid.get_state_idxs()
         # assert check that each edge has only one chain (parking edge at most max parking)
         check_duplicates(state_idxs, memorygrid, memorygrid.graph_creator.parking_edge, memorygrid.max_num_parking)
-        # if timestep > 814:
-        #     print('state before preprocess: ', memorygrid.ion_chains)
         # preprocess (move chains within junctions)
         memorygrid = preprocess(memorygrid, flat_seq)
-        # if timestep > 814:
-        #     print('state after preprocess: ', memorygrid.ion_chains)
         # move list
         move_list = create_move_list(memorygrid, flat_seq, max_length)
-        # print("move_list: ", move_list)
         # memorygrid.state_idxs are updated in create_move_list
         # create circles for moves
         all_circles, rotate_entry, chain_to_move_out_of_pz = create_circles_for_moves(
             memorygrid, move_list, flat_seq, gate_execution_finished, new_gate_starting
         )
-        # print("all_circles: ", all_circles)
         new_gate_starting = False
         # find movable circles
         free_circle_seq_idxs = find_movable_circles(memorygrid, all_circles, move_list)
-        # print("free_circle_seq_idxs: ", free_circle_seq_idxs)
         # rotate free circles
         rotate_free_circles(memorygrid, all_circles, free_circle_seq_idxs, rotate_entry, chain_to_move_out_of_pz)
         # update sequence and process gate
@@ -521,4 +511,6 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
         if finished:
             return timestep
         timestep += 1
+
+        state_idxs = memorygrid.get_state_idxs()
     return None

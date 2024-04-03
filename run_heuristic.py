@@ -24,10 +24,10 @@ from scheduling import create_initial_sequence, create_starting_config, run_simu
 
 # archs =  [[2, 2, 1, 100]]#, [2, 2, 1, 11], [2, 2, 1, 19], [2, 2, 1, 29], [2, 2, 1, 100],
 archs = [
-    [4, 2, 1, 1],
-    [6, 2, 1, 1],
-    [8, 2, 1, 1],
-    [10, 2, 1, 1],
+    # [4, 2, 1, 1],
+    # [6, 2, 1, 1],
+    # [8, 2, 1, 1],
+    # [10, 2, 1, 1],
     [10, 2, 5, 5],  # [10, 2, 10, 10],
     [2, 4, 1, 1],
     [2, 6, 1, 1],
@@ -40,7 +40,7 @@ archs = [
     [6, 6, 1, 1],
     [10, 10, 1, 1],
 ]  # , [20, 20, 1, 1], [5, 5, 10, 10]]
-seeds = [0]
+seeds = [2]  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 compilation = True
 for arch in archs:
     timestep_arr = []
@@ -57,7 +57,7 @@ for arch in archs:
         ion_chains, number_of_registers = create_starting_config(num_ion_chains, graph, seed=seed)
 
         # filename = "QASM_files/GHZ/ghz_nativegates_quantinuum_tket_%s.qasm" % num_ion_chains #qft_%squbits.qasm" % num_ion_chains
-        filename = "QASM_files/Graph_state/graphstate_nativegates_quantinuum_tket_%s.qasm" % num_ion_chains
+        filename = "QASM_files/GHZ/ghz_nativegates_quantinuum_tket_%s.qasm" % num_ion_chains
         max_timesteps = 100000000
 
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
@@ -86,15 +86,20 @@ for arch in archs:
             memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10, show_plot=False
         )
         timestep_arr.append(timestep)
-        cpu_time_arr.append(time.time() - start_time)
+        cpu_time = time.time() - start_time
+        cpu_time_arr.append(cpu_time)
+
+        # Create a Path object for the file
+        file_path = Path("ghz_benchmark_results.txt")
+
+        with file_path.open("a") as file:
+            line = f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} {cpu_time} {timestep} \\\\"
+            file.write(line + "\n")
 
     timestep_mean = np.mean(timestep_arr)
     cpu_time_mean = np.mean(cpu_time_arr)
     # results[j] = timestep_mean
     # cpu_time_results[j] = cpu_time_mean
-
-    # Create a Path object for the file
-    file_path = Path("graph_state_benchmark_results.txt")
 
     # Open the file using the Path object
     with file_path.open("a") as file:

@@ -300,17 +300,17 @@ class GraphCreator:
                 colors.append((r, g, b))
             np.random.seed()
 
-            for i, ion_place in enumerate(ion_moves):
-                ion_edge_idc = get_idc_from_idx(self.idc_dict, ion_place)
-                try:
-                    ion_holder[ion_place].append(i)
-                except KeyError:
-                    ion_holder[ion_place] = [i]
-            for i, ion_place in enumerate(ion_moves):
-                ion_edge_idc = get_idc_from_idx(self.idc_dict, ion_place)
-                self.networkx_graph.add_edge(
-                    ion_edge_idc[0], ion_edge_idc[1], ion_chain=ion_holder[ion_place], color=colors[i]
-                )
+        for i, ion_place in enumerate(ion_moves):
+            ion_edge_idc = get_idc_from_idx(self.idc_dict, ion_place)
+            try:
+                ion_holder[ion_place].append(i)
+            except KeyError:
+                ion_holder[ion_place] = [i]
+        for i, ion_place in enumerate(ion_moves):
+            ion_edge_idc = get_idc_from_idx(self.idc_dict, ion_place)
+            self.networkx_graph.add_edge(
+                ion_edge_idc[0], ion_edge_idc[1], ion_chain=ion_holder[ion_place], color=colors[i]
+            )
 
         edge_color = nx.get_edge_attributes(self.networkx_graph, "color").values()
         node_color = list(nx.get_node_attributes(self.networkx_graph, "color").values())
