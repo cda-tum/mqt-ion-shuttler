@@ -2,6 +2,7 @@ venv/
 .venv/
 .idea/
 .ruff_cache/
+.DS_Store
 
 __pycache__/
 *.py[cod]
