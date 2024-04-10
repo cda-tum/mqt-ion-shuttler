@@ -42,7 +42,7 @@ def parse_qasm(filename):
             line = _line.strip()
 
             # Check if line represents a gate operation
-            if not line.startswith(("OPENQASM", "include", "qreg", "creg", "gate")):
+            if not line.startswith(("OPENQASM", "include", "qreg", "creg", "gate", "barrier", "measure")):
                 qubits = extract_qubits_from_gate(line)
                 if qubits:
                     gates_and_qubits.append(tuple(qubits))

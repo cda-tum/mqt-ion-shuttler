@@ -13,7 +13,7 @@ from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
 from Cycles import get_idc_from_idx, get_idx_from_idc
 
-save_plot = True
+save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
     run_folder = Path(f'plots/run_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
@@ -46,7 +46,7 @@ def create_starting_config(n_of_chains, graph, seed=None):
 
 
 def preprocess(memorygrid, sequence):
-    # TODO check if this is needed
+    # TODO check if this loop is needed (use unique_sequence instead of sequence now)
     # TODO combine with create_move_list? But max_length is different
     # unique sequence is sequence without repeating elements (for move_list and 2-qubit gates)
     unique_sequence = []
