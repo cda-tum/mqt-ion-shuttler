@@ -1,6 +1,4 @@
 import math
-import re
-from pathlib import Path
 
 from qiskit.dagcircuit import DAGDependency
 
@@ -11,42 +9,14 @@ def is_qasm_file(filename):
         return False
 
     try:
-        file_path = Path(filename)
-        with Path.open(file_path) as file:
-            # Read the first line of the file (7th line, specific to MQT Bench)
-            for _f in range(7):
-                first_line = file.readline()
+        with open(filename) as file:
+            # Read the first line of the file
+            first_line = file.readline()
             # Check if the first line contains the OPENQASM identifier
             return "OPENQASM" in first_line
     except OSError:
         # If the file cannot be opened, return False
         return False
-
-
-def extract_qubits_from_gate(gate_line):
-    """Extract qubit numbers from a gate operation line."""
-    # Regular expression to match qubits (assuming they are in the format q[<number>])
-    pattern = re.compile(r"q\[(\d+)\]")
-    matches = pattern.findall(gate_line)
-
-    # Convert matched qubit numbers to integers
-    return [int(match) for match in matches]
-
-
-def parse_qasm(filename):
-    """Parse a QASM file and return qubits used for each gate, preserving their order."""
-    gates_and_qubits = []
-
-    with Path.open(filename) as file:
-        for _line in file:
-            line = _line.strip()
-
-            # Check if line represents a gate operation
-            if not line.startswith(("OPENQASM", "include", "qreg", "creg", "gate", "barrier", "measure")):
-                qubits = extract_qubits_from_gate(line)
-                if qubits:
-                    gates_and_qubits.append(tuple(qubits))
-    return gates_and_qubits
 
 
 def get_front_layer(dag):
