@@ -1,11 +1,12 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-<a href="https://mqt.readthedocs.io">
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/mqt_light.png" width="60%">
-    <img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/mqt_dark.png" width="60%">
-  </picture>
+  <a href="https://mqt.readthedocs.io">
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/mqt_light.png" width="60%">
+     <img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/mqt_dark.png" width="60%">
+   </picture>
+  </a>
 </p>
 
 # MQT IonShuttler
@@ -60,17 +61,17 @@ Munich Quantum Valley, which is supported by the Bavarian state government with 
 
 <p align="center">
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/tum_dark.svg" width="28%">
-<img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/tum_light.svg" width="28%">
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/tum_dark.svg" width="28%">
+<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/tum_light.svg" width="28%" alt="TUM Logo">
 </picture>
 <picture>
-<img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/logo-bavaria.svg" width="16%">
+<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/logo-bavaria.svg" width="16%" alt="Coat of Arms of Bavaria">
 </picture>
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/erc_dark.svg" width="24%">
-<img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/erc_light.svg" width="24%">
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/erc_dark.svg" width="24%">
+<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/erc_light.svg" width="24%" alt="ERC Logo">
 </picture>
 <picture>
-<img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/source/_static/logo-mqv.svg" width="28%">
+<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/logo-mqv.svg" width="28%" alt="MQV Logo">
 </picture>
 </p>
