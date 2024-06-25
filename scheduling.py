@@ -354,8 +354,6 @@ def update_sequence_and_process_gate(
     plot_filename = Path(run_folder) / f"plot_{timestep:03d}.pdf"
 
     ######### UPDATE SEQUENCE / PROCESS GATE #########
-    gate = seq[0]
-    chains_in_parking = memorygrid.find_chains_in_parking()
     if sum((gate_element in chains_in_parking) for gate_element in gate) == len(gate):
         # new TODO use gate_execution_finished or not?
         gate_execution_finished = False
