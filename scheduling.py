@@ -12,6 +12,7 @@ from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 
 from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
 from Cycles import get_idc_from_idx, get_idx_from_idc
+from plotting import plot_state
 
 save_plot = False
 if save_plot:
@@ -360,7 +361,7 @@ def update_sequence_and_process_gate(
         gate_execution_finished = False
 
         time_in_pz_counter += 1
-        memorygrid.graph_creator.plot_state(
+        plot_state(memorygrid.graph,
             [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
             labels=[
                 "time step %s" % timestep,
@@ -417,7 +418,7 @@ def update_sequence_and_process_gate(
                 new_gate_starting = gate_element in chains_in_parking
 
     else:
-        memorygrid.graph_creator.plot_state(
+        plot_state(memorygrid.graph,
             [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
             labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
             show_plot=show_plot,
