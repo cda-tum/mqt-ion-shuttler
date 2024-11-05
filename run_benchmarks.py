@@ -27,14 +27,15 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         m, n, v, h = arch
         graph = GraphCreator(m, n, v, h, pz).get_graph()
         n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
-        num_ion_chains = math.ceil(n_of_traps / 2)
+        num_ion_chains = 24#math.ceil(n_of_traps / 2)
         
         try:
             ion_chains, number_of_registers = create_starting_config(num_ion_chains, graph, seed=seed)
         except:
             continue
-        
-        filename = f"QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
+        print(f"ion chains: {ion_chains}, number of registers: {number_of_registers}")
+        #filename = f"QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
+        filename = f"QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 
         time_2qubit_gate = 3
@@ -77,6 +78,7 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     timestep_var = np.var(timestep_arr)
     cpu_time_mean = np.mean(cpu_time_arr)
     print(cpu_time_mean)
+    print(f"timestep mean: {timestep_mean}, timestep var: {timestep_var}, cpu time mean: {cpu_time_mean}")
     
     # file_path = Path("results.txt")
     # try:
@@ -91,11 +93,11 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
 
 def main():
     archs = [
-        [10, 10, 1, 1],
+        [7, 7, 2, 2],
     ]
     seeds = [0]#, 1, 2, 3, 4]
     pz = 'outer'
-    max_timesteps = 100000000
+    max_timesteps = 10000000
 
     for arch in archs:
         timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(

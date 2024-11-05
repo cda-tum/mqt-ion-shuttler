@@ -3,7 +3,7 @@ import random
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-
+import time
 import networkx as nx
 import numpy as np
 from qiskit import QuantumCircuit
@@ -170,7 +170,7 @@ def create_initial_sequence(distance_map, filename, compilation):
 
 
 def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_finished, new_gate_starting):
-    ######### CREATE CIRCLES #########
+    # CREATE CIRCLES #
     ### create circles for all chains in move_list (dictionary with chain as key and circle_idcs as value)
     rotate_entry = False
     chain_to_park = memorygrid.find_chain_in_edge(memorygrid.graph_creator.path_to_pz[-1])
@@ -305,7 +305,7 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
 
 
 def find_movable_circles(memorygrid, all_circles, move_list):
-    ######### FIND CIRCLES THAT CAN MOVE #########
+    # FIND CIRCLES THAT CAN MOVE #
     # find circles that can move while first seq ion is moving
     nonfree_circles = memorygrid.find_nonfree_and_free_circle_idxs(all_circles)
     free_circle_seq_idxs = [move_list[0]]
@@ -321,7 +321,7 @@ def find_movable_circles(memorygrid, all_circles, move_list):
 
 
 def rotate_free_circles(memorygrid, all_circles, free_circle_seq_idxs, rotate_entry, chain_to_move_out_of_pz):
-    ######### ROTATE CIRCLES #########
+    # ROTATE CIRCLES #
     # need circles given in idxs for rotate function
     free_circle_idxs = {}
     for seq_idx in free_circle_seq_idxs:
@@ -353,30 +353,30 @@ def update_sequence_and_process_gate(
 
     plot_filename = Path(run_folder) / f"plot_{timestep:03d}.pdf"
 
-    ######### UPDATE SEQUENCE / PROCESS GATE #########
+    # UPDATE SEQUENCE / PROCESS GATE #
     if sum((gate_element in chains_in_parking) for gate_element in gate) == len(gate):
-        # new TODO use gate_execution_finished or not?
         gate_execution_finished = False
 
         time_in_pz_counter += 1
-        plot_state(memorygrid.graph,
-            [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
-            labels=[
-                "time step %s" % timestep,
-                f"seq elem {seq[0]} execution",
-            ],
-            show_plot=show_plot,
-            save_plot=save_plot,
-            filename=[plot_filename if save_plot else None][0],
-        )
-
-        print(f"time step: {timestep}, gate {seq[0]} is executed")
+        # plot_state(memorygrid.graph,
+        #     [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
+        #     labels=[
+        #         "time step %s" % timestep,
+        #         f"seq elem {seq[0]} execution",
+        #     ],
+        #     show_plot=show_plot,
+        #     save_plot=save_plot,
+        #     filename=[plot_filename if save_plot else None][0],
+        # )
+        
+        # print time step and gate (gate x out of y)
+        print(f"time step: {timestep}, gate ({memorygrid.seq_length-len(seq)+1}/{memorygrid.seq_length}) on qubit(s) {seq[0]} is executed")
         time_gate = memorygrid.time_2qubit_gate if next_gate_is_two_qubit_gate else memorygrid.time_1qubit_gate
 
         if time_in_pz_counter == time_gate:
-            ######### END IF SEQUENCE IS FINISHED #########
+            # END IF SEQUENCE IS FINISHED #
             if len(seq) == 1:
-                print("\nFull Sequence executed")
+                print("\nCircuit successfully executed in %s time steps." % timestep)
                 return (
                     True,
                     gate_execution_finished,
@@ -415,14 +415,14 @@ def update_sequence_and_process_gate(
             for gate_element in seq[0]:
                 new_gate_starting = gate_element in chains_in_parking
 
-    else:
-        plot_state(memorygrid.graph,
-            [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
-            labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
-            show_plot=show_plot,
-            save_plot=save_plot,
-            filename=[plot_filename if save_plot else None][0],
-        )
+    # else:
+    #     plot_state(memorygrid.graph,
+    #         [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
+    #         labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
+    #         show_plot=show_plot,
+    #         save_plot=save_plot,
+    #         filename=[plot_filename if save_plot else None][0],
+    #     )
 
     return (
         False,
@@ -461,14 +461,17 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
     new_gate_starting = False
     timestep = 0
     next_node = next_node_initial
+    
+    seq_length = len(seq)
+    memorygrid.seq_length = seq_length
+
     while timestep < max_timesteps:
-        print("timestep: ", timestep)
         rotate_entry = False
 
         # update state idxs
         state_idxs = memorygrid.get_state_idxs()
         # assert check that each edge has only one chain (parking edge at most max parking)
-        #check_duplicates(state_idxs, memorygrid, memorygrid.graph_creator.parking_edge, memorygrid.max_num_parking)
+        check_duplicates(state_idxs, memorygrid, memorygrid.graph_creator.parking_edge, memorygrid.max_num_parking)
         # preprocess (move chains within junctions)
         memorygrid = preprocess(memorygrid, flat_seq)
         # move list
