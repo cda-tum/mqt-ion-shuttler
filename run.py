@@ -6,7 +6,7 @@ import random
 import sys
 import time
 
-from Memory_grid import MemorySAT, create_graph
+from sat import MemorySAT, create_graph
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
