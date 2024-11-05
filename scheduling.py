@@ -370,7 +370,7 @@ def update_sequence_and_process_gate(
         # )
         
         # print time step and gate (gate x out of y)
-        print(f"time step: {timestep}, gate ({memorygrid.seq_length-len(seq)+1}/{memorygrid.seq_length}) on qubit(s) {seq[0]} is executed")
+        print(f"time step: {timestep}, execution of gate ({memorygrid.seq_length-len(seq)+1}/{memorygrid.seq_length}) on qubit(s) {seq[0]}")
         time_gate = memorygrid.time_2qubit_gate if next_gate_is_two_qubit_gate else memorygrid.time_1qubit_gate
 
         if time_in_pz_counter == time_gate:
