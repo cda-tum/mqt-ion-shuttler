@@ -14,7 +14,7 @@ from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, 
 from Cycles import get_idc_from_idx, get_idx_from_idc
 from plotting import plot_state
 
-save_plot = True
+save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
     run_folder = Path(f'plots/run_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
@@ -358,16 +358,16 @@ def update_sequence_and_process_gate(
         gate_execution_finished = False
 
         time_in_pz_counter += 1
-        plot_state(memorygrid.graph,
-            [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
-            labels=[
-                "time step %s" % timestep,
-                f"seq elem {seq[0]} execution",
-            ],
-            show_plot=show_plot,
-            save_plot=save_plot,
-            filename=[plot_filename if save_plot else None][0],
-        )
+        # plot_state(memorygrid.graph,
+        #     [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
+        #     labels=[
+        #         "time step %s" % timestep,
+        #         f"seq elem {seq[0]} execution",
+        #     ],
+        #     show_plot=show_plot,
+        #     save_plot=save_plot,
+        #     filename=[plot_filename if save_plot else None][0],
+        # )
         
         # print time step and gate (gate x out of y)
         print(f"time step: {timestep}, execution of gate ({memorygrid.seq_length-len(seq)+1}/{memorygrid.seq_length}) on qubit(s) {seq[0]}")
@@ -415,14 +415,14 @@ def update_sequence_and_process_gate(
             for gate_element in seq[0]:
                 new_gate_starting = gate_element in chains_in_parking
 
-    else:
-        plot_state(memorygrid.graph,
-            [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
-            labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
-            show_plot=show_plot,
-            save_plot=save_plot,
-            filename=[plot_filename if save_plot else None][0],
-        )
+    # else:
+    #     plot_state(memorygrid.graph,
+    #         [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
+    #         labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
+    #         show_plot=show_plot,
+    #         save_plot=save_plot,
+    #         filename=[plot_filename if save_plot else None][0],
+    #     )
 
     return (
         False,
