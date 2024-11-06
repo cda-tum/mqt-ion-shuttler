@@ -1,4 +1,3 @@
-import math
 import argparse
 import json
 import pathlib
