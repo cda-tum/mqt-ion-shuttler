@@ -44,7 +44,7 @@ $ . .venv/bin/activate
 (.venv) $ pip install .
 (.venv) $ python3 run_heuristic.py --help
 [...]
-(.venv) $ python3 run_heuristic.py algorithms_heuristic/qft_24.json
+(.venv) $ python3 run_heuristic.py algorithms_heuristic/qft_12.json
 ...
 ```
 
