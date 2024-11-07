@@ -8,3 +8,6 @@ __pycache__/
 *$py.class
 
 *.egg-info/
+
+# Ignore macOS system files
+.DS_Store
