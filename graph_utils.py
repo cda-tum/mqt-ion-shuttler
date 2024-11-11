@@ -93,6 +93,7 @@ class MZGraphCreator:
         if self.pz == 'mid':
             self._remove_mid_part(networkx_graph)
         nx.set_edge_attributes(networkx_graph, "trap", "edge_type")
+        self._remove_node(networkx_graph, (0, 0))
 
         return networkx_graph
 
@@ -133,6 +134,11 @@ class MZGraphCreator:
         for i in range(0, self.m_extended, self.ion_chain_size_vertical):
             for j in range(0, self.n_extended, self.ion_chain_size_horizontal):
                 networkx_graph.add_node((i, j), node_type="junction_node", color="g")
+
+    def _remove_node(self, networkx_graph, node):
+        networkx_graph.remove_node(node)
+        for edge in list(networkx_graph.edges(node)):
+            networkx_graph.remove_edge(*edge)  
 
     def get_graph(self):
         return self.networkx_graph
@@ -177,6 +183,7 @@ class GraphCreator:
             self._remove_mid_part(networkx_graph)
         nx.set_edge_attributes(networkx_graph, "trap", "edge_type")
         self._set_processing_zone(networkx_graph)
+        self._remove_node(networkx_graph, (0, 0))
 
         return networkx_graph
 
@@ -335,6 +342,11 @@ class GraphCreator:
         else:
             raise ValueError("pz must be 'mid' or 'outer'")
 
+    def _remove_node(self, networkx_graph, node):
+        networkx_graph.remove_node(node)
+        for edge in list(networkx_graph.edges(node)):
+            networkx_graph.remove_edge(*edge)            
+             
     def get_graph(self):
         return self.networkx_graph
 
