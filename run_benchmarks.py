@@ -27,7 +27,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         m, n, v, h = arch
         graph = GraphCreator(m, n, v, h, pz).get_graph()
         n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
-        num_ion_chains = 24#math.ceil(n_of_traps / 2)
+        num_ion_chains = math.ceil(n_of_traps / 2)
         
         try:
             ion_chains, number_of_registers = create_starting_config(num_ion_chains, graph, seed=seed)
@@ -38,7 +38,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         filename = f"QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 
-        time_2qubit_gate = 3
+        time_2qubit_gate = 1
         time_1qubit_gate = 1
         max_chains_in_parking = 3
 
@@ -80,16 +80,16 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     print(cpu_time_mean)
     print(f"timestep mean: {timestep_mean}, timestep var: {timestep_var}, cpu time mean: {cpu_time_mean}")
     
-    # file_path = Path("results.txt")
-    # try:
-    #     with file_path.open("a") as file:
-    #         line = (
-    #             f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} & {number_of_registers}/{n_of_traps} & {seq_length} "
-    #             f"& {timestep_mean} & {cpu_time_mean} s & Gate Selection={compilation} \\\\"
-    #         )
-    #         file.write(f"array ts: {timestep_arr}\n" + line + "\n\n")
-    # except:
-    #     pass
+    file_path = Path("results.txt")
+    try:
+        with file_path.open("a") as file:
+            line = (
+                f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} & {number_of_registers}/{n_of_traps} & {seq_length} "
+                f"& {timestep_mean} & {cpu_time_mean} s & Gate Selection={compilation} \\\\"
+            )
+            file.write(f"array ts: {timestep_arr}\n" + line + "\n\n")
+    except:
+        pass
 
 def main():
     archs = [
