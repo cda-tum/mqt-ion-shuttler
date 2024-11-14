@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-import numpy as np
 from more_itertools import distinct_combinations, pairwise
 from graph_utils import get_idc_from_idx, get_idx_from_idc, get_path_to_node, calc_dist_to_pz, order_edges, MZGraphCreator, GraphCreator
 
