@@ -34,8 +34,8 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         except:
             continue
         print(f"ion chains: {ion_chains}, number of registers: {number_of_registers}")
-        #filename = f"QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
-        filename = f"QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
+        filename = f"QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
+        #filename = f"QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 
         time_2qubit_gate = 1
@@ -52,8 +52,9 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
             memorygrid.distance_map, filename, compilation=compilation
         )
         seq_length = len(seq)
+        print(f"seq: {seq}")
         timestep = run_simulation(
-            memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10, show_plot=False
+            memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10
         )
         timestep_arr.append(timestep)
         cpu_time = time.time() - start_time
@@ -93,17 +94,18 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
 
 def main():
     archs = [
-        [7, 7, 2, 2],
+        [3, 3, 2, 2],
     ]
     seeds = [0]#, 1, 2, 3, 4]
     pz = 'outer'
     max_timesteps = 10000000
+    compilation = False
 
     for arch in archs:
         timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
-            arch, seeds, pz, max_timesteps, compilation=True
+            arch, seeds, pz, max_timesteps, compilation=compilation
         )
-        log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=True)
+        log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=compilation)
 
 if __name__ == "__main__":
     main()

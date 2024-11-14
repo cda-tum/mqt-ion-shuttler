@@ -14,6 +14,7 @@ from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, 
 from Cycles import get_idc_from_idx, get_idx_from_idc
 from plotting import plot_state
 
+show_plot = False
 save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
@@ -358,16 +359,16 @@ def update_sequence_and_process_gate(
         gate_execution_finished = False
 
         time_in_pz_counter += 1
-        # plot_state(memorygrid.graph,
-        #     [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
-        #     labels=[
-        #         "time step %s" % timestep,
-        #         f"seq elem {seq[0]} execution",
-        #     ],
-        #     show_plot=show_plot,
-        #     save_plot=save_plot,
-        #     filename=[plot_filename if save_plot else None][0],
-        # )
+        plot_state(memorygrid.graph,
+            [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
+            labels=[
+                "time step %s" % timestep,
+                f"seq elem {seq[0]} execution",
+            ],
+            show_plot=show_plot,
+            save_plot=save_plot,
+            filename=[plot_filename if save_plot else None][0],
+        )
         
         # print time step and gate (gate x out of y)
         print(f"time step: {timestep}, execution of gate ({memorygrid.seq_length-len(seq)+1}/{memorygrid.seq_length}) on qubit(s) {seq[0]}")
@@ -415,14 +416,14 @@ def update_sequence_and_process_gate(
             for gate_element in seq[0]:
                 new_gate_starting = gate_element in chains_in_parking
 
-    # else:
-    #     plot_state(memorygrid.graph,
-    #         [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
-    #         labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
-    #         show_plot=show_plot,
-    #         save_plot=save_plot,
-    #         filename=[plot_filename if save_plot else None][0],
-    #     )
+    else:
+        plot_state(memorygrid.graph,
+            [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
+            labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
+            show_plot=show_plot,
+            save_plot=save_plot,
+            filename=[plot_filename if save_plot else None][0],
+        )
 
     return (
         False,
@@ -454,7 +455,7 @@ def check_duplicates(lst, memorygrid, parking_idc, max_number_parking):
             raise AssertionError(message)
 
 
-def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length, show_plot):
+def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length):
     time_in_pz_counter = 0
     next_gate_is_two_qubit_gate = len(seq[0]) == 2
     gate_execution_finished = True

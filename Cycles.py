@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from more_itertools import distinct_combinations, pairwise
-from graph_utils import get_idc_from_idx, get_idx_from_idc, get_path_to_node, calc_dist_to_pz, MZGraphCreator, GraphCreator
+from graph_utils import get_idc_from_idx, get_idx_from_idc, get_path_to_node, calc_dist_to_pz, order_edges, MZGraphCreator, GraphCreator
 
 class MemoryZone:
     def __init__(
@@ -206,20 +206,7 @@ class MemoryZone:
         return get_idc_from_idx(self.idc_dict, next_edge_idx)
 
     def find_ordered_edges(self, edge1, edge2):
-        # Find the common node shared between the two edges
-        common_node = set(edge1).intersection(set(edge2))
-
-        if len(common_node) != 1 and edge1 != edge2:
-            msg = f"The input edges are not connected. Edges: {edge1}, {edge2}"
-            raise ValueError(msg)
-
-        common_node = common_node.pop()
-        if edge1[0] == common_node:
-            edge1_in_order = (edge1[1], common_node)
-            edge2_in_order = (common_node, edge2[1]) if edge2[0] == common_node else (common_node, edge2[0])
-        else:
-            edge1_in_order = (edge1[0], common_node)
-            edge2_in_order = (common_node, edge2[1]) if edge2[0] == common_node else (common_node, edge2[0])
+        edge1_in_order, edge2_in_order = order_edges(edge1, edge2)
 
         # new if same edge twice don't change order
         if get_idx_from_idc(self.idc_dict, edge1_in_order) == get_idx_from_idc(self.idc_dict, edge2_in_order):
@@ -245,6 +232,10 @@ class MemoryZone:
         return len(common_junction_nodes) == 1
 
     def create_outer_circle(self, edge_idc, next_edge, other_next_edges, towards=(0, 0)):
+        if towards == (0, 0):
+            # towards is first edge in graph (can't be (0,0) because it may be deleted)
+            towards = list(self.graph.edges())[0][0]
+
         # move from entry to memory zone
         if get_idx_from_idc(self.idc_dict, edge_idc) == get_idx_from_idc(
             self.idc_dict, self.graph_creator.entry_edge

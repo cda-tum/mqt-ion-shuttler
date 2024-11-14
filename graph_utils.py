@@ -1,5 +1,7 @@
 import networkx as nx
 from more_itertools import distinct_combinations, pairwise
+global delete_node
+delete_node = (3, 4)
 
 # create dictionary to swap from idx to idc and vice versa
 def create_idc_dictionary(nx_g):
@@ -15,6 +17,45 @@ def get_idx_from_idc(edge_dictionary, idc):
 def get_idc_from_idx(edge_dictionary, idx):
     return edge_dictionary[idx]
 
+def order_edges(edge1, edge2):
+    # Find the common node shared between the two edges
+    common_node = set(edge1).intersection(set(edge2))
+
+    if len(common_node) != 1 and edge1 != edge2:
+        msg = f"The input edges are not connected. Edges: {edge1}, {edge2}"
+        raise ValueError(msg)
+
+    common_node = common_node.pop()
+    if edge1[0] == common_node:
+        edge1_in_order = (edge1[1], common_node)
+        edge2_in_order = (common_node, edge2[1]) if edge2[0] == common_node else (common_node, edge2[0])
+    else:
+        edge1_in_order = (edge1[0], common_node)
+        edge2_in_order = (common_node, edge2[1]) if edge2[0] == common_node else (common_node, edge2[0])
+    
+    return edge1_in_order, edge2_in_order
+
+# def sort_edges_with_shared_node(edge1, edge2):
+#     # Extract the nodes from each edge
+#     nodes1 = set(edge1)
+#     nodes2 = set(edge2)
+    
+#     # Find the shared node
+#     shared_node = nodes1.intersection(nodes2)
+    
+#     # There should be exactly one shared node between the two edges
+#     if len(shared_node) != 1:
+#         raise ValueError("Edges do not share exactly one node")
+    
+#     shared_node = shared_node.pop()
+    
+#     # Determine the non-shared nodes in each edge
+#     node1 = (nodes1 - {shared_node}).pop()
+#     node2 = (nodes2 - {shared_node}).pop()
+    
+#     # Sort to ensure shared node is in the middle
+#     sorted_edges = ((node1, shared_node), (shared_node, node2))
+#     return sorted_edges
 
 def get_path_to_node(nx_g, src, tar, exclude_exit=False, exclude_first_entry_connection=True):
     edge_path = []
@@ -93,7 +134,7 @@ class MZGraphCreator:
         if self.pz == 'mid':
             self._remove_mid_part(networkx_graph)
         nx.set_edge_attributes(networkx_graph, "trap", "edge_type")
-        self._remove_node(networkx_graph, (0, 0))
+        self._delete_junction(networkx_graph, delete_node)
 
         return networkx_graph
 
@@ -135,10 +176,42 @@ class MZGraphCreator:
             for j in range(0, self.n_extended, self.ion_chain_size_horizontal):
                 networkx_graph.add_node((i, j), node_type="junction_node", color="g")
 
-    def _remove_node(self, networkx_graph, node):
-        networkx_graph.remove_node(node)
-        for edge in list(networkx_graph.edges(node)):
-            networkx_graph.remove_edge(*edge)  
+    # def _remove_node(self, networkx_graph, node):
+    #     networkx_graph.remove_node(node)
+    #     for edge in list(networkx_graph.edges(node)):
+    #         networkx_graph.remove_edge(*edge)  
+
+    def _delete_junction(self, networkx_graph, junction_node):
+        # # Helper function to traverse and delete edges until another junction
+        # def remove_edges_until_junction(current_node, previous_node):
+        #     for neighbor in list(networkx_graph.neighbors(current_node)):
+        #         print('neighbor', neighbor)
+        #         print('previous_node', previous_node)
+        #         # Skip the previous node to avoid looping back
+        #         if neighbor == previous_node:
+        #             continue
+                    
+        #         # Check if this neighbor is another junction
+        #         # if neighbor in junction_nodes:
+        #         if (
+        #         nx.get_node_attributes(networkx_graph, "node_type")[neighbor]
+        #         not in ("junction_node", "exit_node", "exit_connection_node", "entry_node", "entry_connection_node")
+        #         ):
+        #             print('continue') 
+        #             continue
+                
+        #         # Remove the edge to this neighbor
+        #         networkx_graph.remove_edge(current_node, neighbor)
+                
+        #         # Recursively remove edges from this neighbor
+        #         remove_edges_until_junction(neighbor, current_node)
+        
+        # # Traverse from each node connected to the deleted junction
+        # for neighbor in list(networkx_graph.neighbors(junction_node)):
+        #     remove_edges_until_junction(neighbor, None)
+
+        # Remove the junction node
+        networkx_graph.remove_node(junction_node)
 
     def get_graph(self):
         return self.networkx_graph
@@ -183,7 +256,7 @@ class GraphCreator:
             self._remove_mid_part(networkx_graph)
         nx.set_edge_attributes(networkx_graph, "trap", "edge_type")
         self._set_processing_zone(networkx_graph)
-        self._remove_node(networkx_graph, (0, 0))
+        self._delete_junction(networkx_graph, delete_node)
 
         return networkx_graph
 
@@ -342,10 +415,40 @@ class GraphCreator:
         else:
             raise ValueError("pz must be 'mid' or 'outer'")
 
-    def _remove_node(self, networkx_graph, node):
-        networkx_graph.remove_node(node)
-        for edge in list(networkx_graph.edges(node)):
-            networkx_graph.remove_edge(*edge)            
+    # def _remove_node(self, networkx_graph, node):
+    #     networkx_graph.remove_node(node)
+    #     for edge in list(networkx_graph.edges(node)):
+    #         networkx_graph.remove_edge(*edge)         
+
+    def _delete_junction(self, networkx_graph, junction_node):        
+        # # Helper function to traverse and delete edges until another junction
+        # def remove_edges_until_junction(current_node, previous_node):
+        #     for neighbor in list(networkx_graph.neighbors(current_node)):
+        #         # Skip the previous node to avoid looping back
+        #         if neighbor == previous_node:
+        #             continue
+                    
+        #         # Check if this neighbor is another junction
+        #         # if neighbor in junction_nodes:
+        #         if (
+        #         nx.get_node_attributes(networkx_graph, "node_type")[neighbor]
+        #         not in ("junction_node", "exit_node", "exit_connection_node", "entry_node", "entry_connection_node")
+        #         ):
+        #              continue
+                
+        #         # Remove the edge to this neighbor
+        #         networkx_graph.remove_edge(current_node, neighbor)
+                
+        #         # Recursively remove edges from this neighbor
+        #         remove_edges_until_junction(neighbor, current_node)
+        
+        # # Traverse from each node connected to the deleted junction
+        # for neighbor in list(networkx_graph.neighbors(junction_node)):
+        #     remove_edges_until_junction(neighbor, None)
+
+        # Remove the junction node
+        networkx_graph.remove_node(junction_node)
+   
              
     def get_graph(self):
         return self.networkx_graph
@@ -353,28 +456,30 @@ class GraphCreator:
 
     def find_connected_edges(self):
         connected_edge_pairs = set()
-        
         for edge in self.networkx_graph.edges():
             node1, node2 = edge
             # Find edges connected to node1
             for neighbor in self.networkx_graph.neighbors(node1):
                 if neighbor != node2:  # avoid the original edge
-                    connected_edge_pairs.add(tuple(sorted([edge, (node1, neighbor)])))
+                    edge_pair = tuple(sorted([edge, (node1, neighbor)]))
+                    connected_edge_pairs.add(edge_pair)
             # Find edges connected to node2
             for neighbor in self.networkx_graph.neighbors(node2):
                 if neighbor != node1:  # avoid the original edge
-                    connected_edge_pairs.add(tuple(sorted([edge, (node2, neighbor)])))
-
+                    edge_pair = tuple(sorted([edge, (node2, neighbor)]))
+                    connected_edge_pairs.add(edge_pair)
+        # order edges (also include reverse order -> opposite direction moves are now needed if a junction fails)
+        connected_edge_pairs = [order_edges(edge_pair[0], edge_pair[1]) for edge_pair in connected_edge_pairs] + [order_edges(edge_pair[1], edge_pair[0]) for edge_pair in connected_edge_pairs]
         # Convert set of tuples to a list of lists
         connected_edge_pairs = [list(pair) for pair in connected_edge_pairs]
 
         return connected_edge_pairs
 
-    # Example of how to call this method
-    def print_connected_edges(self):
-        connected_edges = self.find_connected_edges()
-        for edge_pair in connected_edges:
-            print(edge_pair)
+    # # Example of how to call this method
+    # def print_connected_edges(self):
+    #     connected_edges = self.find_connected_edges()
+    #     for edge_pair in connected_edges:
+    #         print(edge_pair)
 
 # gc = GraphCreator(m=3, n=3, ion_chain_size_vertical=2, ion_chain_size_horizontal=2, pz='mid')
 # gc.print_connected_edges()
