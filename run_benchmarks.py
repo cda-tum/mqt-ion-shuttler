@@ -81,16 +81,16 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     print(cpu_time_mean)
     print(f"timestep mean: {timestep_mean}, timestep var: {timestep_var}, cpu time mean: {cpu_time_mean}")
     
-    file_path = Path("results.txt")
-    try:
-        with file_path.open("a") as file:
-            line = (
-                f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} & {number_of_registers}/{n_of_traps} & {seq_length} "
-                f"& {timestep_mean} & {cpu_time_mean} s & Gate Selection={compilation} \\\\"
-            )
-            file.write(f"array ts: {timestep_arr}\n" + line + "\n\n")
-    except:
-        pass
+    # file_path = Path("results.txt")
+    # try:
+    #     with file_path.open("a") as file:
+    #         line = (
+    #             f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} & {number_of_registers}/{n_of_traps} & {seq_length} "
+    #             f"& {timestep_mean} & {cpu_time_mean} s & Gate Selection={compilation} \\\\"
+    #         )
+    #         file.write(f"array ts: {timestep_arr}\n" + line + "\n\n")
+    # except:
+    #     pass
 
 def main():
     archs = [
