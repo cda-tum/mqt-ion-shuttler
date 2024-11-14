@@ -45,7 +45,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, time_1qubit_
             memorygrid.distance_map, filename, compilation=compilation
         )
         timestep = run_simulation(
-            memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10, show_plot=False
+            memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10
         )
         timestep_arr.append(timestep)
         cpu_time = time.time() - start_time
