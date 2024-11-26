@@ -14,7 +14,7 @@ from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, 
 from Cycles import get_idc_from_idx, get_idx_from_idc
 from plotting import plot_state
 
-show_plot = False
+show_plot = True
 save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
@@ -95,7 +95,7 @@ def create_move_list(memorygrid, sequence, max_length=10):
         path_to_go = nx.shortest_path(
             memorygrid.graph,
             edge_idc[0],
-            memorygrid.graph_creator.processing_zone,
+            memorygrid.pzgraph_creator.processing_zone,
             lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] == "first_entry_connection") * 1e8 + 1,
         )
         path_length_sequence[rotate_chain] = len(path_to_go)
@@ -107,7 +107,7 @@ def create_move_list(memorygrid, sequence, max_length=10):
             move_list.append(rotate_chain)
 
     # # add exit edges (needed in rare cases, when chain was moved into exit but dag dependency changed right after that -> chain is in exit but not in move sequence)
-    # for exit_connection_idc in memorygrid.graph_creator.path_to_pz:
+    # for exit_connection_idc in memorygrid.pzgraph_creator.path_to_pz:
     #     ion = memorygrid.find_chain_in_edge(exit_connection_idc)
     #     if ion is not None and ion not in move_list:
     #         move_list.insert(0, ion)
@@ -116,7 +116,7 @@ def create_move_list(memorygrid, sequence, max_length=10):
     # -> overwrote other chain in exit connection which was still in move list but now later than the one that was inserted in front
     chains_in_exit_connections = []
     for ion, chain_edge_idx in enumerate(memorygrid.get_state_idxs()):
-        if chain_edge_idx in memorygrid.graph_creator.path_to_pz_idxs:
+        if chain_edge_idx in memorygrid.pzgraph_creator.path_to_pz_idxs:
             chains_in_exit_connections.insert(0, ion)
 
     if len(chains_in_exit_connections) > 0:
@@ -129,8 +129,8 @@ def create_move_list(memorygrid, sequence, max_length=10):
     # chain in entry must move out
     chains_in_entry_connections = []
     for ion, chain_edge_idx in enumerate(memorygrid.get_state_idxs()):
-        if chain_edge_idx in memorygrid.graph_creator.path_from_pz_idxs:
-            if chain_edge_idx == get_idx_from_idc(memorygrid.idc_dict, memorygrid.graph_creator.entry_edge):
+        if chain_edge_idx in memorygrid.pzgraph_creator.path_from_pz_idxs:
+            if chain_edge_idx == get_idx_from_idc(memorygrid.idc_dict, memorygrid.pzgraph_creator.entry_edge):
                 # place chain in entry at the end of move_list -> so later looping over list leads to chain in entry being first
                 chains_in_entry_connections.append(ion)
             else:
@@ -174,7 +174,7 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
     # CREATE CIRCLES #
     ### create circles for all chains in move_list (dictionary with chain as key and circle_idcs as value)
     rotate_entry = False
-    chain_to_park = memorygrid.find_chain_in_edge(memorygrid.graph_creator.path_to_pz[-1])
+    chain_to_park = memorygrid.find_chain_in_edge(memorygrid.pzgraph_creator.path_to_pz[-1])
     chain_to_move_out_of_pz = None
     if memorygrid.count_chains_in_parking() < memorygrid.max_num_parking or gate_execution_finished:
         parking_open = True
@@ -200,8 +200,8 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
 
         # moves in pz
         if get_idx_from_idc(memorygrid.idc_dict, next_edge) in [
-            *memorygrid.graph_creator.path_to_pz_idxs,
-            get_idx_from_idc(memorygrid.idc_dict, memorygrid.graph_creator.parking_edge),
+            *memorygrid.pzgraph_creator.path_to_pz_idxs,
+            get_idx_from_idc(memorygrid.idc_dict, memorygrid.pzgraph_creator.parking_edge),
         ]:
             in_and_into_exit_moves[rotate_chain] = edge_idc
             all_circles[rotate_chain] = [edge_idc, next_edge]
@@ -209,8 +209,8 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
             if (
                 #     get_idx_from_idc(memorygrid.idc_dict, next_edge)
                 #     in [
-                #         *memorygrid.graph_creator.path_to_pz_idxs,
-                #         get_idx_from_idc(memorygrid.idc_dict, memorygrid.graph_creator.parking_edge),
+                #         *memorygrid.pzgraph_creator.path_to_pz_idxs,
+                #         get_idx_from_idc(memorygrid.idc_dict, memorygrid.pzgraph_creator.parking_edge),
                 #     ]
                 #     and
                 parking_open
@@ -240,7 +240,7 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
         # also if chain is moving out of entry connections (entry is handled in create_outer_circle)
         elif (
             not memorygrid.check_if_edge_is_filled(next_edge)
-            or get_idx_from_idc(memorygrid.idc_dict, edge_idc) in memorygrid.graph_creator.path_from_pz_idxs[:-1]
+            or get_idx_from_idc(memorygrid.idc_dict, edge_idc) in memorygrid.pzgraph_creator.path_from_pz_idxs[:-1]
         ):
             all_circles[rotate_chain] = [edge_idc, next_edge]
 
@@ -265,8 +265,8 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
                 rotate_entry = True
                 # change its path/circle to a stop move -> will be later placed into entry
                 all_circles[chain_to_move_out_of_pz] = [
-                    memorygrid.graph_creator.path_from_pz[0],
-                    memorygrid.graph_creator.path_from_pz[0],
+                    memorygrid.pzgraph_creator.path_from_pz[0],
+                    memorygrid.pzgraph_creator.path_from_pz[0],
                 ]
 
             # else -> chain_to_park not needed right now
@@ -277,8 +277,8 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
                     all_circles[chain] = [edge_idc, edge_idc]
                 # maybe already covered above
                 all_circles[chain_to_move_out_of_pz] = (
-                    memorygrid.graph_creator.path_to_pz[-1],
-                    memorygrid.graph_creator.path_to_pz[-1],
+                    memorygrid.pzgraph_creator.path_to_pz[-1],
+                    memorygrid.pzgraph_creator.path_to_pz[-1],
                 )
             # else -> no new gate possible with only parking chains
             # -> but also chain can't move to parking since it is least important
@@ -287,8 +287,8 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
                 rotate_entry = True
                 # change its path/circle to a stop move -> will be later placed into entry
                 all_circles[chain_to_move_out_of_pz] = [
-                    memorygrid.graph_creator.path_from_pz[0],
-                    memorygrid.graph_creator.path_from_pz[0],
+                    memorygrid.pzgraph_creator.path_from_pz[0],
+                    memorygrid.pzgraph_creator.path_from_pz[0],
                 ]
         else:
             # else bring everything to a stop in exit
@@ -298,8 +298,8 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
 
             # maybe already covered above
             # all_circles[chain_to_move_out_of_pz] = (
-            #     memorygrid.graph_creator.path_to_pz[-1],
-            #     memorygrid.graph_creator.path_to_pz[-1],
+            #     memorygrid.pzgraph_creator.path_to_pz[-1],
+            #     memorygrid.pzgraph_creator.path_to_pz[-1],
             # )
 
     return all_circles, rotate_entry, chain_to_move_out_of_pz
@@ -332,7 +332,7 @@ def rotate_free_circles(memorygrid, all_circles, free_circle_seq_idxs, rotate_en
         # rotate chains
         _new_state_dict = memorygrid.rotate(free_circle_idxs[seq_idx])
     if rotate_entry:
-        memorygrid.ion_chains[chain_to_move_out_of_pz] = memorygrid.graph_creator.path_from_pz[0]
+        memorygrid.ion_chains[chain_to_move_out_of_pz] = memorygrid.pzgraph_creator.path_from_pz[0]
 
 
 def update_sequence_and_process_gate(
@@ -472,7 +472,7 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
         # update state idxs
         state_idxs = memorygrid.get_state_idxs()
         # assert check that each edge has only one chain (parking edge at most max parking)
-        check_duplicates(state_idxs, memorygrid, memorygrid.graph_creator.parking_edge, memorygrid.max_num_parking)
+        check_duplicates(state_idxs, memorygrid, memorygrid.pzgraph_creator.parking_edge, memorygrid.max_num_parking)
         # preprocess (move chains within junctions)
         memorygrid = preprocess(memorygrid, flat_seq)
         # move list

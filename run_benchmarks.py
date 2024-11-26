@@ -2,10 +2,10 @@ import math
 import time
 from pathlib import Path
 import numpy as np
-from Cycles import GraphCreator, MemoryZone
+from Cycles_new import BaseGraphCreator, PZGraphCreator, MemoryZone
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
 
-def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=True):
+def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junctions, compilation=True):
     """
     Runs simulations for the given architecture and seeds, logs the results.
 
@@ -25,7 +25,10 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
 
     for seed in seeds:
         m, n, v, h = arch
-        graph = GraphCreator(m, n, v, h, pz).get_graph()
+        basegraph_creator = BaseGraphCreator(m, n, v, h, pz, failing_junctions)
+        MZ_graph = basegraph_creator.get_graph()
+        pzgraph_creator = PZGraphCreator(m, n, v, h, pz, failing_junctions)
+        graph = pzgraph_creator.get_graph()
         n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
         num_ion_chains = math.ceil(n_of_traps / 2)
         
@@ -43,7 +46,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         max_chains_in_parking = 3
 
         memorygrid = MemoryZone(
-            m, n, v, h, ion_chains, max_timesteps, max_chains_in_parking, pz,
+            pzgraph_creator, MZ_graph, ion_chains, max_timesteps, max_chains_in_parking,
             time_2qubit_gate=time_2qubit_gate, time_1qubit_gate=time_1qubit_gate
         )
 
@@ -100,10 +103,10 @@ def main():
     pz = 'outer'
     max_timesteps = 10000000
     compilation = False
-
+    failing_junctions = 2
     for arch in archs:
         timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
-            arch, seeds, pz, max_timesteps, compilation=compilation
+            arch, seeds, pz, max_timesteps, failing_junctions, compilation=compilation
         )
         log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=compilation)
 
