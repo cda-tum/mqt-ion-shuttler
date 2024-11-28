@@ -14,7 +14,10 @@ from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, 
 from Cycles import get_idc_from_idx, get_idx_from_idc
 from plotting import plot_state
 
-show_plot = True
+global paths
+paths = True
+
+show_plot = False
 save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
@@ -246,9 +249,12 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
 
         # moves with circle
         else:
-            # create circle (deleted in create_outer_circle: in parking circle is a "stop move")
-            all_circles[rotate_chain] = memorygrid.create_outer_circle(edge_idc, next_edge, next_edges.values())
-
+            if paths == True:
+                all_circles[rotate_chain] = memorygrid.create_path_via_bfs_directional(edge_idc, next_edge, next_edges.values())
+            else:
+                # create circle (deleted in create_outer_circle: in parking circle is a "stop move")
+                all_circles[rotate_chain] = memorygrid.create_outer_circle(edge_idc, next_edge, next_edges.values())
+    
     # move chain out of parking edge if needed
     chains_in_parking = memorygrid.find_chains_in_parking()
 
@@ -308,7 +314,10 @@ def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_fin
 def find_movable_circles(memorygrid, all_circles, move_list):
     # FIND CIRCLES THAT CAN MOVE #
     # find circles that can move while first seq ion is moving
-    nonfree_circles = memorygrid.find_nonfree_and_free_circle_idxs(all_circles)
+    if paths == True:
+        nonfree_circles = memorygrid.find_nonfree_paths(all_circles)
+    else:
+        nonfree_circles = memorygrid.find_nonfree_and_free_circle_idxs(all_circles)
     free_circle_seq_idxs = [move_list[0]]
     for seq_circ in move_list[1:]:
         nonfree = False

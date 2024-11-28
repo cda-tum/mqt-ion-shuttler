@@ -49,7 +49,7 @@ def plot_state(graph, ion_moves, labels, plot_ions=True, show_plot=False, save_p
     edge_labels = nx.get_edge_attributes(graph, "ion_chain")
 
     # plt.figure(figsize=(25, 15))
-    plt.figure(figsize=(max(pos.keys())[0]*3, max(pos.keys())[1]*3))#self.n * self.ion_chain_size_horizontal, self.m * self.ion_chain_size_vertical))
+    plt.figure(figsize=(max(pos.keys())[0]*2, max(pos.keys())[1]*2))#self.n * self.ion_chain_size_horizontal, self.m * self.ion_chain_size_vertical))
     nx.draw_networkx(
         graph,
         pos=pos,

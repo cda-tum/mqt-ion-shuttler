@@ -97,13 +97,13 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
 
 def main():
     archs = [
-        [3, 3, 2, 2],
+        [4, 4, 2, 2],
     ]
-    seeds = [0]#, 1, 2, 3, 4]
+    seeds = [1]#, 1, 2, 3, 4]
     pz = 'outer'
     max_timesteps = 10000000
     compilation = False
-    failing_junctions = 2
+    failing_junctions = 0
     for arch in archs:
         timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
             arch, seeds, pz, max_timesteps, failing_junctions, compilation=compilation
