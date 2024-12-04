@@ -11,13 +11,13 @@ from qiskit.converters import circuit_to_dagdependency
 from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 
 from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
-from Cycles import get_idc_from_idx, get_idx_from_idc
+from Cycles_new import get_idc_from_idx, get_idx_from_idc
 from plotting import plot_state
 
 global paths
 paths = True
 
-show_plot = False
+show_plot = True
 save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
@@ -174,8 +174,8 @@ def create_initial_sequence(distance_map, filename, compilation):
 
 
 def create_circles_for_moves(memorygrid, move_list, flat_seq, gate_execution_finished, new_gate_starting):
-    # CREATE CIRCLES #
-    ### create circles for all chains in move_list (dictionary with chain as key and circle_idcs as value)
+    # CREATE CIRCLES OR PATHS #
+    # create for all chains in move_list (dictionary with chain as key and circle_idcs as value)
     rotate_entry = False
     chain_to_park = memorygrid.find_chain_in_edge(memorygrid.pzgraph_creator.path_to_pz[-1])
     chain_to_move_out_of_pz = None
@@ -491,6 +491,7 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
         all_circles, rotate_entry, chain_to_move_out_of_pz = create_circles_for_moves(
             memorygrid, move_list, flat_seq, gate_execution_finished, new_gate_starting
         )
+        print('all_circles: ', all_circles)
         new_gate_starting = False
         # find movable circles
         free_circle_seq_idxs = find_movable_circles(memorygrid, all_circles, move_list)

@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 
-from graph_utils import get_idc_from_idx, get_idx_from_idc, create_idc_dictionary
+from graph_utils_new import get_idc_from_idx, get_idx_from_idc, create_idc_dictionary
 
 # plotting
 def plot_state(graph, ion_moves, labels, plot_ions=True, show_plot=False, save_plot=False, filename=""):

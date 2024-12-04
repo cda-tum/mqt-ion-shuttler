@@ -30,7 +30,9 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
         pzgraph_creator = PZGraphCreator(m, n, v, h, pz, failing_junctions)
         graph = pzgraph_creator.get_graph()
         n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
-        num_ion_chains = math.ceil(n_of_traps / 2)
+        # num_ion_chains = math.ceil(n_of_traps / 2)
+        num_ion_chains = math.ceil(((arch[0]-1)*arch[1]*arch[2] + (arch[1]-1)*arch[0]*arch[3]) / 2)
+
         
         try:
             ion_chains, number_of_registers = create_starting_config(num_ion_chains, graph, seed=seed)
@@ -84,26 +86,34 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     print(cpu_time_mean)
     print(f"timestep mean: {timestep_mean}, timestep var: {timestep_var}, cpu time mean: {cpu_time_mean}")
     
-    # file_path = Path("results.txt")
-    # try:
-    #     with file_path.open("a") as file:
-    #         line = (
-    #             f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} & {number_of_registers}/{n_of_traps} & {seq_length} "
-    #             f"& {timestep_mean} & {cpu_time_mean} s & Gate Selection={compilation} \\\\"
-    #         )
-    #         file.write(f"array ts: {timestep_arr}\n" + line + "\n\n")
-    # except:
-    #     pass
+    file_path = Path("paths_junctions_4jct.txt")
+    try:
+        with file_path.open("a") as file:
+            line = (
+                f"& {arch[0]} {arch[1]} {arch[2]} {arch[3]} & {number_of_registers}/{n_of_traps} & {seq_length} "
+                f"& {timestep_mean} & {cpu_time_mean} s & Gate Selection={compilation} \\\\"
+            )
+            file.write(f"array ts: {timestep_arr}\n" + line + "\n\n")
+    except:
+        pass
 
 def main():
     archs = [
-        [4, 4, 2, 2],
+        # [2, 2, 1, 5],
+        # [2, 2, 1, 11],
+        # [2, 2, 1, 29],
+        # [2, 2, 1, 39],
+        #[4, 4, 1, 1],
+        [5, 5, 1, 1],
+        [6, 6, 1, 1],
+        [10, 10, 1, 1],
+        #[4, 4, 2, 2],
     ]
-    seeds = [1]#, 1, 2, 3, 4]
+    seeds = [0, 1, 2, 3, 4]
     pz = 'outer'
-    max_timesteps = 10000000
+    max_timesteps = 100000000
     compilation = False
-    failing_junctions = 0
+    failing_junctions = 4
     for arch in archs:
         timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
             arch, seeds, pz, max_timesteps, failing_junctions, compilation=compilation

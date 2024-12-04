@@ -64,7 +64,6 @@ class MemoryZone:
         self.path_entry_to_exit = get_path_to_node(
             self.graph, self.pzgraph_creator.entry, self.pzgraph_creator.exit, exclude_first_entry_connection=True
         )
-
         # precalulculate bfs for top left and exit
         # self.bfs_top_left = nx.edge_bfs(self.mz_graph, (0, 0))
         # self.bfs_exit = nx.edge_bfs(self.mz_graph, self.pzgraph_creator.exit)
@@ -151,9 +150,12 @@ class MemoryZone:
         if get_idx_from_idc(self.idc_dict, edge_idc) == get_idx_from_idc(self.idc_dict, self.pzgraph_creator.entry_edge):
             if towards == (0, 0):
                 next_edge = next(
-                    edge
-                    for edge in self.graph.edges(self.pzgraph_creator.entry)
-                    if edge not in (self.pzgraph_creator.entry_edge, self.path_entry_to_exit[0])
+                    (
+                        edge
+                        for edge in self.graph.edges(self.pzgraph_creator.entry)
+                        if edge not in (self.pzgraph_creator.entry_edge, self.path_entry_to_exit[0])
+                    ),
+                    self.path_entry_to_exit[0]  # Default value if no valid edge is found
                 )
             elif towards == "exit":
                 next_edge = self.path_entry_to_exit[0]
@@ -479,7 +481,9 @@ class MemoryZone:
             visited.add(current_node)
             
             # Explore neighbors
-            for neighbor in [node for node in self.mz_graph.neighbors(current_node) if node not in visited]:
+            # not already visited and not entry as goal (can't enter via entry)
+            for neighbor in [node for node in self.graph.neighbors(current_node) if node not in visited and nx.get_node_attributes(self.graph, "node_type")[node]
+                not in ("entry_connection_node")]:
                 edge = (current_node, neighbor)
 
                 # Check if the edge is free
@@ -507,9 +511,9 @@ class MemoryZone:
         # Compare every pair of paths to check for common edges (with edge_IDX)
         for path_ion_1, path_ion_2 in combinations_of_paths:
             intersection = paths_idxs_dict[path_ion_1].intersection(paths_idxs_dict[path_ion_2])
-            # Skip if the intersection is the exit edge -> allows ions to move to exit right after another ion
-            # remove exit edges from intersection -> can push through to parking edge -> conflicts are managed in scheduling.py - create_circles_for_moves()
-            intersection = set(edge for edge in intersection if self.graph.get_edge_data(*get_idc_from_idx(self.idc_dict, edge))["edge_type"] not in ["first_exit_connection", "exit"])
+            # Skip if the intersection is the exit or entry edge -> allows ions to move to exit and entry right after another ion
+            # remove exit and entry edges from intersection -> can push through to parking edge -> conflicts are managed in scheduling.py - create_circles_for_moves()
+            intersection = set(edge for edge in intersection if self.graph.get_edge_data(*get_idc_from_idx(self.idc_dict, edge))["edge_type"] not in ["exit", "entry", "first_entry_connection"])
 
             # Store the common edges and the conflicting paths
             if intersection:
