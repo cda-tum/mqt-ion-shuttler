@@ -2,6 +2,7 @@ import math
 import time
 from pathlib import Path
 import numpy as np
+import networkx as nx
 from Cycles_new import BaseGraphCreator, PZGraphCreator, MemoryZone
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
 
@@ -22,13 +23,21 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
     timestep_arr = []
     cpu_time_arr = []
     start_time = time.time()
-
+    flag_seed = 0
     for seed in seeds:
         m, n, v, h = arch
         basegraph_creator = BaseGraphCreator(m, n, v, h, pz, failing_junctions)
-        MZ_graph = basegraph_creator.get_graph()
+        MZ_graph = basegraph_creator.get_graph()        
         pzgraph_creator = PZGraphCreator(m, n, v, h, pz, failing_junctions)
         graph = pzgraph_creator.get_graph()
+
+        try:
+            for node in MZ_graph.nodes():
+                nx.shortest_path(MZ_graph, node, pzgraph_creator.exit)
+        except:
+            print('skipped architecture for seed', seed)
+            continue
+        
         n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
         # num_ion_chains = math.ceil(n_of_traps / 2)
         num_ion_chains = math.ceil(((arch[0]-1)*arch[1]*arch[2] + (arch[1]-1)*arch[0]*arch[3]) / 2)
@@ -65,6 +74,10 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
         cpu_time = time.time() - start_time
         cpu_time_arr.append(cpu_time)
 
+        flag_seed += 1
+        if flag_seed == 5:
+            break
+
     return timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length
 
 def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=True):
@@ -86,7 +99,7 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     print(cpu_time_mean)
     print(f"timestep mean: {timestep_mean}, timestep var: {timestep_var}, cpu time mean: {cpu_time_mean}")
     
-    file_path = Path("paths_junctions_4jct.txt")
+    file_path = Path("paths_junctions_7jct.txt")
     try:
         with file_path.open("a") as file:
             line = (
@@ -103,22 +116,28 @@ def main():
         # [2, 2, 1, 11],
         # [2, 2, 1, 29],
         # [2, 2, 1, 39],
+        
         #[4, 4, 1, 1],
-        [5, 5, 1, 1],
+        #[5, 5, 1, 1],
         [6, 6, 1, 1],
-        [10, 10, 1, 1],
+        #[10, 10, 1, 1],
+        
         #[4, 4, 2, 2],
     ]
-    seeds = [0, 1, 2, 3, 4]
+    seeds = [3]#range(0, 99)
     pz = 'outer'
     max_timesteps = 100000000
     compilation = False
-    failing_junctions = 4
+    failing_junctions = 7
     for arch in archs:
-        timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
+        try:
+            timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
             arch, seeds, pz, max_timesteps, failing_junctions, compilation=compilation
-        )
-        log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=compilation)
+            )
+            log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=compilation)
+        except:
+            print('skipped all seeds for architecture', arch)
+            continue
 
 if __name__ == "__main__":
     main()

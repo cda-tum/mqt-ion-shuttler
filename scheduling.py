@@ -17,8 +17,8 @@ from plotting import plot_state
 global paths
 paths = True
 
-show_plot = True
-save_plot = False
+show_plot = False
+save_plot = True
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
     run_folder = Path(f'plots/run_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
@@ -491,7 +491,6 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
         all_circles, rotate_entry, chain_to_move_out_of_pz = create_circles_for_moves(
             memorygrid, move_list, flat_seq, gate_execution_finished, new_gate_starting
         )
-        print('all_circles: ', all_circles)
         new_gate_starting = False
         # find movable circles
         free_circle_seq_idxs = find_movable_circles(memorygrid, all_circles, move_list)
