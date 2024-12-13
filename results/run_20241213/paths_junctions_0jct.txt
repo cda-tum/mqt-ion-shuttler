@@ -1,0 +1,18 @@
+array ts: [22, 24, 27, 25, 22]
+& 4 4 1 1 & 12/24 & 12 & 24.0 & 2.077674388885498 s & Gate Selection=False \\
+
+array ts: [11]
+& 3 3 1 1 & 6/12 & 6 & 11.0 & 5.9187939167022705 s & Gate Selection=False \\
+
+array ts: [11]
+& 3 3 1 1 & 6/12 & 6 & 11.0 & 5.423033237457275 s & Gate Selection=False \\
+
+array ts: [27]
+& 4 4 1 1 & 12/24 & 12 & 27.0 & 0.8098850250244141 s & Gate Selection=False \\
+
+array ts: [27]
+& 4 4 1 1 & 12/24 & 12 & 27.0 & 0.7943370342254639 s & Gate Selection=False \\
+
+array ts: [11]
+& 3 3 1 1 & 6/12 & 6 & 11.0 & 0.3054068088531494 s & Gate Selection=False \\
+

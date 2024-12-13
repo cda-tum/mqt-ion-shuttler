@@ -481,9 +481,11 @@ class MemoryZone:
             visited.add(current_node)
             
             # Explore neighbors
-            # not already visited and not entry as goal (can't enter via entry)
+            # not already visited and not entry as goal (can't enter via entry - so not entry edge and not a first entry connection node)
             for neighbor in [node for node in self.graph.neighbors(current_node) if node not in visited and nx.get_node_attributes(self.graph, "node_type")[node]
-                not in ("entry_connection_node")]:
+                not in ("entry_connection_node", "processing_zone_node")]:
+                #if get_idx_from_idc(self.idc_dict, (current_node, neighbor)) != get_idx_from_idc(self.idc_dict, self.pzgraph_creator.entry_edge):
+
                 edge = (current_node, neighbor)
 
                 # Check if the edge is free

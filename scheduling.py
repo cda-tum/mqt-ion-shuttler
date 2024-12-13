@@ -18,7 +18,7 @@ global paths
 paths = True
 
 show_plot = False
-save_plot = True
+save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)
     run_folder = Path(f'plots/run_{datetime.now().strftime("%Y%m%d_%H%M%S")}')

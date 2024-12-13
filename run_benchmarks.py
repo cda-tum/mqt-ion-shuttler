@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 import numpy as np
 import networkx as nx
+from datetime import datetime
 from Cycles_new import BaseGraphCreator, PZGraphCreator, MemoryZone
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
 
@@ -20,6 +21,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
     Returns:
         tuple: (timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length)
     """
+
     timestep_arr = []
     cpu_time_arr = []
     start_time = time.time()
@@ -66,7 +68,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
             memorygrid.distance_map, filename, compilation=compilation
         )
         seq_length = len(seq)
-        print(f"seq: {seq}")
+        #print(f"seq: {seq}")
         timestep = run_simulation(
             memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10
         )
@@ -80,7 +82,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
 
     return timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length
 
-def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=True):
+def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, run_folder, compilation=True):
     """
     Logs the results of the simulation to a file.
 
@@ -99,7 +101,8 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     print(cpu_time_mean)
     print(f"timestep mean: {timestep_mean}, timestep var: {timestep_var}, cpu time mean: {cpu_time_mean}")
     
-    file_path = Path("paths_junctions_7jct.txt")
+    file_path = Path(run_folder) / f"paths_junctions_0jct.txt"
+        #Path("paths_junctions_7jct.txt")
     try:
         with file_path.open("a") as file:
             line = (
@@ -117,27 +120,35 @@ def main():
         # [2, 2, 1, 29],
         # [2, 2, 1, 39],
         
-        #[4, 4, 1, 1],
+        [3, 3, 1, 1],
         #[5, 5, 1, 1],
-        [6, 6, 1, 1],
+        #[6, 6, 1, 1],
         #[10, 10, 1, 1],
         
         #[4, 4, 2, 2],
     ]
-    seeds = [3]#range(0, 99)
+    # 6 6 1 1 seed = 3 failing junctions = 7 does not work 
+    # -> only one way to exit and two ways from entry 
+    # -> infinite loop if needed ion is too far away and is blocked by ions coming from entry
+    seeds = range(0, 99)
     pz = 'outer'
-    max_timesteps = 100000000
+    max_timesteps = 1_000
     compilation = False
-    failing_junctions = 7
+    failing_junctions = 0
+
+    # Create a folder for each run with a timestamp
+    run_folder = Path(f'results/run_{datetime.now().strftime("%Y%m%d")}')
+    run_folder.mkdir(parents=True, exist_ok=True)
+
     for arch in archs:
-        try:
+        #try:
             timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
             arch, seeds, pz, max_timesteps, failing_junctions, compilation=compilation
             )
-            log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=compilation)
-        except:
-            print('skipped all seeds for architecture', arch)
-            continue
+            log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, run_folder, compilation=compilation)
+        #except:
+        #    print('skipped all seeds for architecture', arch)
+        #    continue
 
 if __name__ == "__main__":
     main()
