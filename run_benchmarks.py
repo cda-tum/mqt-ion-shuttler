@@ -141,14 +141,14 @@ def main():
     run_folder.mkdir(parents=True, exist_ok=True)
 
     for arch in archs:
-        #try:
+        try:
             timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
             arch, seeds, pz, max_timesteps, failing_junctions, compilation=compilation
             )
             log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, run_folder, compilation=compilation)
-        #except:
-        #    print('skipped all seeds for architecture', arch)
-        #    continue
+        except:
+           print('skipped all seeds for architecture', arch)
+           continue
 
 if __name__ == "__main__":
     main()

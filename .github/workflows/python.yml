@@ -38,4 +38,4 @@ jobs:
       - name: Test run_heuristic.py
         run: |
           python run_heuristic.py --help
-          python run_heuristic.py algorithms_heuristic/qft_12.json
+          python run_heuristic.py algorithms_heuristic/qft_6.json
