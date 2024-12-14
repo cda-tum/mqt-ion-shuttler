@@ -17,7 +17,7 @@ from plotting import plot_state
 global paths
 paths = True
 
-show_plot = False
+show_plot = True
 save_plot = False
 if save_plot:
     # Create a folder for each run with a timestamp (plot widget)

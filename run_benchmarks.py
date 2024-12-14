@@ -42,7 +42,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
         
         n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
         # num_ion_chains = math.ceil(n_of_traps / 2)
-        num_ion_chains = math.ceil(((arch[0]-1)*arch[1]*arch[2] + (arch[1]-1)*arch[0]*arch[3]) / 2)
+        num_ion_chains = 6#math.ceil(((arch[0]-1)*arch[1]*arch[2] + (arch[1]-1)*arch[0]*arch[3]) / 2)
 
         
         try:
@@ -141,14 +141,14 @@ def main():
     run_folder.mkdir(parents=True, exist_ok=True)
 
     for arch in archs:
-        try:
+        #try:
             timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
             arch, seeds, pz, max_timesteps, failing_junctions, compilation=compilation
             )
             log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, run_folder, compilation=compilation)
-        except:
-           print('skipped all seeds for architecture', arch)
-           continue
+        #except:
+         #  print('skipped all seeds for architecture', arch)
+          # continue
 
 if __name__ == "__main__":
     main()

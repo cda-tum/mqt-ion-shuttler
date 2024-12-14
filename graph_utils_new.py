@@ -189,7 +189,7 @@ class BaseGraphCreator:
 class PZGraphCreator(BaseGraphCreator):
     def __init__(self, m: int, n: int, ion_chain_size_vertical: int, ion_chain_size_horizontal: int, pz: str, failing_junctions: int):
         super().__init__(m, n, ion_chain_size_vertical, ion_chain_size_horizontal, pz, failing_junctions)
-        self._set_processing_zone(self.networkx_graph)
+        self._set_processing_zone(self.networkx_graph, (0, 2), (2, 2))
 
         self.idc_dict = create_idc_dictionary(self.networkx_graph)
         self.path_to_pz_idxs = [get_idx_from_idc(self.idc_dict, edge) for edge in self.path_to_pz]
@@ -202,118 +202,136 @@ class PZGraphCreator(BaseGraphCreator):
             if nx.get_edge_attributes(self.networkx_graph, "edge_type")[edge] != "trap"
         ]
 
-    def _set_processing_zone(self, networkx_graph):
-        if self.pz == 'mid':      
-            self.exit = (self.m_extended // 2, self.n_extended // 2 + self.ion_chain_size_vertical)
-            self.entry = (self.m_extended // 2, self.n_extended // 2 - self.ion_chain_size_vertical)
-            self.processing_zone = (self.m_extended // 2, self.n_extended // 2)
-            self.parking_node = (self.processing_zone[0] + 1, self.processing_zone[1])
-            self.parking_edge = (self.processing_zone, self.parking_node)
+    def _set_processing_zone(self, networkx_graph, entry_node=None, exit_node=None):
+        """
+        Sets up the processing zone and connects it to the provided entry and exit nodes.
 
-            # Add the processing zone node
-            networkx_graph.add_node(self.processing_zone, node_type="processing_zone_node", color="r")
+        :param networkx_graph: The NetworkX graph object to which nodes and edges are added.
+        :param entry_node: A tuple specifying the coordinates of the entry node. Defaults to (m_extended - 1, 0).
+        :param exit_node: A tuple specifying the coordinates of the exit node. Defaults to (m_extended - 1, n_extended - 1).
+        """
+        # Use provided entry and exit nodes or default to predefined positions
+        self.entry = entry_node if entry_node else (self.m_extended - 1, 0)
+        self.exit = exit_node if exit_node else (self.m_extended - 1, self.n_extended - 1)
+        self.processing_zone = (self.m_extended + self.num_edges - 1, self.n_extended + self.num_edges - 1)
+        self.parking_node = (self.processing_zone[0] + 1, self.processing_zone[1])
+        self.parking_edge = (self.processing_zone, self.parking_node)
 
-            # new parking edge
-            networkx_graph.add_node(self.parking_node, node_type="parking_node", color="r")
-            networkx_graph.add_edge(self.parking_edge[0], self.parking_edge[1], edge_type="parking_edge", color="g")
+        # differences
+        dy_exit = self.exit[1] - self.processing_zone[1]
+        dy_entry = self.processing_zone[1] - self.entry[1]
 
-            self.path_to_pz = []
-            self.path_from_pz = []
+        self.path_to_pz = []
+        self.path_from_pz = []
 
-            for i in range(1, self.ion_chain_size_horizontal+1):
-                if i == self.ion_chain_size_horizontal:
-                    node_type="exit_node"
-                    self.exit_edge = ((self.m_extended // 2, self.n_extended // 2 + i), (self.m_extended // 2, self.n_extended // 2 + i - 1))
-                else:
-                    node_type="exit_connection_node"
-                networkx_graph.add_node((self.m_extended // 2, self.n_extended // 2 + i), node_type=node_type, color="y")
-                networkx_graph.add_edge((self.m_extended // 2, self.n_extended // 2 + i), (self.m_extended // 2, self.n_extended // 2 + i - 1), edge_type="exit", color="k")
-                
-                self.path_to_pz.insert(0, ((self.m_extended // 2, self.n_extended // 2 + i), (self.m_extended // 2, self.n_extended // 2 + i - 1)))
-            
-            for i in range(1, self.ion_chain_size_horizontal+1):
-                if i == 1:
-                    node_type="entry_connection_node"
-                    edge_type="first_entry_connection"
-                    self.first_entry_connection_from_pz = ((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i))
-                    if self.ion_chain_size_horizontal == 1:
-                        self.entry_edge = ((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i))
-                elif i == self.ion_chain_size_horizontal:
-                    node_type="entry_node"
-                    edge_type="entry"
-                    self.entry_edge = ((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i))
-                else:
-                    node_type="entry_connection_node"
-                    edge_type="entry"
-                networkx_graph.add_node((self.m_extended // 2, self.n_extended // 2 - i), node_type=node_type, color="orange")
-                networkx_graph.add_edge((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i), edge_type=edge_type, color="k")
+        # Add exit edges
+        for i in range(self.num_edges):
+            exit_node = (self.exit[0] + (i + 1), self.exit[1] - (i + 1) * dy_exit / self.num_edges)
 
-                self.path_from_pz.append(((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i)))
+            if i == 0:
+                networkx_graph.add_node(exit_node, node_type="exit_node", color="y")
+                previous_exit_node = self.exit
+                self.exit_edge = (previous_exit_node, exit_node)
 
-        elif self.pz == 'outer':
-            # Define the key nodes
-            self.exit = (self.m_extended - 1, self.n_extended - 1)
-            self.processing_zone = (self.m_extended + self.num_edges - 1, self.n_extended + self.num_edges - 1)
-            self.entry = (self.m_extended - 1, 0)
-            self.parking_node = (self.processing_zone[0] + 1, self.processing_zone[1])
-            self.parking_edge = (self.processing_zone, self.parking_node)
+            networkx_graph.add_node(exit_node, node_type="exit_connection_node", color="y")
+            networkx_graph.add_edge(previous_exit_node, exit_node, edge_type="exit", color="k")
+            self.path_to_pz.append((previous_exit_node, exit_node))
+            previous_exit_node = exit_node
 
-            # differences
-            dy_exit = self.exit[1] - self.processing_zone[1]
-            dy_entry = self.processing_zone[1] - self.entry[1]
+        # Add entry edges
+        for i in range(self.num_edges):
+            entry_node = (self.entry[0] + (i + 1), self.entry[1] + (i + 1) * dy_entry / self.num_edges)
 
-            self.path_to_pz = []
-            self.path_from_pz = []
+            if i == 0:
+                networkx_graph.add_node(entry_node, node_type="entry_node", color="orange")
+                previous_entry_node = self.entry
+                self.entry_edge = (previous_entry_node, entry_node)
 
-            # Add exit edges
-            for i in range(self.num_edges):
-                exit_node = (self.exit[0] + (i + 1), self.exit[1] - (i + 1) * dy_exit / self.num_edges)
+            networkx_graph.add_node(entry_node, node_type="entry_connection_node", color="orange")
+            if entry_node == self.processing_zone:
+                self.first_entry_connection_from_pz = (entry_node, previous_entry_node)
+                networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="first_entry_connection", color="k")
+            else:
+                networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="entry", color="k")
+            self.path_from_pz.insert(0, (entry_node, previous_entry_node))
 
-                if i == 0:
-                    networkx_graph.add_node(exit_node, node_type="exit_node", color="y")
-                    previous_exit_node = self.exit
-                    self.exit_edge = (previous_exit_node, exit_node)
+            previous_entry_node = entry_node
 
-                networkx_graph.add_node(exit_node, node_type="exit_connection_node", color="y")
-                networkx_graph.add_edge(previous_exit_node, exit_node, edge_type="exit", color="k")
-                self.path_to_pz.append((previous_exit_node, exit_node))
-                previous_exit_node = exit_node
+        #assert exit_node == entry_node, "Exit and entry do not end in the same node"
+        #assert exit_node == self.processing_zone, "Exit and entry do not end in the processing zone"
 
-            # Add entry edges
-            for i in range(self.num_edges):
-                entry_node = (self.entry[0] + (i + 1), self.entry[1] + (i + 1) * dy_entry / self.num_edges)
+        print(exit_node, entry_node)
 
-                if i == 0:
-                    networkx_graph.add_node(entry_node, node_type="entry_node", color="orange")
-                    previous_entry_node = self.entry
-                    self.entry_edge = (previous_entry_node, entry_node)
+        # Add the processing zone node
+        networkx_graph.add_node(self.processing_zone, node_type="processing_zone_node", color="r")
 
-                networkx_graph.add_node(entry_node, node_type="entry_connection_node", color="orange")
-                # first entry connection is first edge after pz
-                # entry is edge connected to memory grid, so last entry connection
-                # if entry is one edge only -> first entry connection is the same as entry edge
-                if entry_node == self.processing_zone:
-                    self.first_entry_connection_from_pz = (entry_node, previous_entry_node)
-                    networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="first_entry_connection", color="k")
-                else:
-                    networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="entry", color="k")
-                self.path_from_pz.insert(0, (entry_node, previous_entry_node))
+        # Add the parking edge
+        networkx_graph.add_node(self.parking_node, node_type="parking_node", color="r")
+        networkx_graph.add_edge(self.parking_edge[0], self.parking_edge[1], edge_type="parking_edge", color="g")
 
-                previous_entry_node = entry_node
-            
+        return networkx_graph
 
-            assert exit_node == entry_node, "Exit and entry do not end in same node"
-            assert exit_node == self.processing_zone, "Exit and entry do not end in processing zone"
-
-            # Add the processing zone node
-            networkx_graph.add_node(self.processing_zone, node_type="processing_zone_node", color="r")
-
-            # new parking edge
-            networkx_graph.add_node(self.parking_node, node_type="parking_node", color="r")
-            networkx_graph.add_edge(self.parking_edge[0], self.parking_edge[1], edge_type="parking_edge", color="g")
+    def _set_processing_zone_old(self, networkx_graph):
         
-        else:
-            raise ValueError("pz must be 'mid' or 'outer'")  
+        # Define the key nodes
+        self.exit = (self.m_extended - 1, self.n_extended - 1)
+        self.processing_zone = (self.m_extended + self.num_edges - 1, self.n_extended + self.num_edges - 1)
+        self.entry = (self.m_extended - 1, 0)
+        self.parking_node = (self.processing_zone[0] + 1, self.processing_zone[1])
+        self.parking_edge = (self.processing_zone, self.parking_node)
+
+        # differences
+        dy_exit = self.exit[1] - self.processing_zone[1]
+        dy_entry = self.processing_zone[1] - self.entry[1]
+
+        self.path_to_pz = []
+        self.path_from_pz = []
+
+        # Add exit edges
+        for i in range(self.num_edges):
+            exit_node = (self.exit[0] + (i + 1), self.exit[1] - (i + 1) * dy_exit / self.num_edges)
+
+            if i == 0:
+                networkx_graph.add_node(exit_node, node_type="exit_node", color="y")
+                previous_exit_node = self.exit
+                self.exit_edge = (previous_exit_node, exit_node)
+
+            networkx_graph.add_node(exit_node, node_type="exit_connection_node", color="y")
+            networkx_graph.add_edge(previous_exit_node, exit_node, edge_type="exit", color="k")
+            self.path_to_pz.append((previous_exit_node, exit_node))
+            previous_exit_node = exit_node
+
+        # Add entry edges
+        for i in range(self.num_edges):
+            entry_node = (self.entry[0] + (i + 1), self.entry[1] + (i + 1) * dy_entry / self.num_edges)
+
+            if i == 0:
+                networkx_graph.add_node(entry_node, node_type="entry_node", color="orange")
+                previous_entry_node = self.entry
+                self.entry_edge = (previous_entry_node, entry_node)
+
+            networkx_graph.add_node(entry_node, node_type="entry_connection_node", color="orange")
+            # first entry connection is first edge after pz
+            # entry is edge connected to memory grid, so last entry connection
+            # if entry is one edge only -> first entry connection is the same as entry edge
+            if entry_node == self.processing_zone:
+                self.first_entry_connection_from_pz = (entry_node, previous_entry_node)
+                networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="first_entry_connection", color="k")
+            else:
+                networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="entry", color="k")
+            self.path_from_pz.insert(0, (entry_node, previous_entry_node))
+
+            previous_entry_node = entry_node
+        
+        assert exit_node == entry_node, "Exit and entry do not end in same node"
+        assert exit_node == self.processing_zone, "Exit and entry do not end in processing zone"
+
+        # Add the processing zone node
+        networkx_graph.add_node(self.processing_zone, node_type="processing_zone_node", color="r")
+
+        # new parking edge
+        networkx_graph.add_node(self.parking_node, node_type="parking_node", color="r")
+        networkx_graph.add_edge(self.parking_edge[0], self.parking_edge[1], edge_type="parking_edge", color="g")
 
         return networkx_graph
 
