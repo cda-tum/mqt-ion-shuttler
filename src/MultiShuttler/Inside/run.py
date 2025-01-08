@@ -12,7 +12,10 @@ from plotting import plot_state
 plot = False
 save = False
 
-number_of_pzs_list = [1]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
+paths = False
+cycle_or_paths = "Paths" if paths else "Cycles"
+
+number_of_pzs_list = [2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
     [3, 3, 1, 1],
 ]
@@ -160,7 +163,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
                     not common_elements
                 ), f"{common_elements} are overlapping in partitions"
 
-            timesteps = main(G, sequence, partition)
+            timesteps = main(G, sequence, partition, cycle_or_paths)
             end_time = datetime.now()
             cpu_time = end_time - start_time
 

@@ -241,7 +241,7 @@ def create_move_list(graph, partitioned_priority_queue, pz):
     return move_list
 
 
-def create_cycles_for_moves(graph, move_list, pz):
+def create_cycles_for_moves(graph, move_list, cycle_or_paths, pz):
     all_cycles = {}
     ion_chains = graph.state
     for rotate_chain in move_list:
@@ -251,7 +251,11 @@ def create_cycles_for_moves(graph, move_list, pz):
         if not check_if_edge_is_filled(graph, next_edge) or edge_idc == next_edge:
             all_cycles[rotate_chain] = [edge_idc, next_edge]
         else:
-            all_cycles[rotate_chain] = create_cycle(graph, edge_idc, next_edge)
+            if cycle_or_paths == "Cycles":
+                all_cycles[rotate_chain] = create_cycle(graph, edge_idc, next_edge)
+            else:
+                print("Path not implemented yet")
+                #all_cycles[rotate_chain] = create_path_via_bfs_directional(graph, edge_idc, next_edge)
     return all_cycles
 
 

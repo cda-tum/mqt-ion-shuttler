@@ -33,7 +33,7 @@ def find_pz_order(graph, gate_info_list):
     return pz_order
 
 
-def shuttle(graph, priority_queue, partition, timestep, unique_folder):
+def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_folder):
     gate_info_list = create_gate_info_list(graph)
     print(f"Gate info list: {gate_info_list}")
 
@@ -97,7 +97,7 @@ def shuttle(graph, priority_queue, partition, timestep, unique_folder):
         move_list = create_move_list(graph, prio_queue, pz)
         # print(f"Priority queue for {pz.name}: {prio_queue}")
         # print(f"Move list for {pz.name}: {move_list}")
-        cycles = create_cycles_for_moves(graph, move_list, pz)
+        cycles = create_cycles_for_moves(graph, move_list, cycle_or_paths, pz)
         # add cycles to all_cycles
         all_cycles = {**all_cycles, **cycles}
     # print(f"All cycles: {all_cycles}")
@@ -130,7 +130,7 @@ def shuttle(graph, priority_queue, partition, timestep, unique_folder):
     )
 
 
-def main(graph, sequence, partition):
+def main(graph, sequence, partition, cycle_or_paths):
     timestep = 0
     max_timesteps = 1e6
     graph.state = get_ion_chains(graph)
@@ -193,7 +193,7 @@ def main(graph, sequence, partition):
         # print('in process before shuttling:', graph.in_process)
 
         # shuttle one timestep
-        shuttle(graph, priority_queue, partition, timestep, unique_folder)
+        shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_folder)
 
         # reset ions in process
         graph.in_process = []
