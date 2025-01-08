@@ -537,7 +537,9 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
         state_idxs = memorygrid.get_state_idxs()
     return None
 
-
+# old version built from single pz shuttler (changed logic from pzgraph_creator to pzs -> pz.parking_edge etc)
+# misses partitioning and parallel gates
+# now new version built from multi pz shuttler
 
 # issues:
 # 1. gate_execution_finished etc: gates are executed in parallel now, but still in order (there is a first gate)
