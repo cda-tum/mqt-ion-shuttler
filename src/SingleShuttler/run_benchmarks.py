@@ -34,7 +34,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         except:
             continue
         print(f"ion chains: {ion_chains}, number of registers: {number_of_registers}")
-        filename = f"QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
+        filename = f"../../QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
         #filename = f"QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 
@@ -94,7 +94,7 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
 
 def main():
     archs = [
-        [3, 3, 2, 2],
+        [3, 3, 1, 1],
     ]
     seeds = [0]#, 1, 2, 3, 4]
     pz = 'outer'
