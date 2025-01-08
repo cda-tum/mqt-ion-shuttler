@@ -1,0 +1,21 @@
+array ts: [8, 8, 11, 12, 12]
+& 3 3 1 1 & 6/12 & 6 & 10.2 & 0.692739200592041 s & Gate Selection=False \\
+
+array ts: [8, 8, 11, 12, 12]
+& 3 3 1 1 & 6/12 & 6 & 10.2 & 0.6935367107391357 s & Gate Selection=False \\
+
+array ts: [11, 10, 9, 12, 11]
+& 3 3 1 1 & 6/12 & 6 & 10.6 & 15.121458768844604 s & Gate Selection=False \\
+
+array ts: [8, 8, 11, 12, 12]
+& 3 3 1 1 & 6/12 & 6 & 10.2 & 0.7108410358428955 s & Gate Selection=False \\
+
+array ts: [11, 10, 9, 12, 11]
+& 3 3 1 1 & 6/12 & 6 & 10.6 & 0.7806591987609863 s & Gate Selection=False \\
+
+array ts: [11, 10, 9, 12, 11]
+& 3 3 1 1 & 6/12 & 6 & 10.6 & 0.8228326797485351 s & Gate Selection=False \\
+
+array ts: [11, 10, 9, 12, 11]
+& 3 3 1 1 & 6/12 & 6 & 10.6 & 0.7509886264801026 s & Gate Selection=False \\
+

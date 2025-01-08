@@ -4,7 +4,8 @@ from pathlib import Path
 import numpy as np
 import networkx as nx
 from datetime import datetime
-from Cycles_new import BaseGraphCreator, PZGraphCreator, MemoryZone
+from Cycles_new import MemoryZone
+from graph_utils_new import ProcessingZone, BaseGraphCreator, PZGraphCreator
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
 
 def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junctions, compilation=True):
@@ -28,21 +29,31 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, failing_junc
     flag_seed = 0
     for seed in seeds:
         m, n, v, h = arch
-        basegraph_creator = BaseGraphCreator(m, n, v, h, pz, failing_junctions)
+        exit = (2, 2)
+        entry = (2, 0)
+        processing_zone = (3, 3)
+        exit2 = (0, 0)
+        entry2 = (0, 2)
+        processing_zone2 = (-1, -1)
+        pz1 = ProcessingZone("pz1", [exit, entry, processing_zone])
+        #pz2 = ProcessingZone("pz2", [exit2, entry2, processing_zone2])
+        pzs = [pz1]#, pz2]
+        basegraph_creator = BaseGraphCreator(m, n, v, h, failing_junctions, pzs)
         MZ_graph = basegraph_creator.get_graph()        
-        pzgraph_creator = PZGraphCreator(m, n, v, h, pz, failing_junctions)
+        pzgraph_creator = PZGraphCreator(m, n, v, h, failing_junctions, pzs)
         graph = pzgraph_creator.get_graph()
 
-        try:
-            for node in MZ_graph.nodes():
-                nx.shortest_path(MZ_graph, node, pzgraph_creator.exit)
-        except:
-            print('skipped architecture for seed', seed)
-            continue
+        for pz in pzs:
+            try:
+                for node in MZ_graph.nodes():
+                    nx.shortest_path(MZ_graph, node, pz.exit_node)
+            except:
+                print('skipped architecture for seed', seed)
+                continue
         
         n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
         # num_ion_chains = math.ceil(n_of_traps / 2)
-        num_ion_chains = 6#math.ceil(((arch[0]-1)*arch[1]*arch[2] + (arch[1]-1)*arch[0]*arch[3]) / 2)
+        num_ion_chains = math.ceil(((arch[0]-1)*arch[1]*arch[2] + (arch[1]-1)*arch[0]*arch[3]) / 2)
 
         
         try:

@@ -36,14 +36,19 @@ class MemoryZone:
         for edge_idc in self.graph.edges():
             # keep node ordering consistent:
             edge_idx = get_idx_from_idc(self.idc_dict, edge_idc)
-            self.dist_dict[get_idc_from_idx(self.idc_dict, edge_idx)] = calc_dist_to_pz(
-                self.pzgraph_creator, get_idx_from_idc(self.idc_dict, edge_idc)
-            )
+            # old for single pz
+            # self.dist_dict[get_idc_from_idx(self.idc_dict, edge_idx)] = calc_dist_to_pz(
+            #     self.pzgraph_creator, get_idx_from_idc(self.idc_dict, edge_idc)
+            # )
+            self.dist_dict[get_idc_from_idx(self.idc_dict, edge_idx)] = {
+                pz.name: calc_dist_to_pz(self.pzgraph_creator, get_idx_from_idc(self.idc_dict, edge_idc), pz)
+                    for pz in self.pzgraph_creator.pzs
+            }
 
         # create dictionary with all distances to entry for all nodes
-        self.dist_dict_nodes = {}
-        for node in self.graph.nodes():
-            self.dist_dict_nodes[node] = len(get_path_to_node(self.graph, node, self.pzgraph_creator.processing_zone))
+        # self.dist_dict_nodes = {}
+        # for node in self.graph.nodes():
+        #     self.dist_dict_nodes[node] = len(get_path_to_node(self.graph, node, self.pzgraph_creator.processing_zone))
 
         # # create dictionary with all paths to entry (TODO artifact?)
         # self.path_dict = {}
@@ -60,16 +65,21 @@ class MemoryZone:
                 in ("junction_node", "exit_node", "exit_connection_node", "entry_node", "entry_connection_node")
             )
         ]
+        print('junction nodes: ', self.junction_nodes)
 
-        self.path_entry_to_exit = get_path_to_node(
-            self.graph, self.pzgraph_creator.entry, self.pzgraph_creator.exit, exclude_first_entry_connection=True
+        # new mult pzs
+        for pz in self.pzgraph_creator.pzs:
+            pz.path_entry_to_exit = get_path_to_node(
+                self.graph, pz.entry_node, pz.exit_node, exclude_first_entry_connection=True
         )
-        # precalulculate bfs for top left and exit
-        # self.bfs_top_left = nx.edge_bfs(self.mz_graph, (0, 0))
-        # self.bfs_exit = nx.edge_bfs(self.mz_graph, self.pzgraph_creator.exit)
+        # old for single pz
+        # self.path_entry_to_exit = get_path_to_node(
+        #     self.graph, self.pzgraph_creator.entry, self.pzgraph_creator.exit, exclude_first_entry_connection=True
+        # )
 
         # precalc all cycles (shortest paths from outer node to outer node)
         self.node_path_dict = {}
+        print('entry edges: ', [get_idx_from_idc(self.idc_dict, pz.entry_edge) for pz in self.pzgraph_creator.pzs])
         for (edge_idc, next_edge) in self.pzgraph_creator.find_connected_edges():
             self.node_path_dict[edge_idc, next_edge] = nx.shortest_path(
                     self.graph,
@@ -81,7 +91,7 @@ class MemoryZone:
                             get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, edge_idc)
                             or get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, next_edge)
                             or get_idx_from_idc(self.idc_dict, (node0, node1))
-                            == get_idx_from_idc(self.idc_dict, self.pzgraph_creator.entry_edge)
+                            in [get_idx_from_idc(self.idc_dict, pz.entry_edge) for pz in self.pzgraph_creator.pzs]
                         )
                         else 1
                     ][0],
@@ -102,20 +112,20 @@ class MemoryZone:
             self.distance_map[ion_chain] = self.dist_dict[get_idc_from_idx(self.idc_dict, edge_idx)]
         return self.distance_map
 
-    def count_chains_in_pz(self):
-        return len([chain_idx for chain_idx in self.get_state_idxs() if chain_idx in self.pzgraph_creator.pz_edges_idx])
+    def count_chains_in_pz(self, pz):
+        return len([chain_idx for chain_idx in self.get_state_idxs() if chain_idx in pz.pz_edges_idx])
 
-    def count_chains_in_exit(self):
+    def count_chains_in_exit(self, pz):
         return len(
-            [chain_idx for chain_idx in self.get_state_idxs() if chain_idx in self.pzgraph_creator.path_to_pz_idxs]
+            [chain_idx for chain_idx in self.get_state_idxs() if chain_idx in pz.path_to_pz_idxs]
         )
 
-    def count_chains_in_parking(self):
+    def count_chains_in_parking(self, pz):
         return len(
             [
                 chain_idx
                 for chain_idx in self.get_state_idxs()
-                if chain_idx == get_idx_from_idc(self.idc_dict, self.pzgraph_creator.parking_edge)
+                if chain_idx == get_idx_from_idc(self.idc_dict, pz.parking_edge)
             ]
         )
 
@@ -132,63 +142,63 @@ class MemoryZone:
             return None
         return chains[0]
 
-    def find_chains_in_parking(self):
+    def find_chains_in_parking(self, pz):
         return [
             ion
             for ion, chain_idx in enumerate(self.get_state_idxs())
-            if chain_idx == get_idx_from_idc(self.idc_dict, self.pzgraph_creator.parking_edge)
+            if chain_idx == get_idx_from_idc(self.idc_dict, pz.parking_edge)
         ]
 
-    def find_next_edge(self, edge_idc, towards=(0, 0)):
+    def find_next_edge(self, edge_idc, pz, towards=(0, 0)):
         ### find next edge given edge_idc of ion chain
 
         # if in entry connection -> move to next edge
-        for i, edge_idx in enumerate(self.pzgraph_creator.path_from_pz_idxs[:-1]):
+        for i, edge_idx in enumerate(pz.path_from_pz_idxs[:-1]):
             if get_idx_from_idc(self.idc_dict, edge_idc) == edge_idx:
-                return get_idc_from_idx(self.idc_dict, self.pzgraph_creator.path_from_pz_idxs[i + 1])
+                return get_idc_from_idx(self.idc_dict, pz.path_from_pz_idxs[i + 1])
 
-        if get_idx_from_idc(self.idc_dict, edge_idc) == get_idx_from_idc(self.idc_dict, self.pzgraph_creator.entry_edge):
+        if get_idx_from_idc(self.idc_dict, edge_idc) == get_idx_from_idc(self.idc_dict, pz.entry_edge):
             if towards == (0, 0):
                 next_edge = next(
                     (
                         edge
-                        for edge in self.graph.edges(self.pzgraph_creator.entry)
-                        if edge not in (self.pzgraph_creator.entry_edge, self.path_entry_to_exit[0])
+                        for edge in self.graph.edges(pz.entry_node)
+                        if edge not in (pz.entry_edge, pz.path_entry_to_exit[0])
                     ),
-                    self.path_entry_to_exit[0]  # Default value if no valid edge is found
+                    pz.path_entry_to_exit[0]  # Default value if no valid edge is found
                 )
             elif towards == "exit":
-                next_edge = self.path_entry_to_exit[0]
+                next_edge = pz.path_entry_to_exit[0]
             else:
                 msg = "towards must be (0,0) or 'exit'"
                 raise ValueError(msg)
 
             # assert that next edge after entry is not entry or exit
             assert get_idx_from_idc(self.idc_dict, next_edge) != get_idx_from_idc(
-                self.idc_dict, self.pzgraph_creator.exit_edge
+                self.idc_dict, pz.exit_edge
             )
             assert get_idx_from_idc(self.idc_dict, next_edge) != get_idx_from_idc(
-                self.idc_dict, self.pzgraph_creator.entry_edge
+                self.idc_dict, pz.entry_edge
             )
             return next_edge
 
         # if in parking space
         if get_idx_from_idc(self.idc_dict, edge_idc) == get_idx_from_idc(
-            self.idc_dict, self.pzgraph_creator.parking_edge
+            self.idc_dict, pz.parking_edge
         ):
-            return self.pzgraph_creator.parking_edge
+            return pz.parking_edge
 
         # find shortest path from both sides for all other edges
         path0 = nx.shortest_path(
             self.graph,
             edge_idc[0],
-            self.pzgraph_creator.parking_node,
+            pz.parking_node,
             lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] == "first_entry_connection") * 1e8 + 1,
         )
         path1 = nx.shortest_path(
             self.graph,
             edge_idc[1],
-            self.pzgraph_creator.parking_node,
+            pz.parking_node,
             lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] == "first_entry_connection") * 1e8 + 1,
         )
 
@@ -219,13 +229,7 @@ class MemoryZone:
         # Extract nodes from the edges
         nodes_edge1 = set(edge1)
         nodes_edge2 = set(edge2)
-        # TODO can change to self.junction_nodes?
-        all_junctions = [
-            *self.junction_nodes,
-            self.pzgraph_creator.processing_zone,
-            self.pzgraph_creator.entry,
-            self.pzgraph_creator.exit,
-        ]
+        all_junctions = self.junction_nodes
 
         # Check if the edges have any common junction nodes
         common_junction_nodes = nodes_edge1.intersection(nodes_edge2).intersection(all_junctions)
@@ -265,21 +269,6 @@ class MemoryZone:
 
         # circles within memory zone
         node_path = self.node_path_dict[edge_idc, next_edge]
-        # node_path = nx.shortest_path(
-        #     self.graph,
-        #     next_edge[1],
-        #     edge_idc[0],
-        #     lambda node0, node1, _: [
-        #         1e8
-        #         if (
-        #             get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, edge_idc)
-        #             or get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, next_edge)
-        #             or get_idx_from_idc(self.idc_dict, (node0, node1))
-        #             == get_idx_from_idc(self.idc_dict, self.pzgraph_creator.entry_edge)
-        #         )
-        #         else 1
-        #     ][0],
-        # )
         edge_path = []
         for edge in pairwise(node_path):
             edge_path.append(edge)
@@ -374,12 +363,7 @@ class MemoryZone:
             ):
                 junction_shared_pairs.append((circle1, circle2))
 
-        # free_circle_combs = [
-        #     circle_idx_pair
-        #     for circle_idx_pair in combinations_of_circles
-        #     if (circle_idx_pair not in junction_shared_pairs and (circle_idx_pair[1], circle_idx_pair[0]) not in junction_shared_pairs)
-        # ]
-        return junction_shared_pairs  # , free_circle_combs
+        return junction_shared_pairs
 
     # change: if list in other list -> take longer list, delete other
     # if list can be connected to other list -> combine and delete both
@@ -439,22 +423,26 @@ class MemoryZone:
             # towards is first edge in graph (can't be (0,0) because it may be deleted)
             towards = list(self.graph.edges())[0][0]
 
-        # move from entry to memory zone
-        if get_idx_from_idc(self.idc_dict, current_edge) == get_idx_from_idc(
-            self.idc_dict, self.pzgraph_creator.entry_edge
-        ):  # in self.pzgraph_creator.path_from_pz_idxs:
+        # move from entry to memory zone (if in entry edge)
+        # old single pz
+        # if get_idx_from_idc(self.idc_dict, current_edge) == get_idx_from_idc(
+        #     self.idc_dict, self.pzgraph_creator.entry_edge
+        # ):  
+        if get_idx_from_idc(self.idc_dict, current_edge) in [get_idx_from_idc(self.idc_dict, pz.entry_edge) for pz in self.pzgraph_creator.pzs]:
+            pz = self.pzgraph_creator.get_pz_from_edge[current_edge]
             target_edge = self.bfs_free_edge(towards, other_next_edges)
+
             # calc path to target edge
             path0 = get_path_to_node(
                 self.graph,
-                self.pzgraph_creator.processing_zone,
+                pz.processing_zone,
                 target_edge[0],
                 exclude_exit=True,
                 exclude_first_entry_connection=False,
             )
             path1 = get_path_to_node(
                 self.graph,
-                self.pzgraph_creator.processing_zone,
+                pz.processing_zone,
                 target_edge[1],
                 exclude_exit=True,
                 exclude_first_entry_connection=False,
@@ -523,7 +511,8 @@ class MemoryZone:
                 conflicting_paths.append((path_ion_1, path_ion_2))  # Store indices of conflicting paths
         
         # Compare junction nodes (with edge_IDC)
-        junction_nodes = [*self.junction_nodes, self.pzgraph_creator.processing_zone]
+        junction_nodes = [*self.junction_nodes, *self.pzgraph_creator.processing_zone_nodes_of_pz.values()]
+        print('junction nodes within find_non_free_circles() (includes pz node): ', junction_nodes)
         
         for path_ion_1, path_ion_2 in combinations_of_paths:
             if len(paths_idcs_dict[path_ion_1]) == 2:
