@@ -49,7 +49,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
             print(f"Number of chains: {number_of_chains}")
             algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
             qasm_file_path = (
-                f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+                f"../../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
             )
 
             edges = list(G.edges())
