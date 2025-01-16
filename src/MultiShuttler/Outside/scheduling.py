@@ -24,10 +24,10 @@ from collections import OrderedDict, defaultdict
 # )
 
 
-class ProcessingZone:
-    def __init__(self, name, edge_idc):
-        self.name = name
-        self.edge_idc = edge_idc
+# class ProcessingZone:
+#     def __init__(self, name, edge_idc):
+#         self.name = name
+#         self.edge_idc = edge_idc
 
 
 def preprocess(graph, priority_queue):
@@ -35,9 +35,9 @@ def preprocess(graph, priority_queue):
     while sum(need_rotate) < len(priority_queue):
         for i, rotate_chain in enumerate(priority_queue):
             pz_name = priority_queue[rotate_chain]
-            pz_edge_idc = [pz.edge_idc for pz in graph.pzs if pz.name == pz_name][0]
+            pz_parking_edge = [pz.parking_edge for pz in graph.pzs if pz.name == pz_name][0]
             edge_idc = graph.state[rotate_chain]
-            next_edge = find_next_edge(graph, edge_idc, pz_edge_idc)
+            next_edge = find_next_edge(graph, edge_idc, pz_parking_edge)
             next_edge = tuple(sorted((next_edge[0], next_edge[1]), key=sum))
 
             state_edges_idc = get_edge_state(graph)
@@ -72,7 +72,7 @@ def preprocess(graph, priority_queue):
 def get_edge_idc_by_pz_name(graph, pz_name):
     for pz in graph.pzs:
         if pz.name == pz_name:
-            return pz.edge_idc
+            return pz.parking_edge
     raise ValueError(f"Processing zone with name {pz_name} not found.")
 
 
@@ -86,10 +86,10 @@ def pick_pz_for_2_q_gate_new(graph, ion0, ion1):
     # pick the processing zone that both ions are closest to (so sum of distances is minimal)
     min_distance = float("inf")
     for pz_name in [graph.map_to_pz[ion0], graph.map_to_pz[ion1]]:
-        pz_edge_idc = get_edge_idc_by_pz_name(graph, pz_name)
+        pz_parking_edge = get_edge_idc_by_pz_name(graph, pz_name)
         distance = len(
-            find_path_edge_to_edge(graph, graph.state[ion0], pz_edge_idc)
-        ) + len(find_path_edge_to_edge(graph, graph.state[ion1], pz_edge_idc))
+            find_path_edge_to_edge(graph, graph.state[ion0], pz_parking_edge)
+        ) + len(find_path_edge_to_edge(graph, graph.state[ion1], pz_parking_edge))
         if distance < min_distance:
             min_distance = distance
             closest_pz = pz_name
@@ -221,10 +221,10 @@ def create_move_list(graph, partitioned_priority_queue, pz):
     for i, rotate_chain in enumerate(partitioned_priority_queue):
         edge_idc = ion_chains[rotate_chain]
         # shortest path is also 1 edge if already at pz -> set to 0
-        if edge_idc == pz.edge_idc:
+        if edge_idc == pz.parking_edge:
             path_length_sequence[rotate_chain] = 0
         else:
-            path_to_go = find_path_edge_to_edge(graph, edge_idc, pz.edge_idc)
+            path_to_go = find_path_edge_to_edge(graph, edge_idc, pz.parking_edge)
             path_length_sequence[rotate_chain] = len(path_to_go)
 
         # if first ion or all paths are 0 (all ions to move are in pz already) or current path is longer than all other paths
@@ -247,7 +247,7 @@ def create_cycles_for_moves(graph, move_list, cycle_or_paths, pz):
     ion_chains = graph.state
     for rotate_chain in move_list:
         edge_idc = ion_chains[rotate_chain]
-        next_edge = find_next_edge(graph, edge_idc, pz.edge_idc)
+        next_edge = find_next_edge(graph, edge_idc, pz.parking_edge)
         edge_idc, next_edge = find_ordered_edges(graph, edge_idc, next_edge)
         if not check_if_edge_is_filled(graph, next_edge) or edge_idc == next_edge:
             all_cycles[rotate_chain] = [edge_idc, next_edge]

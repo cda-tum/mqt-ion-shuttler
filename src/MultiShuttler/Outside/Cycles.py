@@ -119,9 +119,13 @@ def find_path_node_to_edge(graph, node, goal_edge):
 
 
 def find_path_edge_to_edge(graph, edge_idc, goal_edge):
+    print("edge_idc", edge_idc)
+    print("goal_edge", goal_edge)
     # find path to goal edge from both nodes
     path0 = find_path_node_to_edge(graph, edge_idc[0], goal_edge)
     path1 = find_path_node_to_edge(graph, edge_idc[1], goal_edge)
+    print("path0", path0)
+    print("path1", path1)
 
     # return min path
     if len(path1) < len(path0):

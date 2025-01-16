@@ -46,12 +46,12 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     ion1_needed_in_pz = None
     # "swap" ions in the same processing zone if only one is needed
     for pz in graph.pzs:
-        ions_at_pz = graph[pz.edge_idc[0]][pz.edge_idc[1]]["ions"]
+        ions_at_pz = graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"]
         if len(ions_at_pz) == 2:
             ion1, ion2 = ions_at_pz
             if ion2 not in gate_info_list[pz.name]:
-                graph[pz.edge_idc[0]][pz.edge_idc[1]]["ions"].remove(ion2)
-                graph[pz.edge_idc[0]][pz.edge_idc[1]]["ions"].insert(0, ion2)
+                graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].remove(ion2)
+                graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].insert(0, ion2)
                 print("swapped ion2, now: %s" % ions_at_pz)
 
             # find the next processing zone that will execute a gate on ion1
@@ -69,8 +69,8 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
                 # TODO ion1 swap also necessary?
                 if ion1_needed_in_pz != pz.name:
                     # ion1 not in gate_info_list[pz.name]:
-                    graph[pz.edge_idc[0]][pz.edge_idc[1]]["ions"].remove(ion1)
-                    graph[pz.edge_idc[0]][pz.edge_idc[1]]["ions"].insert(0, ion1)
+                    graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].remove(ion1)
+                    graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].insert(0, ion1)
                     print("swapped back ion1, now %s" % ions_at_pz)
 
             # new: this could maybe be used to time the gates
@@ -176,14 +176,14 @@ def main(graph, sequence, partition, cycle_or_paths):
                     state2 = graph.state[ion2]
                     # append ion to in_process if it is in the correct processing zone
                     if (
-                        state1 == pz.edge_idc
+                        state1 == pz.parking_edge
                         and ion1 in next_gate_at_pz[pz.name]
                         and ion2 in next_gate_at_pz[pz.name]
                     ):
                         graph.in_process.append(ion1)
                         # print(f"Added ion {ion1} to in_process")
                     if (
-                        state2 == pz.edge_idc
+                        state2 == pz.parking_edge
                         and ion1 in next_gate_at_pz[pz.name]
                         and ion2 in next_gate_at_pz[pz.name]
                     ):
@@ -217,7 +217,7 @@ def main(graph, sequence, partition, cycle_or_paths):
             for pz in pzs:
                 if len(gate) == 1:
                     ion = gate[0]
-                    if graph.state[ion] == pz.edge_idc:
+                    if graph.state[ion] == pz.parking_edge:
                         print(f"Ion {ion} at Processing Zone {pz.name}")
                         processed_ions.insert(0, (ion,))
                         ion_processed = True
@@ -237,15 +237,15 @@ def main(graph, sequence, partition, cycle_or_paths):
                     #  -> would not move even though
                     # they are move out of pz by preprocessing)
                     # append ion to in_process if it is in the correct processing zone
-                    # if state1 == pz.edge_idc and ion1 in next_gate_at_pz[pz.name]
+                    # if state1 == pz.parking_edge and ion1 in next_gate_at_pz[pz.name]
                     # and ion2 in next_gate_at_pz[pz.name]:
                     #     graph.in_process.append(ion1)
-                    # if state2 == pz.edge_idc and ion1 in next_gate_at_pz[pz.name]
+                    # if state2 == pz.parking_edge and ion1 in next_gate_at_pz[pz.name]
                     # and ion2 in next_gate_at_pz[pz.name]: # also 1 qubit gate?
                     #     graph.in_process.append(ion2)
 
                     # if both ions are in the processing zone, process the gate
-                    if state1 == pz.edge_idc and state2 == pz.edge_idc:
+                    if state1 == pz.parking_edge and state2 == pz.parking_edge:
                         print(f"Ions {ion1} and {ion2} at Processing Zone {pz.name}")
                         processed_ions.insert(0, (ion1, ion2))
                         ion_processed = True

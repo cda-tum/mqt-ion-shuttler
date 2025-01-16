@@ -64,7 +64,7 @@ def plot_state(
 
     if plot_pzs is not False:
         for pz in graph.pzs:
-            graph.add_edge(pz.edge_idc[0], pz.edge_idc[1], color="g")
+            graph.add_edge(pz.parking_edge[0], pz.parking_edge[1], color="g")
 
     edge_color = nx.get_edge_attributes(graph, "color").values()
     node_color = list(nx.get_node_attributes(graph, "color").values())

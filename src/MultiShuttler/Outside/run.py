@@ -1,6 +1,6 @@
-from graph_utils import GraphCreator, create_idc_dictionary
+from graph_utils import GraphCreator, PZCreator, ProcessingZone, create_idc_dictionary
 from Cycles import create_starting_config, find_path_edge_to_edge
-from scheduling import ProcessingZone, get_ion_chains
+from scheduling import get_ion_chains
 from shuttle import main
 from compilation import compile
 import math
@@ -9,11 +9,13 @@ import numpy as np
 from datetime import datetime
 from plotting import plot_state
 
-plot = False
+plot = True
 save = False
 
-paths = True
+paths = False
 cycle_or_paths = "Paths" if paths else "Cycles"
+
+failing_junctions = 0
 
 number_of_pzs_list = [2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
@@ -22,7 +24,7 @@ archs = [
 seeds = [1]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
+for m, n, v, h in archs:
     for number_of_pzs in number_of_pzs_list:
         timesteps_array = []
         cpu_time_array = []
@@ -30,15 +32,22 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
         for seed in seeds:
             start_time = datetime.now()
 
-            graph_creator = GraphCreator(
-                m, n, ion_chain_size_vertical, ion_chain_size_horizontal, failing_junctions=0, pz_info=[]
-            )
-            G = graph_creator.get_graph()
+            exit = (2, 2)
+            entry = (2, 0)
+            processing_zone = (3, 3)
+            pz1 = ProcessingZone("pz1", [exit, entry, processing_zone])
+            pzs = [pz1]#, pz2]
+            basegraph_creator = GraphCreator(m, n, v, h, failing_junctions, pzs)
+            MZ_graph = basegraph_creator.get_graph()        
+            pzgraph_creator = PZCreator(m, n, v, h, failing_junctions, pzs)
+            G = pzgraph_creator.get_graph()
+            G.pzs = pzs
+
             G.plot = plot
             G.save = save
-            G.arch = str([m, n, ion_chain_size_vertical, ion_chain_size_horizontal])
+            G.arch = str([m, n, v, h])
 
-            number_of_chains = math.ceil(len(G.edges()) / 2)
+            number_of_chains = math.ceil(len(MZ_graph.edges()) / 2)
             G.idc_dict = create_idc_dictionary(G)
 
             # plot for paper
@@ -57,7 +66,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
             # # Select the middle edge
             # middle_index = math.ceil(len(edges) / 2)
             # middle_edge = edges[middle_index]
-            # pz1 = ProcessingZone("pz1", ((0, 0), (1, 0)))
+
             # pz2 = ProcessingZone(
             #     "pz2",
             #     (middle_edge),
@@ -66,6 +75,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
             #     "pz3", ((max(G.nodes)[0], max(G.nodes)[1] - 1),
             # (max(G.nodes)[0], max(G.nodes)[1]))
             # )
+
 
             def add_processing_zones(graph, num_zones):
                 edges = list(graph.edges)
@@ -88,7 +98,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
 
                 return processing_zones
 
-            G.pzs = add_processing_zones(G, number_of_pzs)
+            #G.pzs = add_processing_zones(G, number_of_pzs)
 
             # G.pzs = [pz1, pz2, pz3]
 
@@ -115,7 +125,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
                     closest_pz = None
                     min_distance = float("inf")
                     for pz in G.pzs:
-                        distance = len(find_path_edge_to_edge(G, position, pz.edge_idc))
+                        distance = len(find_path_edge_to_edge(G, position, pz.parking_edge))
                         if distance < min_distance:
                             min_distance = distance
                             closest_pz = pz
@@ -173,7 +183,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
             # save timesteps in a file
             with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
                 f.write(
-                    f"{m, n, ion_chain_size_vertical, ion_chain_size_horizontal}, #pzs: {num_pzs}, ts: {timesteps}, seed: {seed}\n"
+                    f"{m, n, v, h}, #pzs: {num_pzs}, ts: {timesteps}, seed: {seed}\n"
                 )
 
         # calculate averages
@@ -185,7 +195,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
         # save averages
         with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(
-                f"{m, n, ion_chain_size_vertical, ion_chain_size_horizontal}, #pzs: {num_pzs}, average_ts: {timesteps_average}, average_cpu_time: {cpu_time_average}\n"
+                f"{m, n, v, h}, #pzs: {num_pzs}, average_ts: {timesteps_average}, average_cpu_time: {cpu_time_average}\n"
             )
 
 
