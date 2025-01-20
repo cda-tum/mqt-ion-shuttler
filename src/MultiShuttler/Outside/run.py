@@ -19,7 +19,7 @@ failing_junctions = 0
 
 number_of_pzs_list = [2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
-    [3, 3, 1, 1],
+    [5, 5, 1, 1],
 ]
 seeds = [1]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -32,9 +32,9 @@ for m, n, v, h in archs:
         for seed in seeds:
             start_time = datetime.now()
 
-            exit = (2, 2)
-            entry = (2, 0)
-            processing_zone = (3, 3)
+            exit = (4, 4)
+            entry = (4, 0)
+            processing_zone = (5, 5)
             pz1 = ProcessingZone("pz1", [exit, entry, processing_zone])
             pzs = [pz1]#, pz2]
             basegraph_creator = GraphCreator(m, n, v, h, failing_junctions, pzs)
@@ -47,7 +47,7 @@ for m, n, v, h in archs:
             G.save = save
             G.arch = str([m, n, v, h])
 
-            number_of_chains = math.ceil(len(MZ_graph.edges()) / 2)
+            number_of_chains = 6#math.ceil(len(MZ_graph.edges()) / 2)
             G.idc_dict = create_idc_dictionary(G)
 
             # plot for paper
@@ -75,32 +75,6 @@ for m, n, v, h in archs:
             #     "pz3", ((max(G.nodes)[0], max(G.nodes)[1] - 1),
             # (max(G.nodes)[0], max(G.nodes)[1]))
             # )
-
-
-            def add_processing_zones(graph, num_zones):
-                edges = list(graph.edges)
-                if len(edges) < num_zones:
-                    raise ValueError(
-                        "Number of processing zones exceeds number of available edges."
-                    )
-
-                # Select edges evenly spaced
-                indices = np.linspace(0, len(edges) - 1, num_zones, dtype=int)
-                selected_edges = [edges[i] for i in indices]
-
-                processing_zones = []
-                for idx, edge in enumerate(selected_edges):
-                    pz_name = f"pz{idx + 1}"
-                    processing_zone = ProcessingZone(pz_name, edge)
-                    processing_zones.append(processing_zone)
-                    # Optional: Set edge attributes if necessary
-                    nx.set_edge_attributes(graph, {edge: "processing"}, "edge_type")
-
-                return processing_zones
-
-            #G.pzs = add_processing_zones(G, number_of_pzs)
-
-            # G.pzs = [pz1, pz2, pz3]
 
             create_starting_config(G, number_of_chains, seed=seed)
             G.idc_dict = create_idc_dictionary(G)

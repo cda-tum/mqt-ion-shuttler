@@ -206,14 +206,6 @@ def create_gate_info_list(graph):
     return gate_info_list
 
 
-# if pz is occupied
-# allow move onto pz?
-# then fix situation?
-# but change move list, so others move while first is in pz?
-# created first_gate_at_pz dict -> can find out if next
-# gate at a pz is 2-qubit gate -> then move over pz?
-
-
 def create_move_list(graph, partitioned_priority_queue, pz):
     ion_chains = get_ion_chains(graph)
     path_length_sequence = {}

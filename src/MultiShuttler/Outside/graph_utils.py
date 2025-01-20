@@ -90,7 +90,7 @@ class GraphCreator:
         Removes a specified number of nodes from the graph, excluding nodes of type 'exit_node' or 'entry_node'.
         """
         #  Filter out nodes that are of type 'exit_node' or 'entry_node'
-        nodes_to_remove = [node for node, data in networkx_graph.nodes(data=True) if data.get('node_type') not in ['exit_node', 'entry_node']]
+        nodes_to_remove = [node for node, data in networkx_graph.nodes(data=True) if data.get('node_type') not in ['exit_node', 'entry_node', 'exit_connection_node', 'entry_connection_node']]
         
         # Shuffle the list of nodes to remove
         random.seed(0)
@@ -191,10 +191,11 @@ class PZCreator(GraphCreator):
 
         # Add exit edges
         for i in range(pz.num_edges):
+            print('i: ', i, pz.num_edges)
             exit_node = (pz.exit_node[0] + (i + 1) * dx_exit / pz.num_edges, pz.exit_node[1] - (i + 1) * dy_exit / pz.num_edges)
 
             if i == 0:
-                networkx_graph.add_node(exit_node, node_type="exit_node", color="y")
+                #networkx_graph.add_node(exit_node, node_type="exit_node", color="y") # will get overwritten by exit_connection_node
                 previous_exit_node = pz.exit_node
                 pz.exit_edge = (previous_exit_node, exit_node)
 
@@ -206,9 +207,9 @@ class PZCreator(GraphCreator):
         # Add entry edges
         for i in range(pz.num_edges):
             entry_node = (pz.entry_node[0] - (i + 1) * dx_entry / pz.num_edges, pz.entry_node[1] + (i + 1) * dy_entry / pz.num_edges)
-
+            print('entry_node: ', entry_node)
             if i == 0:
-                networkx_graph.add_node(entry_node, node_type="entry_node", color="orange")
+                #networkx_graph.add_node(entry_node, node_type="entry_node", color="orange")
                 previous_entry_node = pz.entry_node
                 pz.entry_edge = (previous_entry_node, entry_node)
 
@@ -227,6 +228,10 @@ class PZCreator(GraphCreator):
 
         # Add the processing zone node
         networkx_graph.add_node(pz.processing_zone, node_type="processing_zone_node", color="r")
+        
+        # new: add exit and entry node
+        networkx_graph.add_node(pz.exit_node, node_type="exit_node", color="y")
+        networkx_graph.add_node(pz.entry_node, node_type="entry_node", color="orange")
 
         # Add new parking edge
         networkx_graph.add_node(pz.parking_node, node_type="parking_node", color="r")

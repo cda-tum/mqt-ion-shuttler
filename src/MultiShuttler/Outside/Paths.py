@@ -58,7 +58,7 @@ def create_path_via_bfs_directional(graph, current_edge, next_edge, other_next_e
         for neighbor in [node for node in graph.neighbors(current_node) if node not in visited and nx.get_node_attributes(graph, "node_type")[node]
             not in ("entry_connection_node", "processing_zone_node")]:
             #if get_idx_from_idc(graph.idc_dict, (current_node, neighbor)) != get_idx_from_idc(graph.idc_dict, graph.pzgraph_creator.entry_edge):
-
+            
             edge = (current_node, neighbor)
 
             # Check if the edge is free
