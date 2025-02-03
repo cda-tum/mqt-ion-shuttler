@@ -1,0 +1,2 @@
+(4, 4, 1, 1), #pzs: 2, ts: 19, seed: 2
+(4, 4, 1, 1), #pzs: 2, average_ts: 19.0, average_cpu_time: 0:00:09.266503

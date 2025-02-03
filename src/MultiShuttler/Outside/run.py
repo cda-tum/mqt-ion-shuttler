@@ -8,8 +8,9 @@ import networkx as nx
 import numpy as np
 from datetime import datetime
 from plotting import plot_state
+from graph_utils import get_idx_from_idc
 
-plot = True
+plot = False
 save = False
 
 paths = False
@@ -21,7 +22,7 @@ number_of_pzs_list = [2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
     [5, 5, 1, 1],
 ]
-seeds = [1]  # , 1, 2, 3, 4]
+seeds = [2]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 for m, n, v, h in archs:
@@ -32,23 +33,42 @@ for m, n, v, h in archs:
         for seed in seeds:
             start_time = datetime.now()
 
-            exit = (4, 4)
-            entry = (4, 0)
-            processing_zone = (5, 5)
-            pz1 = ProcessingZone("pz1", [exit, entry, processing_zone])
-            pzs = [pz1]#, pz2]
+            exit1 = (float(m-1), float(n-1))
+            entry1 = (float(m-1), float(0))
+            processing_zone1 = (float(m), float(n))
+
+            exit2 = (0.0, 0.0)
+            entry2 = (0.0, float(n-1))
+            processing_zone2 = (-1.0, -1.0)
+
+
+            pz1 = ProcessingZone("pz1", [exit1, entry1, processing_zone1])
+            pz2 = ProcessingZone("pz2", [exit2, entry2, processing_zone2])
+            pzs = [pz1, pz2]
             basegraph_creator = GraphCreator(m, n, v, h, failing_junctions, pzs)
             MZ_graph = basegraph_creator.get_graph()        
             pzgraph_creator = PZCreator(m, n, v, h, failing_junctions, pzs)
             G = pzgraph_creator.get_graph()
+            G.mz_graph = MZ_graph
+
+            G.idc_dict = create_idc_dictionary(G)
+            G.idc_dict = create_idc_dictionary(G)
             G.pzs = pzs
+            G.parking_edges_idxs = []
+            for pz in G.pzs:
+                G.parking_edges_idxs.append(get_idx_from_idc(G.idc_dict, pz.parking_edge))
+            print(f"parking_edges_idxs: {G.parking_edges_idxs}")
+            
+            G.max_num_parking = 3
+            for pz in G.pzs:
+                pz.max_num_parking = G.max_num_parking # if changed here, also change in shuttle.py (check_duplicates) and check for further updates to max_num_parking
 
             G.plot = plot
             G.save = save
             G.arch = str([m, n, v, h])
 
-            number_of_chains = 6#math.ceil(len(MZ_graph.edges()) / 2)
-            G.idc_dict = create_idc_dictionary(G)
+            number_of_chains = math.ceil(len(MZ_graph.edges()) / 2)
+            
 
             # plot for paper
             # plot_state(
@@ -56,25 +76,13 @@ for m, n, v, h in archs:
             # )
 
             print(f"Number of chains: {number_of_chains}")
-            algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            algorithm = "full_register_access"
             qasm_file_path = (
                 f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
             )
 
             edges = list(G.edges())
-            #print("edges", math.ceil(len(edges)))
-            # # Select the middle edge
-            # middle_index = math.ceil(len(edges) / 2)
-            # middle_edge = edges[middle_index]
-
-            # pz2 = ProcessingZone(
-            #     "pz2",
-            #     (middle_edge),
-            # )
-            # pz3 = ProcessingZone(
-            #     "pz3", ((max(G.nodes)[0], max(G.nodes)[1] - 1),
-            # (max(G.nodes)[0], max(G.nodes)[1]))
-            # )
 
             create_starting_config(G, number_of_chains, seed=seed)
             G.idc_dict = create_idc_dictionary(G)
@@ -118,7 +126,7 @@ for m, n, v, h in archs:
                 for i, ion in enumerate(remaining_ions):
                     partition[G.pzs[i % num_pzs].name].append(ion)
 
-            print(partition)
+            print('partition: ', partition)
 
             # Create a reverse mapping from element to partition name
             map_to_pz = {
@@ -177,3 +185,9 @@ for m, n, v, h in archs:
 #     gate_info_list = {'pz1': [1], 'pz2': [2, 1], 'pz3': [3], 'pz4': [], 'pz5': []}
 #     sequence = [(2, 1), (1,), (3,)]
 #     print(find_pz_order(G, sequence, gate_info_list))
+
+
+# TODOs:
+# - TODO 1: gate_execution_finished -> implement different gate execution times
+# - TODO 2: other_next_edges -> needed for path out of pz if cycles is True - would now have to be calculated for each pz before
+# - TODO 3: new_gate_starting -> would need to know next gate at pz - checks in scheduling.py if new gate can start with ions in parking - would stop all ions in exit

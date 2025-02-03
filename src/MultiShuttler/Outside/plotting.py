@@ -72,7 +72,6 @@ def plot_state(
     #node_size = list(nx.get_node_attributes(graph, "node_size").values())
 
     plt.figure(figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
-    print(graph.nodes())
     nx.draw_networkx(
         graph,
         pos=pos,
@@ -93,7 +92,7 @@ def plot_state(
     labels0, labels1 = labels
     plt.plot([], [], label=labels0)
     plt.plot([], [], label=labels1)
-    # plt.legend()
+    plt.legend()
 
     if show_plot is True:
         plt.show()
