@@ -276,10 +276,12 @@ def find_ordered_edges(graph, edge1, edge2):
 def create_cycle(
     graph,
     edge_idc,
-    next_edge,
-    pz
+    next_edge
 ):
     idc_dict = graph.idc_dict
+
+    #print(get_idx_from_idc(graph.idc_dict, ((0.0, 4.0), (-1.0, 5.0))))
+    #edge_idc, next_edge = find_ordered_edges(graph, edge_idc, next_edge)
 
     # cycles within memory zone
     node_path = nx.shortest_path(
@@ -359,7 +361,7 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
 
         # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)
         # extra: if both end in same edge -> don't execute (scenario where path out of pz ends in same edge as next edge for other) 
-        # -> new exclude parking edge (can end both in parking edge, since stop moves in parking edge also end in parking edge) # TODO now check complete pz logic and if correct extend to two pzs
+        # -> new exclude parking edge (can end both in parking edge, since stop moves in parking edge also end in parking edge)
         if len(nodes1.intersection(nodes2)) > 0 or (
             (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][-1])
             == (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle2][-1])) and 

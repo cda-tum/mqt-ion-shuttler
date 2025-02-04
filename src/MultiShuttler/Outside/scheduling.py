@@ -351,7 +351,7 @@ def create_cycles_for_moves(graph, move_list, prio_queue, gate_execution_finishe
                 starting_search_node = pz.entry_node
                 target_edge = bfs_free_edge(graph, starting_search_node, other_next_edges)
                 # calc path to target edge (node path does not include target edge and in this case - also not the start node)
-                start_node = [node for node in edge_idc if graph.nodes(data=True)[node]['node_type'] != "entry_node"][0]
+                start_node = [node for node in edge_idc if graph.nodes(data=True)[node]['node_type'] in ["entry_connection_node", "processing_zone_node"]][0]
                 node_path = find_path_edge_to_edge(graph, edge_idc, target_edge, exclude_exit=True, exclude_first_entry_connection=False)
                 end_node = [node for node in target_edge if node not in node_path][0]
                 node_path = [start_node, *node_path, end_node]
@@ -391,7 +391,7 @@ def create_cycles_for_moves(graph, move_list, prio_queue, gate_execution_finishe
             else:
                 
                 if cycle_or_paths == "Cycles":
-                    all_cycles[rotate_chain] = create_cycle(graph, edge_idc, next_edge, pz)
+                    all_cycles[rotate_chain] = create_cycle(graph, edge_idc, next_edge)
                 else:
                     all_cycles[rotate_chain] = create_path_via_bfs_directional(graph, edge_idc, next_edge, other_next_edges=None) #TODO other next edges for pz
     return all_cycles, in_and_into_exit_moves
@@ -572,7 +572,8 @@ def find_out_of_entry_moves(graph, other_next_edges):
     out_of_entry_moves = {}
     mz_graph_copy = graph.mz_graph.copy()
     for pz, edge in free_edges.items():
-        start_node = pz.entry_edge[0] if graph.nodes[pz.entry_edge[0]]['node_type'] == "entry_node" else pz.entry_edge[1]
+        # start from entry node (=not entry_connection_node or processing_zone_node) -> needed this way since entry node can be exit node of other pz TODO check if exit/entry of two pzs cause other problems
+        start_node = pz.entry_edge[1] if graph.nodes[pz.entry_edge[0]]['node_type'] in ["entry_connection_node", "processing_zone_node"] else pz.entry_edge[0]
         other_start_node = pz.entry_edge[1] if start_node == pz.entry_edge[0] else pz.entry_edge[0]
 
         node_path = find_path_node_to_edge(mz_graph_copy, start_node, edge)

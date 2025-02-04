@@ -18,33 +18,54 @@ cycle_or_paths = "Paths" if paths else "Cycles"
 
 failing_junctions = 0
 
-number_of_pzs_list = [2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
+    #[3, 3, 1, 1],
+    [3, 3, 2, 2],
+    [3, 3, 3, 3],
+    [4, 4, 1, 1],
+    [4, 4, 2, 2],
+    [4, 4, 3, 3],
     [5, 5, 1, 1],
+    [5, 5, 2, 2],
+    [5, 5, 2, 2]
 ]
-seeds = [2]  # , 1, 2, 3, 4]
+seeds = list(range(20))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+number_of_pzs = [1, 2, 3, 4]
 
 for m, n, v, h in archs:
-    for number_of_pzs in number_of_pzs_list:
+    timesteps_average = {}
+    cpu_time_average = {}
+    for number_of_pz in number_of_pzs:
         timesteps_array = []
         cpu_time_array = []
-
         for seed in seeds:
             start_time = datetime.now()
 
-            exit1 = (float(m-1), float(n-1))
-            entry1 = (float(m-1), float(0))
-            processing_zone1 = (float(m), float(n))
+            height = -1 # height > -1 (position of pz outside of mz) -> all edges can be ordered by sum -> if height -1 -> edge may be smaller in edge_idc (important for get_idx_from_idc())
+
+            exit1 = (float((m-1)*v), float((n-1)*h))
+            entry1 = (float((m-1)*v), float(0))
+            processing_zone1 = (float((m-1)*v-height), float((n-1)*h/2))
 
             exit2 = (0.0, 0.0)
-            entry2 = (0.0, float(n-1))
-            processing_zone2 = (-1.0, -1.0)
+            entry2 = (0.0, float((n-1)*h))
+            processing_zone2 = (float(height), float((n-1)*h/2))
 
+            exit3 = (float((m-1)*v), float(0))
+            entry3 = (float(0), float(0))
+            processing_zone3 = (float((m-1)*v/2), float(height))
+
+            exit4 = (float(0), float((n-1)*h))
+            entry4 = (float((m-1)*v), float((n-1)*h))
+            processing_zone4 = (float((m-1)*v/2), float((n-1)*h-height))
 
             pz1 = ProcessingZone("pz1", [exit1, entry1, processing_zone1])
             pz2 = ProcessingZone("pz2", [exit2, entry2, processing_zone2])
-            pzs = [pz1, pz2]
+            pz3 = ProcessingZone("pz3", [exit3, entry3, processing_zone3])
+            pz4 = ProcessingZone("pz4", [exit4, entry4, processing_zone4])
+            pzs = [pz1, pz2, pz3, pz4][0:number_of_pz]
+
             basegraph_creator = GraphCreator(m, n, v, h, failing_junctions, pzs)
             MZ_graph = basegraph_creator.get_graph()        
             pzgraph_creator = PZCreator(m, n, v, h, failing_junctions, pzs)
@@ -67,7 +88,8 @@ for m, n, v, h in archs:
             G.save = save
             G.arch = str([m, n, v, h])
 
-            number_of_chains = math.ceil(len(MZ_graph.edges()) / 2)
+            number_of_mz_edges = len(MZ_graph.edges())
+            number_of_chains = 24#math.ceil(len(MZ_graph.edges()))
             
 
             # plot for paper
@@ -162,30 +184,26 @@ for m, n, v, h in archs:
             timesteps_array.append(timesteps)
             cpu_time_array.append(cpu_time)
 
-            # save timesteps in a file
-            with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
-                f.write(
-                    f"{m, n, v, h}, #pzs: {num_pzs}, ts: {timesteps}, seed: {seed}\n"
-                )
+            # # save timesteps in a file
+            # with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
+            #     f.write(
+            #         f"{m, n, v, h}, #pzs: {num_pzs}, ts: {timesteps}, seed: {seed}\n"
+            #     )
 
         # calculate averages
         timesteps_array = np.array(timesteps_array)
         cpu_time_array = np.array(cpu_time_array)
-        timesteps_average = np.mean(timesteps_array)
-        cpu_time_average = np.mean(cpu_time_array)
+        timesteps_average[number_of_pz] = np.mean(timesteps_array)
+        cpu_time_average[number_of_pz] = np.mean(cpu_time_array)
 
         # save averages
         with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(
-                f"{m, n, v, h}, #pzs: {num_pzs}, average_ts: {timesteps_average}, average_cpu_time: {cpu_time_average}\n"
+                f"{m, n, v, h}, ions/pos: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}\n"
             )
 
-
-# if __name__ == "__main__":
-#     gate_info_list = {'pz1': [1], 'pz2': [2, 1], 'pz3': [3], 'pz4': [], 'pz5': []}
-#     sequence = [(2, 1), (1,), (3,)]
-#     print(find_pz_order(G, sequence, gate_info_list))
-
+for num_pzs in number_of_pzs:
+    print(f"{m, n, v, h}, ions/pos: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}")
 
 # TODOs:
 # - TODO 1: gate_execution_finished -> implement different gate execution times

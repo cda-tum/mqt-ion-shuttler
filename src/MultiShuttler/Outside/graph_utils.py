@@ -3,20 +3,21 @@ import random
 import math
 
 # create dictionary to swap from idx to idc and vice versa
+# reversed in comparison with previous versions -> edge_idc key, edge_idx value now -> can also have an entry for the reversed edge_idc
 def create_idc_dictionary(graph):
     edge_dict = {}
     for edge_idx, edge_idc in enumerate(graph.edges()):
-        edge_dict[edge_idx] = tuple(sorted(edge_idc, key=sum))
+        sorted_edge_idc = tuple(sorted(edge_idc, key=sum))
+        edge_dict[sorted_edge_idc] = edge_idx
+        edge_dict[(sorted_edge_idc[1], sorted_edge_idc[0])] = edge_idx
     return edge_dict
-
 
 def get_idx_from_idc(edge_dictionary, idc):
     idc = tuple(sorted(idc, key=sum))
-    return list(edge_dictionary.values()).index(idc)
-
+    return edge_dictionary[idc]
 
 def get_idc_from_idx(edge_dictionary, idx):
-    return edge_dictionary[idx]
+    return next((k for k, v in edge_dictionary.items() if v == idx), None)#list(edge_dictionary.values()).index(idx)
 
 
 # Function to convert all nodes to float

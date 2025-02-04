@@ -71,7 +71,7 @@ def plot_state(
     edge_labels = nx.get_edge_attributes(graph, "ions")
     #node_size = list(nx.get_node_attributes(graph, "node_size").values())
 
-    plt.figure(figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
+    plt.figure(figsize=(12, 12))#figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
     nx.draw_networkx(
         graph,
         pos=pos,
