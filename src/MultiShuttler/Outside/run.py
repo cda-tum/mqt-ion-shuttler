@@ -20,18 +20,17 @@ failing_junctions = 0
 
 archs = [
     #[3, 3, 1, 1],
-    [3, 3, 2, 2],
-    [3, 3, 3, 3],
-    [4, 4, 1, 1],
-    [4, 4, 2, 2],
-    [4, 4, 3, 3],
+    # [3, 3, 2, 2],
+    # [3, 3, 3, 3],
+    # [4, 4, 1, 1],
+    # [4, 4, 2, 2],
+    # [4, 4, 3, 3],
     [5, 5, 1, 1],
-    [5, 5, 2, 2],
-    [5, 5, 2, 2]
+    # [5, 5, 2, 2],
 ]
-seeds = list(range(20))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
+seeds = list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [1, 2, 3, 4]
+number_of_pzs = [1]#1, 2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
@@ -80,7 +79,7 @@ for m, n, v, h in archs:
                 G.parking_edges_idxs.append(get_idx_from_idc(G.idc_dict, pz.parking_edge))
             print(f"parking_edges_idxs: {G.parking_edges_idxs}")
             
-            G.max_num_parking = 3
+            G.max_num_parking = 2
             for pz in G.pzs:
                 pz.max_num_parking = G.max_num_parking # if changed here, also change in shuttle.py (check_duplicates) and check for further updates to max_num_parking
 
@@ -89,7 +88,7 @@ for m, n, v, h in archs:
             G.arch = str([m, n, v, h])
 
             number_of_mz_edges = len(MZ_graph.edges())
-            number_of_chains = 24#math.ceil(len(MZ_graph.edges()))
+            number_of_chains = math.ceil(0.5*len(MZ_graph.edges()))
             
 
             # plot for paper

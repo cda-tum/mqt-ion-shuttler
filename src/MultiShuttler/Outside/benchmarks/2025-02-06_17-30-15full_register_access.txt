@@ -1,0 +1,1 @@
+(5, 5, 1, 1), ions/pos: 0.5, #pzs: 1, avg_ts: 46.2, avg_cpu_time: 0:00:02.870165

@@ -12,12 +12,12 @@ from plotting import plot_state
 plot = False
 save = False
 
-paths = True
+paths = False
 cycle_or_paths = "Paths" if paths else "Cycles"
 
 number_of_pzs_list = [2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
-    [3, 3, 1, 1],
+    [6, 6, 1, 1],
 ]
 seeds = [1]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -47,7 +47,8 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
             # )
 
             print(f"Number of chains: {number_of_chains}")
-            algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            algorithm = "full_register_access"
             qasm_file_path = (
                 f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
             )

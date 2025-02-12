@@ -19,3 +19,12 @@
 (4, 4, 3, 3), #pzs: 3, avg_ts: 62.2, avg_cpu_time: 0:00:16.674024
 (5, 5, 1, 1), #pzs: 1, avg_ts: 55.05, avg_cpu_time: 0:00:12.680431
 (5, 5, 1, 1), #pzs: 2, avg_ts: 41.9, avg_cpu_time: 0:00:10.045934
+(5, 5, 1, 1), #pzs: 3, avg_ts: 37.6, avg_cpu_time: 0:00:09.732306
+(5, 5, 1, 1), #pzs: 4, avg_ts: 38.35, avg_cpu_time: 0:00:10.514092
+(5, 5, 2, 2), #pzs: 1, avg_ts: 63.85, avg_cpu_time: 0:00:21.639702
+(5, 5, 2, 2), #pzs: 2, avg_ts: 53.75, avg_cpu_time: 0:00:18.636676
+(5, 5, 2, 2), #pzs: 3, avg_ts: 46.7, avg_cpu_time: 0:00:17.233288
+(5, 5, 2, 2), #pzs: 4, avg_ts: 46.8, avg_cpu_time: 0:00:17.561430
+(5, 5, 2, 2), #pzs: 1, avg_ts: 63.85, avg_cpu_time: 0:00:22.712744
+(5, 5, 2, 2), #pzs: 2, avg_ts: 53.75, avg_cpu_time: 0:00:20.580521
+(5, 5, 2, 2), #pzs: 3, avg_ts: 46.7, avg_cpu_time: 0:00:19.263780
