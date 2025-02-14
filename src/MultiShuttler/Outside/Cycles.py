@@ -310,7 +310,7 @@ def create_cycle(
 
 def find_conflict_cycle_idxs(graph, cycles_dict):
     combinations_of_cycles = list(distinct_combinations(cycles_dict.keys(), 2))
-
+    print('cycles_dict', cycles_dict)
     def get_cycle_nodes(cycle, graph):
         # if next edge is free -> cycle is just two edges -> can skip first and last node
         if len(cycles_dict[cycle]) == 2:
@@ -321,10 +321,12 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
                 ), f"cycle is not two edges? Middle node should be the same ({cycles_dict[cycle]})"
                 # if middle node is exit or exit connection -> skip also middle node -> can always push through to parking edge
                 # TODO unskip? (not needed anymore since it is managed in scheduling.py - create_cycles_for_moves())
-                # if (
-                #     nx.get_node_attributes(self.graph, "node_type")[cycles_dict[cycle][0][1]] in ("exit_node", "exit_connection_node")
-                # ):
-                #     cycle_or_path = []
+                # Now needed again (changed moving to exit in scheduling.py -> to simplify always pushing through (cost: may push important ions out of pz)
+                # -> if in exit connections, ions always in move_list -> if one in front is less important (both in exit connections) may block the one behind -> need to exclude exit nodes here)
+                if (
+                    nx.get_node_attributes(graph, "node_type")[cycles_dict[cycle][0][1]] in ("exit_node", "exit_connection_node")
+                ):
+                    cycle_or_path = []
 
             # new if same edge twice is parking edge -> skip completely
             elif get_idx_from_idc(graph.idc_dict, cycles_dict[cycle][0]) in graph.parking_edges_idxs:
@@ -357,6 +359,7 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
     junction_shared_pairs = []
     for cycle1, cycle2 in combinations_of_cycles:
         nodes1 = get_cycle_nodes(cycle1, graph)
+        print(cycle2, 'cycle2')
         nodes2 = get_cycle_nodes(cycle2, graph)
 
         # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)

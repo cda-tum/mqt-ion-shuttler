@@ -10,7 +10,7 @@ from datetime import datetime
 from plotting import plot_state
 from graph_utils import get_idx_from_idc
 
-plot = False
+plot = True
 save = False
 
 paths = False
@@ -30,7 +30,7 @@ archs = [
 ]
 seeds = list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [1]#1, 2, 3, 4]
+number_of_pzs = [2]#1, 2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
@@ -72,7 +72,6 @@ for m, n, v, h in archs:
             G.mz_graph = MZ_graph
 
             G.idc_dict = create_idc_dictionary(G)
-            G.idc_dict = create_idc_dictionary(G)
             G.pzs = pzs
             G.parking_edges_idxs = []
             for pz in G.pzs:
@@ -97,8 +96,8 @@ for m, n, v, h in archs:
             # )
 
             print(f"Number of chains: {number_of_chains}")
-            #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
-            algorithm = "full_register_access"
+            algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            #algorithm = "full_register_access"
             qasm_file_path = (
                 f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
             )
