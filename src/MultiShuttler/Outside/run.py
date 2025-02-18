@@ -10,8 +10,13 @@ from datetime import datetime
 from plotting import plot_state
 from graph_utils import get_idx_from_idc
 
-plot = True
+plot = False
 save = False
+# TODO doch neue logik für find least important ion in pz (muss doch ion miteinbeziehen, dass reinmoved?)
+# siehe dieses Beispiel, 18, 19, 18, 19 (18 moved immer wieder raus)
+# es könnt aber auch reichen zu checken, ob nächste gates mit pz ionen ausführbar ist?
+# + locked gates falsch? -> locked immer gleich alle 2-qubit gates?
+# beispiel läuft durch -> two-qubit gate geht nicht, weil anderes ion ein ion aus pz verdrängt, aber gate noch nicht beendet
 
 paths = False
 cycle_or_paths = "Paths" if paths else "Cycles"
@@ -25,10 +30,10 @@ archs = [
     # [4, 4, 1, 1],
     # [4, 4, 2, 2],
     # [4, 4, 3, 3],
-    [5, 5, 1, 1],
+    [3, 3, 1, 1],
     # [5, 5, 2, 2],
 ]
-seeds = list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
+seeds = [0]#list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 number_of_pzs = [2]#1, 2, 3, 4]
 
@@ -78,7 +83,7 @@ for m, n, v, h in archs:
                 G.parking_edges_idxs.append(get_idx_from_idc(G.idc_dict, pz.parking_edge))
             print(f"parking_edges_idxs: {G.parking_edges_idxs}")
             
-            G.max_num_parking = 2
+            G.max_num_parking = 3
             for pz in G.pzs:
                 pz.max_num_parking = G.max_num_parking # if changed here, also change in shuttle.py (check_duplicates) and check for further updates to max_num_parking
 
@@ -87,7 +92,7 @@ for m, n, v, h in archs:
             G.arch = str([m, n, v, h])
 
             number_of_mz_edges = len(MZ_graph.edges())
-            number_of_chains = math.ceil(0.5*len(MZ_graph.edges()))
+            number_of_chains = 6#math.ceil(0.5*len(MZ_graph.edges()))
             
 
             # plot for paper

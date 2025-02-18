@@ -128,6 +128,7 @@ def create_priority_queue(graph, sequence, max_length=10):
                 pz_for_2_q_gate = pick_pz_for_2_q_gate(
                     graph, seq_elem[0], seq_elem[1]
                 )
+                graph.locked_gates[seq_elem] = pz_for_2_q_gate
             else:
                 pz_for_2_q_gate = graph.locked_gates[seq_elem]
 
@@ -173,25 +174,25 @@ def create_priority_queue(graph, sequence, max_length=10):
 
     ions_edges = get_ion_chains(graph)
     for pz in graph.pzs:
-        # get chains in all entry edges and place in front
+        # get ions in all entry edges and place in front
         # chain in entry must move out TODO for multiple pzs could be the case that out of entry moves block each other -> can't move out of some pzs -> need blocks in these pzs?
-        chains_in_entry_connections = []
+        ions_in_entry_connections = []
         for ion, chain_edge_idc in ions_edges.items():
             chain_edge_idx = get_idx_from_idc(graph.idc_dict, chain_edge_idc)
             if chain_edge_idx in pz.path_from_pz_idxs:
                 if chain_edge_idx == get_idx_from_idc(graph.idc_dict, pz.entry_edge):
                     # place chain in entry at the end of priority queue -> so later looping over list leads to chain in entry being first
-                    chains_in_entry_connections.append(ion)
+                    ions_in_entry_connections.append(ion)
                 else:
-                    chains_in_entry_connections.insert(0, ion)
+                    ions_in_entry_connections.insert(0, ion)
 
-        if len(chains_in_entry_connections) > 0:
-            for ion in chains_in_entry_connections:
+        if len(ions_in_entry_connections) > 0:
+            for ion in ions_in_entry_connections:
                 with contextlib.suppress(Exception):
                     unique_sequence.remove(ion)
                 unique_sequence[ion] = pz.name
                 unique_sequence.move_to_end(ion, last=False)
-
+    print('locked gates', graph.locked_gates)
     return unique_sequence, next_gate_at_pz
 
 
@@ -222,9 +223,10 @@ def create_gate_info_list(graph):
             if gate_info_list[pz] == []:
                 gate_info_list[pz].append(elem)
         elif len(seq_elem) == 2:
-            # only pick processing zone for 2-qubit gate if not already locked
+            # only pick processing zone for 2-qubit gate if not already locked -> then lock it (add to locked_gates)
             if seq_elem not in graph.locked_gates:
                 pz = pick_pz_for_2_q_gate(graph, seq_elem[0], seq_elem[1])
+                graph.locked_gates[seq_elem] = pz
             else:
                 pz = graph.locked_gates[seq_elem]
             if gate_info_list[pz] == []:
@@ -288,20 +290,21 @@ def create_move_list(graph, partitioned_priority_queue, pz):
     #         with contextlib.suppress(Exception):
     #             move_list.remove(ion)
     #         move_list = [ion, *move_list]
+    
     # get chains in all entry edges and place in front
     # chain in entry must move out
-    chains_in_entry_connections = []
+    ions_in_entry_connections = []
     for ion, chain_edge_idc in get_ion_chains(graph).items():
         chain_edge_idx = get_idx_from_idc(graph.idc_dict, chain_edge_idc)
         if chain_edge_idx in pz.path_from_pz_idxs:
             if chain_edge_idx == get_idx_from_idc(graph.idc_dict, pz.entry_edge):
                 # place chain in entry at the end of move_list -> so later looping over list leads to chain in entry being first
-                chains_in_entry_connections.append(ion)
+                ions_in_entry_connections.append(ion)
             else:
-                chains_in_entry_connections.insert(0, ion)
+                ions_in_entry_connections.insert(0, ion)
 
-    if len(chains_in_entry_connections) > 0:
-        for ion in chains_in_entry_connections:
+    if len(ions_in_entry_connections) > 0:
+        for ion in ions_in_entry_connections:
             with contextlib.suppress(Exception):
                 move_list.remove(ion)
             move_list = [ion, *move_list]
@@ -398,6 +401,7 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
     # move ion out of parking edge if needed
     ions_in_parking = find_ions_in_parking(graph, pz)
     ion_in_entry = find_ion_in_edge(graph, pz.entry_edge)
+    print('gate exec finished', pz.gate_execution_finished)
 
     # if pz full and no ion is moving out (not in state_idxs entry edge) but chain is moving in
     if get_ions_in_parking(graph, pz) >= pz.max_num_parking and pz.ion_to_park is not None:
@@ -472,6 +476,24 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
             #     memorygrid.pzgraph_creator.path_to_pz[-1],
             #     memorygrid.pzgraph_creator.path_to_pz[-1],
             # )
+        
+    # NEW TODO: both ions of 2-qubit gate are in pz -> one has to move out of pz to other pz -> in this case moves into exit instead of entry
+    
+    # remove ions if they move would move to exit but their next gate is a 2-qubit gate and their gate is not yet in locked_gates (maybe not needed, TODO check)
+    for ion, edge_idc in in_and_into_exit_moves_pz.items():
+        if graph.get_edge_data(edge_idc[0], edge_idc[1])['edge_type'] == 'trap':    # if edge_idc is in MZ -> moves into exit
+            for gate in graph.sequence:
+                if ion in gate:
+                    if len(gate) == 1:
+                        break
+                    elif len(gate) == 2:
+                        print(f'checked if ion {ion} moving to exit will execute 2 qubit gate')
+                        if gate in graph.locked_gates.keys():
+                            print(f'{ion} can move to exit since gate was locked')
+                            break
+                        else:
+                            all_cycles.pop(ion)
+                            print(f'stopped ion {ion} from entering exit since gate {gate} is not locked yet')
 
     return all_cycles
 

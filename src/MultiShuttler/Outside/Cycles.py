@@ -224,10 +224,20 @@ def find_path_edge_to_edge(graph, edge_idc, goal_edge, exclude_exit=False, exclu
 
 
 def find_next_edge(graph, edge_idc, goal_edge, exclude_exit=False, exclude_first_entry_connection=True):
-    if edge_idc == goal_edge:
+    if get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(graph.idc_dict, goal_edge):
         return goal_edge
 
-    # if goal edge is next edge, return goal edge (now entry is excluded)
+    # if in pz next edge is first_entry_connection (needed for rare case that ion is in pz but has to move to other pz for 2-qubit gate)
+    if graph.get_edge_data(edge_idc[0], edge_idc[1])["edge_type"] == "parking_edge":
+        print('find next edge for pz')
+        for node in edge_idc:
+            if nx.get_node_attributes(graph, "node_type")[node] == "processing_zone_node":
+                print(f'node {node} is pz node')                    
+                next_edge = [edge for edge in graph.edges(node) if graph.get_edge_data(edge[0], edge[1])["edge_type"] == "first_entry_connection"][0]
+                print('next edge is ', next_edge)
+                return next_edge
+
+    # if goal edge is next edge, return goal edge (now also entry is excluded)
     if graph.get_edge_data(edge_idc[0], edge_idc[1])["edge_type"] != "first_entry_connection" and graph.get_edge_data(edge_idc[0], edge_idc[1])["edge_type"] != "entry":
         for node in goal_edge:
             if node in edge_idc:
@@ -310,7 +320,6 @@ def create_cycle(
 
 def find_conflict_cycle_idxs(graph, cycles_dict):
     combinations_of_cycles = list(distinct_combinations(cycles_dict.keys(), 2))
-    print('cycles_dict', cycles_dict)
     def get_cycle_nodes(cycle, graph):
         # if next edge is free -> cycle is just two edges -> can skip first and last node
         if len(cycles_dict[cycle]) == 2:
@@ -359,7 +368,6 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
     junction_shared_pairs = []
     for cycle1, cycle2 in combinations_of_cycles:
         nodes1 = get_cycle_nodes(cycle1, graph)
-        print(cycle2, 'cycle2')
         nodes2 = get_cycle_nodes(cycle2, graph)
 
         # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)

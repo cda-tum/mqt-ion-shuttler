@@ -151,7 +151,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
 
     labels = ("timestep %s" % timestep, "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
 
-    if timestep >= 339: # 19: pz1 wechselt zu pz2 in exit am weg zu pz1, weil partner 18 in pz2 ist (näher in pz2 als 19 in pz1) -> will im exit zurück zu mz
+    if timestep >= 165:#339: # bei ts 340: 19 pz1 wechselt zu pz2 in exit am weg zu pz1, weil partner 18 in pz2 ist (näher in pz2 als 19 in pz1) -> will im exit zurück zu mz
         plot_state(
             graph,
             labels,
@@ -265,8 +265,8 @@ def main(graph, sequence, partition, cycle_or_paths):
                         pz.gate_execution_finished = False # set False, then check below if gate time is finished -> then True
                         pz.time_in_pz_counter += 1
                         print(f"Ion {ion} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
-                        time_gate = 3
-                        if pz.time_in_pz_counter == time_gate:
+                        gate_time = 1
+                        if pz.time_in_pz_counter == gate_time:
                             processed_ions.insert(0, (ion,))
                             ion_processed = True
                             # remove the processing zone from the list
@@ -297,9 +297,11 @@ def main(graph, sequence, partition, cycle_or_paths):
 
                     # if both ions are in the processing zone, process the gate
                     if get_idx_from_idc(graph.idc_dict, state1) == get_idx_from_idc(graph.idc_dict, pz.parking_edge) and get_idx_from_idc(graph.idc_dict, state2) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
+                        pz.gate_execution_finished = False # set False, then check below if gate time is finished -> then True
+                        pz.time_in_pz_counter += 1
                         print(f"Ions {ion1} and {ion2} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
-                        time_gate = 4
-                        if pz.time_in_pz_counter == time_gate:
+                        gate_time = 3
+                        if pz.time_in_pz_counter == gate_time:
                             processed_ions.insert(0, (ion1, ion2))
                             ion_processed = True
                             # remove the processing zone from the list

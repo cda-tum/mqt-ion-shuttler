@@ -136,6 +136,8 @@ def create_priority_queue(graph, sequence, max_length=10):
                 pz_for_2_q_gate = pick_pz_for_2_q_gate_new(
                     graph, seq_elem[0], seq_elem[1]
                 )
+                # new in multishuttler outside:
+                # graph.locked_gates[seq_elem] = pz_for_2_q_gate
             else:
                 pz_for_2_q_gate = graph.locked_gates[seq_elem]
 

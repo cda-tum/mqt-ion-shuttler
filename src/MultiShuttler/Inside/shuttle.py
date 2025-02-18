@@ -155,6 +155,7 @@ def main(graph, sequence, partition, cycle_or_paths):
     graph.in_process = []
     graph.locked_gates = {}
     while timestep < max_timesteps:
+        print('locked_gates', graph.locked_gates)
         print(f"\nStarting timestep {timestep}")
         print(f"Remaining sequence: {graph.sequence}")
 
