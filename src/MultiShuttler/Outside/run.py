@@ -12,13 +12,8 @@ from graph_utils import get_idx_from_idc
 
 plot = False
 save = False
-# TODO doch neue logik für find least important ion in pz (muss doch ion miteinbeziehen, dass reinmoved?)
-# siehe dieses Beispiel, 18, 19, 18, 19 (18 moved immer wieder raus)
-# es könnt aber auch reichen zu checken, ob nächste gates mit pz ionen ausführbar ist?
-# + locked gates falsch? -> locked immer gleich alle 2-qubit gates?
-# beispiel läuft durch -> two-qubit gate geht nicht, weil anderes ion ein ion aus pz verdrängt, aber gate noch nicht beendet
 
-paths = False
+paths = True
 cycle_or_paths = "Paths" if paths else "Cycles"
 
 failing_junctions = 0
@@ -35,7 +30,7 @@ archs = [
 ]
 seeds = [0]#list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [2]#1, 2, 3, 4]
+number_of_pzs = [1]#1, 2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}

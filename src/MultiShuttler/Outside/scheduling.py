@@ -105,15 +105,15 @@ def create_priority_queue(graph, sequence, max_length=10):
     """
 
     unique_sequence = OrderedDict()
-    next_gate_at_pz = {}
+    graph.next_gate_at_pz = {}
     for seq_elem in sequence:
         # 1-qubit gate
         if len(seq_elem) == 1:
             elem = seq_elem[0]
 
             # add first gate of pz to next_gate_at_pz (if not already there)
-            if graph.map_to_pz[elem] not in next_gate_at_pz:
-                next_gate_at_pz[graph.map_to_pz[elem]] = seq_elem
+            if graph.map_to_pz[elem] not in graph.next_gate_at_pz or graph.next_gate_at_pz[graph.map_to_pz[elem]] == []:
+                graph.next_gate_at_pz[graph.map_to_pz[elem]] = seq_elem
 
             # add ion to unique_sequence
             if elem not in unique_sequence.keys():
@@ -133,8 +133,8 @@ def create_priority_queue(graph, sequence, max_length=10):
                 pz_for_2_q_gate = graph.locked_gates[seq_elem]
 
             # add first gate of pz to next_gate_at_pz (if not already there)
-            if pz_for_2_q_gate not in next_gate_at_pz:
-                next_gate_at_pz[pz_for_2_q_gate] = seq_elem
+            if pz_for_2_q_gate not in graph.next_gate_at_pz or graph.next_gate_at_pz[pz_for_2_q_gate] == []:
+                graph.next_gate_at_pz[pz_for_2_q_gate] = seq_elem
                 # lock the processing zone for the 2-qubit gate for later iterations
                 # otherwise maybe pz changes if both move in a way, that favors a new pz
                 # -> could result in a bug, if the very next iterations
@@ -152,8 +152,8 @@ def create_priority_queue(graph, sequence, max_length=10):
 
         # at the end fill all empty pzs with []
         for pz in graph.pzs:
-            if pz.name not in next_gate_at_pz:
-                next_gate_at_pz[pz.name] = []
+            if pz.name not in graph.next_gate_at_pz:
+                graph.next_gate_at_pz[pz.name] = []
 
     # NEW: add chains in exit connections to priority queue as below for in move_list
 
@@ -193,7 +193,7 @@ def create_priority_queue(graph, sequence, max_length=10):
                 unique_sequence[ion] = pz.name
                 unique_sequence.move_to_end(ion, last=False)
     print('locked gates', graph.locked_gates)
-    return unique_sequence, next_gate_at_pz
+    return unique_sequence, graph.next_gate_at_pz
 
 
 def get_partitioned_priority_queues(graph, priority_queue, partition):
@@ -404,7 +404,7 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
     print('gate exec finished', pz.gate_execution_finished)
 
     # if pz full and no ion is moving out (not in state_idxs entry edge) but chain is moving in
-    if get_ions_in_parking(graph, pz) >= pz.max_num_parking and pz.ion_to_park is not None:
+    if len(ions_in_parking) >= pz.max_num_parking and pz.ion_to_park is not None:
         # if gate finished -> new space could be in parking
         if pz.gate_execution_finished:
             # find least important chain in parking edge
@@ -413,10 +413,13 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
             )
             print('ion move out', pz.ion_to_move_out_of_pz)
             print('ion park', pz.ion_to_park)
-            # if ion moves out of parking edge -> check if ion in entry edge -> make sure it can move into MZ -> then move ion in parking to entry (if not, stop moves in exit)
-            # TODO case if ion moving to parking is least important not covered (should in best case not happen)
-            # print('ion_in_entry: ', ion_in_entry)
-            if pz.ion_to_move_out_of_pz != pz.ion_to_park and (ion_in_entry is None or (ion_in_entry is not None and out_of_entry_moves_pz is not None)):
+            # if ion moves out of parking edge -> check if ion in entry edge -> make sure it can move into MZ -> then move ion in parking to entry (if not, stop moves in exit) 
+            # now only if it the ion moving to pz is higher in prio queue or ion moving out not in prio queue (-> new logic of finding least important)
+            # and new addition: if ion is moving in and can't move to pz because of the other clauses here -> if then no gate is executable with pz ions + ion moving in -> move ion in and least important out (worst case but to avoid complete blockages)
+            if pz.ion_to_move_out_of_pz != pz.ion_to_park and (
+                ion_in_entry is None or (ion_in_entry is not None and out_of_entry_moves_pz is not None)
+                    ) and ((pz.ion_to_move_out_of_pz not in prio_queue or (pz.ion_to_park in prio_queue and prio_queue.index(pz.ion_to_park) < prio_queue.index(pz.ion_to_move_out_of_pz)))
+                        ) or any(ion not in [pz.ion_to_park, *ions_in_parking] for ion in graph.next_gate_at_pz[pz.name]):
                 # move it to entry (later through rotate_entry flag in rotate_free_cycles)
                 pz.rotate_entry = True
                 # change its path/circle to a stop move -> will be later placed into entry
@@ -476,8 +479,6 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
             #     memorygrid.pzgraph_creator.path_to_pz[-1],
             #     memorygrid.pzgraph_creator.path_to_pz[-1],
             # )
-        
-    # NEW TODO: both ions of 2-qubit gate are in pz -> one has to move out of pz to other pz -> in this case moves into exit instead of entry
     
     # remove ions if they move would move to exit but their next gate is a 2-qubit gate and their gate is not yet in locked_gates (maybe not needed, TODO check)
     for ion, edge_idc in in_and_into_exit_moves_pz.items():

@@ -151,7 +151,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
 
     labels = ("timestep %s" % timestep, "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
 
-    if timestep >= 165:#339: # bei ts 340: 19 pz1 wechselt zu pz2 in exit am weg zu pz1, weil partner 18 in pz2 ist (näher in pz2 als 19 in pz1) -> will im exit zurück zu mz
+    if timestep >= 0 and (graph.plot == True or graph.save == True):#165:#339: # bei ts 340: 19 pz1 wechselt zu pz2 in exit am weg zu pz1, weil partner 18 in pz2 ist (näher in pz2 als 19 in pz1) -> will im exit zurück zu mz
         plot_state(
             graph,
             labels,
@@ -175,18 +175,19 @@ def main(graph, sequence, partition, cycle_or_paths):
     if graph.save is True:
         os.makedirs(unique_folder, exist_ok=True)
 
-    plot_state(
-        graph,
-        labels=("Initial state", None),
-        plot_ions=True,
-        show_plot=graph.plot,
-        save_plot=graph.save,
-        plot_cycle=False,
-        plot_pzs=True,
-        filename=os.path.join(
-            unique_folder, "%s_timestep_%s.png" % (graph.arch, timestep)
-        ),
-    )
+    if any([graph.plot, graph.save]):
+        plot_state(
+            graph,
+            labels=("Initial state", None),
+            plot_ions=True,
+            show_plot=graph.plot,
+            save_plot=graph.save,
+            plot_cycle=False,
+            plot_pzs=True,
+            filename=os.path.join(
+                unique_folder, "%s_timestep_%s.png" % (graph.arch, timestep)
+            ),
+        )
 
     for pz in graph.pzs:
         pz.time_in_pz_counter = 0
