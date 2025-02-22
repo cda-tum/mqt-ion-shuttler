@@ -13,7 +13,7 @@ from graph_utils import get_idx_from_idc
 plot = False
 save = False
 
-paths = True
+paths = False
 cycle_or_paths = "Paths" if paths else "Cycles"
 
 failing_junctions = 0
@@ -26,11 +26,11 @@ archs = [
     # [4, 4, 2, 2],
     # [4, 4, 3, 3],
     [3, 3, 1, 1],
-    # [5, 5, 2, 2],
+    [3, 3, 2, 2],
 ]
-seeds = [0]#list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
+seeds = [4]#list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [1]#1, 2, 3, 4]
+number_of_pzs = [2]#, 2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}

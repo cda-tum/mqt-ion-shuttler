@@ -140,7 +140,6 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     # now general priority queue picks cycles to rotate
     chains_to_rotate = find_movable_cycles(graph, all_cycles, priority_queue, cycle_or_paths)
     print(f"Chains to rotate: {chains_to_rotate}")
-
     rotate_free_cycles(graph, all_cycles, chains_to_rotate)
 
     # new: postprocess?
@@ -202,6 +201,7 @@ def main(graph, sequence, partition, cycle_or_paths):
 
         for pz in graph.pzs:
             pz.rotate_entry = False
+            pz.out_of_parking_move = None
 
         # priority queue is dict with ions as keys and pz as values
         # (for 2-qubit gates pz may not match the pz of the individual ion)
