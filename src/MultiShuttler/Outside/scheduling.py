@@ -413,13 +413,6 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
                 prio_queue, [*ions_in_parking]#, pz.ion_to_park]    # ion to park now always moves to pz (simplifies the pz shuttling, may be not optimal though), for that also changed: ion in exit always in move_list
             )
             print('ion to move out', pz.ion_to_move_out_of_pz, pz.out_of_parking_move, pz.name)
-
-            # siehe TODO in rotate_free_cycles (folgendes später implementieren somehow?)
-            # if pz.out_of_parking_move is not None:
-            #     pz.ion_to_move_out_of_pz = pz.out_of_parking_move
-            #     print('changed ion to move out to', pz.ion_to_move_out_of_pz)
-
-
             print('ion park', pz.ion_to_park)
             # if ion moves out of parking edge -> check if ion in entry edge -> make sure it can move into MZ -> then move ion in parking to entry (if not, stop moves in exit) 
             # now only if it the ion moving to pz is higher in prio queue or ion moving out not in prio queue (-> new logic of finding least important)
@@ -588,7 +581,7 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
                 # print(f"Skipping rotating ion {ion} along
                 # cycle {indiv_cycle_idcs}, since it is a stop move")
                 continue
-            else:   # TODO das hier checkt ob ein out of parking move sowieso durch geht. pz.out_of_parking_move würde aber eher gebraucht werden -> check ob man pz.out_of_parking_move auch noch später nutzen könnte?
+            else:   # TODO das hier checkt ob ein out of parking move sowieso durch geht. pz.out_of_parking_move würde aber eher gebraucht werden -> check ob man pz.out_of_parking_move auch noch später nutzen könnte? Jetzt Lösung bei rotate_entry implementiert
                 for pz in graph.pzs:
                     if get_idx_from_idc(graph.idc_dict, indiv_cycle_idcs[0]) == get_idx_from_idc(graph.idc_dict, pz.parking_edge
                     ) and get_idx_from_idc(graph.idc_dict, indiv_cycle_idcs[1]) == get_idx_from_idc(graph.idc_dict, pz.first_entry_connection_from_pz):
@@ -600,11 +593,15 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
         rotate(graph, ion, indiv_cycle_idcs)
 
     for pz in graph.pzs:
-        if pz.rotate_entry:
-            print(f'moving {pz.ion_to_move_out_of_pz} out of {pz.name}')
-            graph.edges[pz.parking_edge]["ions"].remove(pz.ion_to_move_out_of_pz)
-            graph.edges[pz.path_from_pz[0]]["ions"].append(pz.ion_to_move_out_of_pz)
-            
+        if pz.rotate_entry:    
+            print('here0', ion) #TODO here changed 123
+            if pz.out_of_parking_move is not None and pz.ion_to_move_out_of_pz != pz.out_of_parking_move:
+                    print(f'ion {ion} does not move out of pz since {pz.out_of_parking_move} is moving out anyway')
+            else:
+                print(f'moving {pz.ion_to_move_out_of_pz} out of {pz.name}')
+                graph.edges[pz.parking_edge]["ions"].remove(pz.ion_to_move_out_of_pz)
+                graph.edges[pz.path_from_pz[0]]["ions"].append(pz.ion_to_move_out_of_pz)
+                
 def find_out_of_entry_moves(graph, other_next_edges):
     free_edges = {}
     for pz in graph.pzs:
