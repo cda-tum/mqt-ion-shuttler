@@ -1,4 +1,4 @@
-from Cycles import get_ion_chains, get_ions_in_pz_and_connections, get_ions_in_exit_connections, get_ions_in_parking, get_state_idxs  
+from Cycles import get_ions, get_ions_in_pz_and_connections, get_ions_in_exit_connections, get_ions_in_parking, get_state_idxs  
 from graph_utils import get_idx_from_idc, get_idc_from_idx
 from scheduling import (
     create_move_list,
@@ -56,12 +56,6 @@ def find_pz_order(graph, gate_info_list):
 
 
 def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_folder):
-    gate_info_list = create_gate_info_list(graph)
-    print(f"Gate info list: {gate_info_list}")
-
-    pz_executing_gate_order = find_pz_order(graph, gate_info_list)
-    print(f"Next processing zone executing gate: {pz_executing_gate_order}")
-
     # new: stop moves (ions that are already in the correct processing zone for a two-qubit gate)
     graph.stop_moves = []
 
@@ -107,7 +101,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     preprocess(graph, priority_queue)
 
     # Update ion chains after preprocess
-    graph.state = get_ion_chains(graph)
+    graph.state = get_ions(graph)
     check_duplicates(graph)
     print(f"priority queue: {priority_queue}")
     part_prio_queues = get_partitioned_priority_queues(graph, priority_queue, partition)
@@ -126,15 +120,14 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
         cycles, in_and_into_exit_moves = create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, other_next_edges=None)
         # add cycles to all_cycles
         all_cycles = {**all_cycles, **cycles}
-        if pz.name in in_and_into_exit_moves.keys():
-            in_and_into_exit_moves_pz = in_and_into_exit_moves[pz.name]
 
-    # print(f"All cycles: {all_cycles}")
     out_of_entry_moves = find_out_of_entry_moves(graph, other_next_edges=[])
     
     for pz in graph.pzs:
         prio_queue = part_prio_queues[pz.name]
         out_of_entry_moves_pz = out_of_entry_moves[pz] if pz in out_of_entry_moves else None
+        if pz.name in in_and_into_exit_moves.keys():
+            in_and_into_exit_moves_pz = in_and_into_exit_moves[pz.name]
         update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_pz, out_of_entry_moves_pz, prio_queue)
 
     # now general priority queue picks cycles to rotate
@@ -145,12 +138,12 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     # new: postprocess?
     # -> ions can already move into processing zone if they pass a junction
     # Update ion chains after rotate
-    graph.state = get_ion_chains(graph)
+    graph.state = get_ions(graph)
     preprocess(graph, priority_queue)
 
     labels = ("timestep %s" % timestep, "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
 
-    if timestep >= 0 and (graph.plot == True or graph.save == True):#165:#339: # bei ts 340: 19 pz1 wechselt zu pz2 in exit am weg zu pz1, weil partner 18 in pz2 ist (näher in pz2 als 19 in pz1) -> will im exit zurück zu mz
+    if timestep >= 100 and (graph.plot == True or graph.save == True):#165:#339: # bei ts 340: 19 pz1 wechselt zu pz2 in exit am weg zu pz1, weil partner 18 in pz2 ist (näher in pz2 als 19 in pz1) -> will im exit zurück zu mz
         plot_state(
             graph,
             labels,
@@ -168,7 +161,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
 def main(graph, sequence, partition, cycle_or_paths):
     timestep = 0
     max_timesteps = 1e6
-    graph.state = get_ion_chains(graph)
+    graph.state = get_ions(graph)
 
     unique_folder = os.path.join("runs", datetime.now().strftime("%Y%m%d_%H%M%S"))
     if graph.save is True:
@@ -194,18 +187,26 @@ def main(graph, sequence, partition, cycle_or_paths):
         #pz.new_gate_starting  = False (= gate_element in chains_in_parking -> flag needed to solve rare edge case that ion waits in exit, can't move to pz but also no gate can be executed (see scheduling.py))
 
     graph.in_process = []
-    graph.locked_gates = {}
+    
     while timestep < max_timesteps:    
         print(f"\nStarting timestep {timestep}")
-        print(f"Remaining sequence: {graph.sequence}")
+        print(f"Remaining sequence (10 gates): {sequence[:10]}")
 
         for pz in graph.pzs:
             pz.rotate_entry = False
             pz.out_of_parking_move = None
 
+        gate_info_list = create_gate_info_list(graph)
+        print(f"Gate info list: {gate_info_list}")
+
+        pz_executing_gate_order = find_pz_order(graph, gate_info_list)
+        print(f"Next processing zone executing gate (next 10): {pz_executing_gate_order[:10]}")
+
+        # reset locked gates, prio q recalcs them
+        graph.locked_gates = {}
         # priority queue is dict with ions as keys and pz as values
         # (for 2-qubit gates pz may not match the pz of the individual ion)
-        priority_queue, next_gate_at_pz_dict = create_priority_queue(graph, sequence)
+        priority_queue, next_gate_at_pz_dict = create_priority_queue(graph, sequence, pz_executing_gate_order)
 
         # check if ions are already in processing zone ->
         # important for 2-qubit gates
@@ -244,7 +245,7 @@ def main(graph, sequence, partition, cycle_or_paths):
         graph.in_process = []
 
         # Check the state of each ion in the sequence
-        graph.state = get_ion_chains(graph)
+        graph.state = get_ions(graph)
         processed_ions = []
         previous_ion_processed = True
         pzs = graph.pzs.copy()

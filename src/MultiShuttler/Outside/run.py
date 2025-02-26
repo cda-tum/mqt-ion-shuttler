@@ -1,6 +1,6 @@
 from graph_utils import GraphCreator, PZCreator, ProcessingZone, create_idc_dictionary
 from Cycles import create_starting_config, find_path_edge_to_edge
-from scheduling import get_ion_chains
+from scheduling import get_ions
 from shuttle import main
 from compilation import compile
 import math
@@ -10,27 +10,28 @@ from datetime import datetime
 from plotting import plot_state
 from graph_utils import get_idx_from_idc
 
-plot = False
+plot = True
 save = False
 
-paths = False
+paths = True
 cycle_or_paths = "Paths" if paths else "Cycles"
 
 failing_junctions = 0
 
+# 3333 seed1 pzs2
 archs = [
-    #[3, 3, 1, 1],
+    [3, 3, 1, 1],
     # [3, 3, 2, 2],
     # [3, 3, 3, 3],
     # [4, 4, 1, 1],
     # [4, 4, 2, 2],
     # [4, 4, 3, 3],
-    [3, 3, 1, 1],
-    [3, 3, 2, 2],
+    # [3, 3, 1, 1],
+    # [3, 3, 2, 2],
 ]
-seeds = [4]#list(range(5))#[0]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
+seeds = [0]# 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [2]#, 2, 3, 4]
+number_of_pzs = [4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
@@ -74,11 +75,13 @@ for m, n, v, h in archs:
             G.idc_dict = create_idc_dictionary(G)
             G.pzs = pzs
             G.parking_edges_idxs = []
+            G.pzs_name_map = {}
             for pz in G.pzs:
                 G.parking_edges_idxs.append(get_idx_from_idc(G.idc_dict, pz.parking_edge))
+                G.pzs_name_map[pz.name] = pz
             print(f"parking_edges_idxs: {G.parking_edges_idxs}")
             
-            G.max_num_parking = 3
+            G.max_num_parking = 2
             for pz in G.pzs:
                 pz.max_num_parking = G.max_num_parking # if changed here, also change in shuttle.py (check_duplicates) and check for further updates to max_num_parking
 
@@ -87,7 +90,7 @@ for m, n, v, h in archs:
             G.arch = str([m, n, v, h])
 
             number_of_mz_edges = len(MZ_graph.edges())
-            number_of_chains = 6#math.ceil(0.5*len(MZ_graph.edges()))
+            number_of_chains = math.ceil(.7*len(MZ_graph.edges()))
             
 
             # plot for paper
@@ -106,7 +109,7 @@ for m, n, v, h in archs:
 
             create_starting_config(G, number_of_chains, seed=seed)
             G.idc_dict = create_idc_dictionary(G)
-            G.state = get_ion_chains(G)
+            G.state = get_ions(G)
 
             sequence = compile(qasm_file_path)
             G.sequence = sequence
@@ -197,13 +200,15 @@ for m, n, v, h in archs:
         # save averages
         with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(
-                f"{m, n, v, h}, ions/pos: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}\n"
+                f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}\n"
             )
 
 for num_pzs in number_of_pzs:
-    print(f"{m, n, v, h}, ions/pos: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}")
+    print(f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}")
 
 # TODOs:
 # - TODO 1: gate_execution_finished -> implement different gate execution times
 # - TODO 2: other_next_edges -> needed for path out of pz if cycles is True - would now have to be calculated for each pz before
 # - TODO 3: new_gate_starting -> would need to know next gate at pz - checks in scheduling.py if new gate can start with ions in parking - would stop all ions in exit
+
+# TODO maybe check logic of moving into exit (check if it is really important enough to move into exit -> cannot really check anymore if is important enough at pz, since new logic trys to just move everything through -> so maybe need to implement bouncer at exit?)

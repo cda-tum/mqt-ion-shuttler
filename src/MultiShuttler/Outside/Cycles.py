@@ -7,18 +7,18 @@ from more_itertools import distinct_combinations
 
 
 def get_ions_in_pz_and_connections(graph, pz):
-    return len([ion_idx for ion_idx, edge_idc in get_ion_chains(graph).items() if get_idx_from_idc(graph.idc_dict, edge_idc) in pz.pz_edges_idx])
+    return len([ion_idx for ion_idx, edge_idc in get_ions(graph).items() if get_idx_from_idc(graph.idc_dict, edge_idc) in pz.pz_edges_idx])
 
 def get_ions_in_exit_connections(graph, pz):
-    return len([ion_idx for ion_idx, edge_idc in get_ion_chains(graph).items() if get_idx_from_idc(graph.idc_dict, edge_idc) in pz.path_to_pz_idxs])
+    return len([ion_idx for ion_idx, edge_idc in get_ions(graph).items() if get_idx_from_idc(graph.idc_dict, edge_idc) in pz.path_to_pz_idxs])
 
 def get_ions_in_parking(graph, pz):
-    return len([ion_idx for ion_idx, edge_idc in get_ion_chains(graph).items() if get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(graph.idc_dict, pz.parking_edge)])
+    return len([ion_idx for ion_idx, edge_idc in get_ions(graph).items() if get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(graph.idc_dict, pz.parking_edge)])
 
 def find_ion_in_edge(graph, edge_idc):
     ions = [
         ion
-        for ion, ion_edge_idc in get_ion_chains(graph).items()
+        for ion, ion_edge_idc in get_ions(graph).items()
         if get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(graph.idc_dict, ion_edge_idc)
     ]
     assert (
@@ -31,7 +31,7 @@ def find_ion_in_edge(graph, edge_idc):
 def find_ions_in_parking(graph, pz):
     ions = [
         ion
-        for ion, ion_edge_idc in get_ion_chains(graph).items()
+        for ion, ion_edge_idc in get_ions(graph).items()
         if get_idx_from_idc(graph.idc_dict, ion_edge_idc) == get_idx_from_idc(graph.idc_dict, pz.parking_edge)
     ]
     return ions
@@ -39,7 +39,7 @@ def find_ions_in_parking(graph, pz):
 # get list of edge idxs of ion chains
 def get_state_idxs(graph):
     ions_edge_idxs = []
-    for edge_idc in get_ion_chains(graph).values():
+    for edge_idc in get_ions(graph).values():
         ions_edge_idxs.append(get_idx_from_idc(graph.idc_dict, edge_idc))
     return ions_edge_idxs
 
@@ -81,7 +81,7 @@ def create_starting_config(graph, n_of_chains, seed=None):
     return ion_chains, number_of_registers
 
 
-def get_ion_chains(graph):
+def get_ions(graph):
     ion_chains = {}
     # Iterate over all edges in the graph
     for u, v, data in graph.edges(data=True):
