@@ -161,7 +161,7 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
     # order pz according to gates
     # First, extract the unique order from pz_gate_order
     ordered_keys = list(dict.fromkeys(pz_executing_gate_order))
-    
+
     # Then, add any pzs from graph.pzs that are not already in ordered_keys
     ordered_pzs = ordered_keys + [pz.name for pz in graph.pzs if pz.name not in ordered_keys]
 
@@ -347,6 +347,15 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
     for rotate_ion in move_list:
         edge_idc = ion_chains[rotate_ion]
 
+        # change pz to pz of position (if ion is in a pz and moves to other, pz would otherwise be the target pz, need position pz for following logic)
+        if graph.get_edge_data(edge_idc[0], edge_idc[1])['edge_type'] != 'trap':
+            # save target pz
+            target_pz = pz # for finding next edge
+            edge_idx = get_idx_from_idc(graph.idc_dict, edge_idc)
+            pz = graph.edge_to_pz_map[edge_idx]
+        else:
+            target_pz = pz
+
         # move from entry to memory zone
         # following checks are done with ion position (edge_idc)
         if get_idx_from_idc(graph.idc_dict, edge_idc) in pz.path_from_pz_idxs:
@@ -368,6 +377,7 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
                 all_cycles[rotate_ion] = edge_path
             
             # if in entry connection -> move to next edge (is now done here instead of in find_next_edge)
+            # this is basically an else here but need to loop over path_from_pz to find next edge
             for i, edge_idx in enumerate(pz.path_from_pz_idxs[:-1]):
                 if get_idx_from_idc(graph.idc_dict, edge_idc) == edge_idx:
                     next_edge = get_idc_from_idx(graph.idc_dict, pz.path_from_pz_idxs[i + 1])
@@ -378,7 +388,7 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
         # and moves into pz (exit) and out of parking edge
         # following checks are done with next_edge
         else:
-            next_edge = find_next_edge(graph, edge_idc, pz.parking_edge)
+            next_edge = find_next_edge(graph, edge_idc, target_pz.parking_edge)
             edge_idc, next_edge = find_ordered_edges(graph, edge_idc, next_edge)
 
             # moves in exit and into parking_edge (blocks if parking is full)
@@ -393,7 +403,7 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
                     all_cycles[rotate_ion] = [edge_idc, edge_idc]
 
             # covers all shuttling in memory zone (does not cover entry connections anymore, see above)
-            elif not check_if_edge_is_filled(graph, next_edge) or edge_idc == next_edge:
+            elif not check_if_edge_is_filled(graph, next_edge) or edge_idc == next_edge or get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
                 all_cycles[rotate_ion] = [edge_idc, next_edge]
             else:
                 
@@ -504,7 +514,23 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
 
 
 def find_movable_cycles(graph, all_cycles, priority_queue, cycle_or_paths):
-    print('all_cycles', all_cycles)
+    print('\nall_cycles')
+    for key, value in all_cycles.items():
+        if isinstance(value, (int, float)):
+            print(f"{key}: {value:.2f}")
+        elif isinstance(value, (list, tuple)):
+            # Format each number inside list/tuple, leave non-number items as-is
+            formatted = []
+            for x in value:
+                if isinstance(x, (int, float)):
+                    formatted.append(f"{x:.2f}")
+                else:
+                    formatted.append(x)
+            print(f"{key}: {formatted}")
+        else:
+            # Just print non-number values as-is
+            print(f"{key}: {value}")
+            
     if cycle_or_paths == "Cycles":
         nonfree_cycles = find_conflict_cycle_idxs(graph, all_cycles)
     else:
@@ -534,7 +560,7 @@ def find_movable_cycles(graph, all_cycles, priority_queue, cycle_or_paths):
 
 
 def rotate(graph, ion, cycle_idcs):
-    print(f"Rotating ion {ion} along cycle {cycle_idcs}")
+    # ion {ion} along cycle {cycle_idcs}")
     state_dict = get_edge_state(graph)
     first = True
     last_ion = -1
@@ -553,6 +579,7 @@ def rotate(graph, ion, cycle_idcs):
             current_ion = current_ion[0]
         except IndexError:
             pass
+
 
         # if ion already rotated via previous cycle
         # (now checks directly in state_dict, in case two ions on one edge)
@@ -595,6 +622,7 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
                     
         rotate(graph, ion, indiv_cycle_idcs)
 
+    # extra clause if an ion is moving out of pz anyway (on its way to another pz) -> do not need to move out another ion
     for pz in graph.pzs:
         if pz.rotate_entry:    
             if pz.out_of_parking_move is not None and pz.ion_to_move_out_of_pz != pz.out_of_parking_move:
