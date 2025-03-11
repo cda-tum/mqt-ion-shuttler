@@ -155,7 +155,7 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
             if pz.name not in graph.next_gate_at_pz:
                 graph.next_gate_at_pz[pz.name] = []
 
-    # NEW: add chains in exit connections to priority queue as below for in move_list
+    # NEW: add ions in exit connections to priority queue as below for in move_list
     ions_edges = get_ions(graph)
     
     # order pz according to gates
@@ -198,8 +198,11 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
                     unique_sequence.remove(ion)
                 unique_sequence[ion] = pz.name
                 unique_sequence.move_to_end(ion, last=False)
-
+        
+        # 
+        #if i
     print('locked gates', graph.locked_gates)
+    
     return unique_sequence, graph.next_gate_at_pz
 
 
@@ -419,7 +422,11 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
     ions_in_parking = find_ions_in_parking(graph, pz)
     ion_in_entry = find_ion_in_edge(graph, pz.entry_edge)
 
-    # if pz full and no ion is moving out (not in state_idxs entry edge) but chain is moving in
+    # always create an out of entry move (need to coordinate them since multiple now - can't just use next free edge)
+    if ion_in_entry is not None:
+        all_cycles[ion_in_entry] = out_of_entry_moves_pz
+
+    # if pz full and no ion is moving out (not in state_idxs entry edge) but ion is moving in
     if len(ions_in_parking) >= pz.max_num_parking and pz.ion_to_park is not None:
         # if gate finished -> new space could be in parking
         if pz.gate_execution_finished:
@@ -429,7 +436,7 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
             )
 
             # if ion moves out of parking edge -> check if ion in entry edge -> make sure it can move into MZ -> then move ion in parking to entry (if not, stop moves in exit) 
-            # now only if it the ion moving to pz is higher in prio queue or ion moving out not in prio queue (-> new logic of finding least important)
+            # now only if the ion moving to pz is higher in prio queue or ion moving out not in prio queue (-> new logic of finding least important)
             # and new addition: if ion is moving in and can't move to pz because of the other clauses here -> if then no gate is executable with pz ions + ion moving in -> move ion in and least important out (worst case but to avoid complete blockages)
             if pz.ion_to_move_out_of_pz != pz.ion_to_park and (
                 ion_in_entry is None or (ion_in_entry is not None and out_of_entry_moves_pz is not None)
@@ -572,22 +579,26 @@ def rotate(graph, ion, cycle_idcs):
         if state_dict.get((current_edge[1], current_edge[0])) is not None:
             current_edge = (current_edge[1], current_edge[0])
 
-        current_ion = state_dict.get(current_edge)
-        
-        # take first ion in list to rotate
-        try:
-            current_ion = current_ion[0]
-        except IndexError:
-            pass
-
-
         # if ion already rotated via previous cycle
         # (now checks directly in state_dict, in case two ions on one edge)
-        if first and ion not in state_dict[current_edge]:  # current_ion != ion:
-            ##print(f"Ion {ion} already rotated via previous cycle")
-            return
-        first = False
+        if first:
+            # first ion is ion to move (resolved bug with taking first ion of multiple in edge, should not be necessary anymore, see below)
+            current_ion = ion
+            if ion not in state_dict[current_edge]:  # current_ion != ion:
+                print(f"Ion {ion} already rotated via previous cycle")
+                return
 
+        else:
+            current_ion = state_dict.get(current_edge)
+            
+            # take first ion in list to rotate (should be unnecessary since multiple ions only in pz, which is handled elsewhere)
+            try:
+                current_ion = current_ion[0]
+            except IndexError:
+                pass
+
+        first = False
+        print('\n', current_ion, last_ion, graph.in_process)
         if (
             current_ion != []
             and current_ion != last_ion
@@ -610,6 +621,7 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
             pass
     # skip stop moves
     for ion, indiv_cycle_idcs in rotate_cycles_idcs.items():
+        print('start rotate', ion, indiv_cycle_idcs)
         if len(indiv_cycle_idcs) == 2:
             if indiv_cycle_idcs[0] == indiv_cycle_idcs[1]:
                 # cycle {indiv_cycle_idcs}, since it is a stop move")
@@ -619,8 +631,9 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
                     if get_idx_from_idc(graph.idc_dict, indiv_cycle_idcs[0]) == get_idx_from_idc(graph.idc_dict, pz.parking_edge
                     ) and get_idx_from_idc(graph.idc_dict, indiv_cycle_idcs[1]) == get_idx_from_idc(graph.idc_dict, pz.first_entry_connection_from_pz):
                         pz.out_of_parking_move = ion
-                    
+        print('exec rotate', ion, indiv_cycle_idcs)
         rotate(graph, ion, indiv_cycle_idcs)
+        print('finished rotate')
 
     # extra clause if an ion is moving out of pz anyway (on its way to another pz) -> do not need to move out another ion
     for pz in graph.pzs:
@@ -649,16 +662,22 @@ def find_out_of_entry_moves(graph, other_next_edges):
         other_start_node = pz.entry_edge[1] if start_node == pz.entry_edge[0] else pz.entry_edge[0]
 
         node_path = find_path_node_to_edge(mz_graph_copy, start_node, edge)
-        other_end_node = [node for node in edge if node not in node_path][0]
-        node_path = [other_start_node, *node_path, other_end_node]
-        edge_path = []
-        for edge in pairwise(node_path):
-            edge_path.append(edge)
-        out_of_entry_moves[pz] = edge_path
+        if node_path == None:
+            out_of_entry_moves[pz] = ((other_start_node, start_node), (other_start_node, start_node))
+        else:
+            other_end_node = [node for node in edge if node not in node_path][0]
+            node_path = [other_start_node, *node_path, other_end_node]
+            edge_path = []
+            for edge in pairwise(node_path):
+                edge_path.append(edge)
+            out_of_entry_moves[pz] = edge_path
 
-        # remove edges from mz_graph_copy -> other pzs can't use the same junctions to move ions out of entry
-        for edge in edge_path[1:]:
-            mz_graph_copy.remove_edge(edge[0], edge[1])
+            # # remove edges from mz_graph_copy -> other pzs can't use the same junctions to move ions out of entry
+            # for edge in edge_path[1:]:
+            #     mz_graph_copy.remove_edge(edge[0], edge[1])
+            # remove nodes from mz_graph_copy -> other pzs can't use the same junctions to move ions out of entry
+            for node in node_path[1:-1]:
+                mz_graph_copy.remove_node(node)
 
     return out_of_entry_moves
     

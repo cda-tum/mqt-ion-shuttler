@@ -75,7 +75,6 @@ def create_path_via_bfs_directional(graph, current_edge, next_edge, other_next_e
 
 
 def find_nonfree_paths(graph, paths_idcs_dict):
-    print("paths_idcs_dict", paths_idcs_dict)
     paths_idxs_dict = {}
     for key in paths_idcs_dict:
         paths_idxs_dict[key] = set(get_idx_from_idc(graph.idc_dict, edge_idc) for edge_idc in paths_idcs_dict[key])
@@ -99,7 +98,7 @@ def find_nonfree_paths(graph, paths_idcs_dict):
 
     # Compare junction nodes (with edge_IDC)
     junction_nodes = [*graph.junction_nodes]#, graph.pzgraph_creator.processing_zone]
-
+    # TODO check hier warum path von pz stop move geblockt wird -> 18 move von 17 in pz geblockt nach timestep 36, checked und situation passt, weil 17 erst reingemoved ist -> junction kann nur einen move executen
     for path_ion_1, path_ion_2 in combinations_of_paths:
         if len(paths_idcs_dict[path_ion_1]) == 2:
             # if same edge twice -> skip (no edge if twice parking edge, otherwise only first node)
@@ -128,7 +127,6 @@ def find_nonfree_paths(graph, paths_idcs_dict):
                 assert paths_idcs_dict[path_ion_2][0][1] == paths_idcs_dict[path_ion_2][1][0], "not middle node? %s" % paths_idcs_dict[path_ion_2]
         else:
             nodes2 = set(node for edge in paths_idcs_dict[path_ion_2][1:-1] for node in edge)
-
 
         # new: exclude processing zone node -> if pz node in circles -> can both be executed -> now not in junction_nodes and also not checked in first check above
         # extra: if both end in same edge -> don't execute (scenario where path out of pz ends in same edge as next edge for other)

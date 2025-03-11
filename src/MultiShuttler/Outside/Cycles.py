@@ -178,18 +178,34 @@ def shortest_path_to_node(nx_g, src, tar, exclude_exit=False, exclude_first_entr
     return node_path
 
 def find_path_node_to_edge(graph, node, goal_edge, exclude_exit=False, exclude_first_entry_connection=True):
-    # manipulate graph weights
-    original_weight = graph[goal_edge[0]][goal_edge[1]].get("weight", 1)
-    # set weight of goal edge to inf (so it can't move past the edge)
-    graph[goal_edge[0]][goal_edge[1]]["weight"] = float("inf")
+    if goal_edge[0] in graph.nodes() and goal_edge[1] in graph.nodes():
+        original_weight = graph[goal_edge[0]][goal_edge[1]].get("weight", 1)
+        # set weight of goal edge to inf (so it can't move past the edge)
+        graph[goal_edge[0]][goal_edge[1]]["weight"] = float("inf")
 
     # find shortest path towards both sides (nodes of goal edge)
-    path0 = shortest_path_to_node(graph, node, goal_edge[0], exclude_exit=exclude_exit, exclude_first_entry_connection=exclude_first_entry_connection)
-    path1 = shortest_path_to_node(graph, node, goal_edge[1], exclude_exit=exclude_exit, exclude_first_entry_connection=exclude_first_entry_connection)
+    try:
+        path0 = shortest_path_to_node(graph, node, goal_edge[0], exclude_exit=exclude_exit, exclude_first_entry_connection=exclude_first_entry_connection)
+    except:
+        path0 = None
+    try:
+        path1 = shortest_path_to_node(graph, node, goal_edge[1], exclude_exit=exclude_exit, exclude_first_entry_connection=exclude_first_entry_connection)
+    except:
+        path1 = None
+
+    # now still works if one node of target edge is not present in graph
+    if path0 == None:
+        if path1 is not None:
+            return path1
+        else:
+            return None
+    if path1 == None:
+        if path0 is not None:
+            return path0
 
     # restore the original weight of the edge
     graph[goal_edge[0]][goal_edge[1]]["weight"] = original_weight
-
+ 
     # return min path
     if len(path1) < len(path0):
         return path1
@@ -367,15 +383,26 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
         nodes1 = get_cycle_nodes(cycle1, graph)
         nodes2 = get_cycle_nodes(cycle2, graph)
 
+        #if 
+
         # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)
         # extra: if both end in same edge -> don't execute (scenario where path out of pz ends in same edge as next edge for other) 
         # -> new exclude parking edge (can end both in parking edge, since stop moves in parking edge also end in parking edge)
         if len(nodes1.intersection(nodes2)) > 0 or (
             (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][-1])
             == (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle2][-1])) and 
-                (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][-1]) not in graph.parking_edges_idxs))
-        ):
-            junction_shared_pairs.append((cycle1, cycle2))
+                (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][-1]) not in graph.parking_edges_idxs))):
+            # also exclude cases in which a stop move would block a junction (should only block moves into stop move, but not the whole junction)
+            # -> do not append if cycle1 is stop move and cycle2 does not move into stop move and vice versa
+            if not(
+                    (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][0]) == get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][1]) and (
+                        get_idx_from_idc(graph.idc_dict, cycles_dict[cycle2][1]) != get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][0])
+                    )) or (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle2][0]) == get_idx_from_idc(graph.idc_dict, cycles_dict[cycle2][1]) and (
+                        get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][1]) != get_idx_from_idc(graph.idc_dict, cycles_dict[cycle2][0])
+                    ))
+                
+            ):
+                junction_shared_pairs.append((cycle1, cycle2))
             
     print(f"junction_shared_pairs: {junction_shared_pairs}")
     return junction_shared_pairs

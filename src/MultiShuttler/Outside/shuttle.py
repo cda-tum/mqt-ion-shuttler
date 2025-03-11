@@ -27,7 +27,7 @@ def check_duplicates(graph):
     for idx, count in counts.items():
         edge_idc = get_idc_from_idx(graph.idc_dict, idx)
         if graph.get_edge_data(edge_idc[0], edge_idc[1])["edge_type"] != "parking_edge" and count > 1:
-            message = f"More than one chain in edge {edge_idc}!"
+            message = f"More than one ion in edge {edge_idc}, arch: {graph.arch}, circuit depth: {len(graph.sequence)}, seed: {graph.seed}!"
             raise AssertionError(message)
         
         if graph.get_edge_data(edge_idc[0], edge_idc[1])["edge_type"] == "parking_edge" and count > graph.max_num_parking:
@@ -110,7 +110,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     # Iterate over all processing zones
     # create move list for each pz -> needed to get all cycles
     # priority queue later picks the cycles to rotate
-    in_and_into_exit_moves_pz = {}
+    in_and_into_exit_moves_of_pz = {}
     for pz in graph.pzs:
         prio_queue = part_prio_queues[pz.name]
         move_list = create_move_list(graph, prio_queue, pz)
@@ -125,10 +125,10 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     
     for pz in graph.pzs:
         prio_queue = part_prio_queues[pz.name]
-        out_of_entry_moves_pz = out_of_entry_moves[pz] if pz in out_of_entry_moves else None
+        out_of_entry_moves_of_pz = out_of_entry_moves[pz] if pz in out_of_entry_moves else None
         if pz.name in in_and_into_exit_moves.keys():
-            in_and_into_exit_moves_pz = in_and_into_exit_moves[pz.name]
-        update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_pz, out_of_entry_moves_pz, prio_queue)
+            in_and_into_exit_moves_of_pz = in_and_into_exit_moves[pz.name]
+        update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_of_pz, out_of_entry_moves_of_pz, prio_queue)
 
     # now general priority queue picks cycles to rotate
     chains_to_rotate = find_movable_cycles(graph, all_cycles, priority_queue, cycle_or_paths)
@@ -143,7 +143,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
 
     labels = ("timestep %s" % timestep, "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
 
-    if timestep >= 100 and (graph.plot == True or graph.save == True):#165:#339: # bei ts 340: 19 pz1 wechselt zu pz2 in exit am weg zu pz1, weil partner 18 in pz2 ist (näher in pz2 als 19 in pz1) -> will im exit zurück zu mz
+    if timestep >= 915 and (graph.plot == True or graph.save == True):
         plot_state(
             graph,
             labels,
@@ -227,14 +227,14 @@ def main(graph, sequence, partition, cycle_or_paths):
                         and ion2 in next_gate_at_pz_dict[pz.name]
                     ):
                         graph.in_process.append(ion1)
-                        # print(f"Added ion {ion1} to in_process")
+                        print(f"Added ion {ion1} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
                     if (
                         state2 == pz.parking_edge
                         and ion1 in next_gate_at_pz_dict[pz.name]
                         and ion2 in next_gate_at_pz_dict[pz.name]
                     ):
                         graph.in_process.append(ion2)
-                        # print(f"Added ion {ion2} to in_process")
+                        print(f"Added ion {ion2} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
 
         # print('in process before shuttling:', graph.in_process)
 
