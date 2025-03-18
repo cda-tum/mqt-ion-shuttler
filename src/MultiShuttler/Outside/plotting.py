@@ -15,6 +15,7 @@ def plot_state(
     plot_pzs=False,
     filename="graph.pdf",
 ):
+    plot_paper = False
     idc_dict = graph.idc_dict
     pos = {(x, y): (y, -x) for i, (x, y) in enumerate(list(graph.nodes()))}
     if plot_ions is True:
@@ -40,23 +41,24 @@ def plot_state(
             colors.append((r, g, b))
         np.random.seed()
 
-    # populate ion_holder (saves colors of edges with ions in next loop)
-    for edge in graph.edges:
-        ions = graph.edges[edge]["ions"]
-        for ion in ions:
-            try:
-                ion_holder[edge].append(ion)
-            except KeyError:
-                ion_holder[edge] = [ion]
+    if plot_paper == False:
+        # populate ion_holder (saves colors of edges with ions in next loop)
+        for edge in graph.edges:
+            ions = graph.edges[edge]["ions"]
+            for ion in ions:
+                try:
+                    ion_holder[edge].append(ion)
+                except KeyError:
+                    ion_holder[edge] = [ion]
 
-    for edge in graph.edges:
-        if edge in ion_holder:
-            graph.add_edge(
-                edge[0],
-                edge[1],
-                ions=ion_holder[edge],
-                color=colors[ion_holder[edge][0]],
-            )
+        for edge in graph.edges:
+            if edge in ion_holder:
+                graph.add_edge(
+                    edge[0],
+                    edge[1],
+                    ions=ion_holder[edge],
+                    color=colors[ion_holder[edge][0]],
+                )
 
     if plot_cycle is not False:
         for edge in plot_cycle:
@@ -64,35 +66,40 @@ def plot_state(
 
     if plot_pzs is not False:
         for pz in graph.pzs:
-            graph.add_edge(pz.parking_edge[0], pz.parking_edge[1], color="g")
+            graph.add_edge(pz.parking_edge[0], pz.parking_edge[1], color="r")
 
     edge_color = nx.get_edge_attributes(graph, "color").values()
     node_color = list(nx.get_node_attributes(graph, "color").values())
-    edge_labels = nx.get_edge_attributes(graph, "ions")
-    #node_size = list(nx.get_node_attributes(graph, "node_size").values())
+    if plot_paper == False:
+        edge_labels = nx.get_edge_attributes(graph, "ions")
+    node_size = list(nx.get_node_attributes(graph, "node_size").values())
 
     plt.figure(figsize=(10, 10))#figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
+
+    with_labels = not(plot_paper)
+
     nx.draw_networkx(
         graph,
         pos=pos,
-        with_labels=True,
-        #node_size=node_size,
+        with_labels=with_labels,
+        node_size=node_size,
         node_color=node_color,
         width=8,
         edge_color=edge_color,
         font_size=6,
     )
-    nx.draw_networkx_edge_labels(graph, pos, edge_labels)
+    if plot_paper == False:
+        nx.draw_networkx_edge_labels(graph, pos, edge_labels)
 
-    # # reset edge labels for following iterations?
-    # for edge in graph.edges:
-    #     if edge in ion_holder:
-    #         graph.add_edge(edge[0], edge[1], ions=[], color="k")
+        # # reset edge labels for following iterations?
+        # for edge in graph.edges:
+        #     if edge in ion_holder:
+        #         graph.add_edge(edge[0], edge[1], ions=[], color="k")
 
-    labels0, labels1 = labels
-    plt.plot([], [], label=labels0)
-    plt.plot([], [], label=labels1)
-    plt.legend()
+        labels0, labels1 = labels
+        plt.plot([], [], label=labels0)
+        plt.plot([], [], label=labels1)
+        plt.legend()
 
     if show_plot is True:
         plt.show()

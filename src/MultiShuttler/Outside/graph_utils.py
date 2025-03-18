@@ -2,6 +2,7 @@ import networkx as nx
 import random
 import math
 
+
 # create dictionary to swap from idx to idc and vice versa
 # reversed in comparison with previous versions -> edge_idc key, edge_idx value now -> can also have an entry for the reversed edge_idc
 def create_idc_dictionary(graph):
@@ -19,12 +20,28 @@ def get_idx_from_idc(edge_dictionary, idc):
 def get_idc_from_idx(edge_dictionary, idx):
     return next((k for k, v in edge_dictionary.items() if v == idx), None)#list(edge_dictionary.values()).index(idx)
 
+def create_dist_dict(graph):
+    # create dictionary with all distances to entry
+    graph.dist_dict = {}
+    for edge_idc in graph.edges():
+        # keep node ordering consistent:
+        edge_idx = get_idx_from_idc(graph.idc_dict, edge_idc)
+        graph.dist_dict[get_idc_from_idx(graph.idc_dict, edge_idx)] = calc_dist_to_pz(
+            self.pzgraph_creator, get_idx_from_idc(graph.idc_dict, edge_idc)
+        )
+
+# calc distance to parking edge for all ion chains
+def update_distance_map(graph):
+    from Cycles import get_state_idxs
+    graph.distance_map = {}
+    for ion, edge_idx in enumerate(get_state_idxs()):
+        graph.distance_map[ion] = graph.dist_dict[get_idc_from_idx(graph.idc_dict, edge_idx)]
+    return graph.distance_map
 
 # Function to convert all nodes to float
 def convert_nodes_to_float(graph):
     mapping = {node: (float(node[0]), float(node[1])) for node in graph.nodes}
     return nx.relabel_nodes(graph, mapping)
-
 
 class GraphCreator:
     def __init__(self, m: int, n: int, ion_chain_size_vertical: int, ion_chain_size_horizontal: int, failing_junctions: int, pz_info: list):
@@ -61,7 +78,7 @@ class GraphCreator:
     def _set_trap_nodes(self, networkx_graph: nx.Graph):
         for node in networkx_graph.nodes():
             float_node = (float(node[0]), float(node[1]))
-            networkx_graph.add_node(float_node, node_type="trap_node", color="b")
+            networkx_graph.add_node(float_node, node_type="trap_node", color="k", node_size=100)
 
     def _remove_edges(self, networkx_graph: nx.Graph):
         self._remove_horizontal_edges(networkx_graph)
@@ -98,7 +115,7 @@ class GraphCreator:
         for i in range(0, self.m_extended, self.ion_chain_size_vertical):
             for j in range(0, self.n_extended, self.ion_chain_size_horizontal):
                 float_node = (float(i), float(j))
-                networkx_graph.add_node(float_node, node_type="junction_node", color="g")
+                networkx_graph.add_node(float_node, node_type="junction_node", color="g", node_size=200)
                 networkx_graph.junction_nodes.append(float_node)  
 
 
@@ -116,6 +133,8 @@ class GraphCreator:
         # Remove the specified number of nodes
         for node in nodes_to_remove[:num_nodes_to_remove]:
             networkx_graph.remove_node(node)
+
+        random.seed()
 
     def get_graph(self) -> nx.Graph:
         return self.networkx_graph
@@ -178,13 +197,13 @@ class PZCreator(GraphCreator):
 
        # Define the parking edge (edge between processing zone and parking node) 
         if border == "top":
-            pz.parking_node = (pz.processing_zone[0] - 1, pz.processing_zone[1])  # Above processing zone
+            pz.parking_node = (pz.processing_zone[0] - 2, pz.processing_zone[1])  # Above processing zone
         elif border == "bottom":
-            pz.parking_node = (pz.processing_zone[0] + 1, pz.processing_zone[1])  # Below processing zone
+            pz.parking_node = (pz.processing_zone[0] + 2, pz.processing_zone[1])  # Below processing zone
         elif border == "left":
-            pz.parking_node = (pz.processing_zone[0], pz.processing_zone[1] - 1)  # Left of processing zone
+            pz.parking_node = (pz.processing_zone[0], pz.processing_zone[1] - 2)  # Left of processing zone
         elif border == "right":
-            pz.parking_node = (pz.processing_zone[0], pz.processing_zone[1] + 1)  # Right of processing zone
+            pz.parking_node = (pz.processing_zone[0], pz.processing_zone[1] + 2)  # Right of processing zone
         pz.parking_edge = (pz.processing_zone, pz.parking_node)
 
         # Number of edges between exit/entry and processing zone (size of one-way connection)
@@ -211,9 +230,9 @@ class PZCreator(GraphCreator):
                 previous_exit_node = pz.exit_node
                 pz.exit_edge = (previous_exit_node, exit_node)
 
-            networkx_graph.add_node(exit_node, node_type="exit_connection_node", color="y")
+            networkx_graph.add_node(exit_node, node_type="exit_connection_node", color="g", node_size=200)
             networkx_graph.junction_nodes.append(exit_node)
-            networkx_graph.add_edge(previous_exit_node, exit_node, edge_type="exit", color="b")
+            networkx_graph.add_edge(previous_exit_node, exit_node, edge_type="exit", color="g")
             pz.path_to_pz.append((previous_exit_node, exit_node))
             previous_exit_node = exit_node
 
@@ -225,13 +244,13 @@ class PZCreator(GraphCreator):
                 previous_entry_node = pz.entry_node
                 pz.entry_edge = (previous_entry_node, entry_node)
 
-            networkx_graph.add_node(entry_node, node_type="entry_connection_node", color="orange")
+            networkx_graph.add_node(entry_node, node_type="entry_connection_node", color="g", node_size=200)
             networkx_graph.junction_nodes.append(entry_node)
             if entry_node == pz.processing_zone:
                 pz.first_entry_connection_from_pz = (entry_node, previous_entry_node)
                 networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="first_entry_connection", color="g")
             else:
-                networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="entry", color="orange")
+                networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="entry", color="g")
             pz.path_from_pz.insert(0, (entry_node, previous_entry_node))
 
             previous_entry_node = entry_node
@@ -240,17 +259,17 @@ class PZCreator(GraphCreator):
         assert exit_node == pz.processing_zone, "Exit and entry do not end in processing zone"
 
         # Add the processing zone node
-        networkx_graph.add_node(pz.processing_zone, node_type="processing_zone_node", color="r")
+        networkx_graph.add_node(pz.processing_zone, node_type="processing_zone_node", color="r", node_size=100)
         
         # new: add exit and entry node
-        networkx_graph.add_node(pz.exit_node, node_type="exit_node", color="y")
-        networkx_graph.add_node(pz.entry_node, node_type="entry_node", color="orange")
+        networkx_graph.add_node(pz.exit_node, node_type="exit_node", color="g", node_size=200)
+        networkx_graph.add_node(pz.entry_node, node_type="entry_node", color="g")
         networkx_graph.junction_nodes.append(pz.exit_node)
         networkx_graph.junction_nodes.append(pz.entry_node)
         
         # Add new parking edge
-        networkx_graph.add_node(pz.parking_node, node_type="parking_node", color="r")
-        networkx_graph.add_edge(pz.parking_edge[0], pz.parking_edge[1], edge_type="parking_edge", color="g")
+        networkx_graph.add_node(pz.parking_node, node_type="parking_node", color="r", node_size=200)
+        networkx_graph.add_edge(pz.parking_edge[0], pz.parking_edge[1], edge_type="parking_edge", color="r")
         networkx_graph.junction_nodes.append(pz.parking_node)
         # add new info to pz
         # not needed? already done above? pz.parking_node = 

@@ -12,6 +12,7 @@ from scheduling import (
     update_entry_and_exit_cycles,
     find_out_of_entry_moves
 )
+from compilation import update_sequence, create_initial_sequence
 from plotting import plot_state
 import os
 from datetime import datetime
@@ -59,45 +60,6 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     # new: stop moves (ions that are already in the correct processing zone for a two-qubit gate)
     graph.stop_moves = []
 
-    # swapping from Inside Shuttler
-    # ion1_needed_in_pz = None
-    # # "swap" ions in the same processing zone if only one is needed
-    # for pz in graph.pzs:
-    #     ions_at_pz = graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"]
-    #     if len(ions_at_pz) == 2:
-    #         ion1, ion2 = ions_at_pz
-    #         if ion2 not in gate_info_list[pz.name]:
-    #             graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].remove(ion2)
-    #             graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].insert(0, ion2)
-    #             print("swapped ion2, now: %s" % ions_at_pz)
-
-    #         # find the next processing zone that will execute a gate on ion1
-    #         # in case it is needed elsewhere
-    #         # solution to bug where ion1 was needed later in the current pz
-    #         # but also needed elsewhere
-    #         # so was never rotated because other ions where rotating into that pz
-    #         # and swapped with ion1 (ion1 would never be rotated then)
-    #         for pz_name in pz_executing_gate_order:
-    #             if ion1 in gate_info_list[pz_name]:
-    #                 ion1_needed_in_pz = pz_name
-    #                 break
-
-    #         if ion1_needed_in_pz is not None:
-    #             # TODO ion1 swap also necessary?
-    #             if ion1_needed_in_pz != pz.name:
-    #                 # ion1 not in gate_info_list[pz.name]:
-    #                 graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].remove(ion1)
-    #                 graph[pz.parking_edge[0]][pz.parking_edge[1]]["ions"].insert(0, ion1)
-    #                 print("swapped back ion1, now %s" % ions_at_pz)
-
-    #         # new: this could maybe be used to time the gates
-    #         # (bug where two ions were randomly in the correct pz already while only
-    #         # a 1-qubit gate was executed on one of them and next gate was
-    #         # the 2-qubit gate on them -> 3rd ion was moved into them)
-    #         if ion1 in gate_info_list[pz.name] and ion2 in gate_info_list[pz.name]:
-    #             graph.stop_moves.append(ion1)
-    #             graph.stop_moves.append(ion2)
-
     preprocess(graph, priority_queue)
 
     # Update ion chains after preprocess
@@ -135,15 +97,12 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     print(f"Chains to rotate: {chains_to_rotate}")
     rotate_free_cycles(graph, all_cycles, chains_to_rotate)
 
-    # new: postprocess?
-    # -> ions can already move into processing zone if they pass a junction
     # Update ion chains after rotate
     graph.state = get_ions(graph)
-    preprocess(graph, priority_queue)
 
     labels = ("timestep %s" % timestep, "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
 
-    if timestep >= 915 and (graph.plot == True or graph.save == True):
+    if timestep >= 0 and (graph.plot == True or graph.save == True):
         plot_state(
             graph,
             labels,
@@ -158,7 +117,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
         )
 
 
-def main(graph, sequence, partition, cycle_or_paths):
+def main(graph, partition, cycle_or_paths):
     timestep = 0
     max_timesteps = 1e6
     graph.state = get_ions(graph)
@@ -177,7 +136,7 @@ def main(graph, sequence, partition, cycle_or_paths):
             plot_cycle=False,
             plot_pzs=True,
             filename=os.path.join(
-                unique_folder, "%s_timestep_%s.png" % (graph.arch, timestep)
+                unique_folder, "%s_timestep_%s.pdf" % (graph.arch, timestep)
             ),
         )
 
@@ -190,30 +149,32 @@ def main(graph, sequence, partition, cycle_or_paths):
     
     while timestep < max_timesteps:    
         print(f"\nStarting timestep {timestep}")
-        print(f"Remaining sequence (10 gates): {sequence[:10]}")
+        print(f"Remaining sequence (10 gates): {graph.sequence[:10]}")
 
         for pz in graph.pzs:
             pz.rotate_entry = False
             pz.out_of_parking_move = None
 
+        # update gate_info_list (list of next gate at pz)
         gate_info_list = create_gate_info_list(graph)
         print(f"Gate info list: {gate_info_list}")
 
+        # pz order (only used to add ions in exit to front of prio queue)
         pz_executing_gate_order = find_pz_order(graph, gate_info_list)
         print(f"Next processing zone executing gate (next 10): {pz_executing_gate_order[:10]}")
 
-        # reset locked gates, prio q recalcs them
+        # reset locked gates, prio q recalcs them (2-qubit gates get locked after each execution)
         graph.locked_gates = {}
         # priority queue is dict with ions as keys and pz as values
         # (for 2-qubit gates pz may not match the pz of the individual ion)
-        priority_queue, next_gate_at_pz_dict = create_priority_queue(graph, sequence, pz_executing_gate_order)
+        priority_queue, next_gate_at_pz_dict = create_priority_queue(graph, pz_executing_gate_order)
 
         # check if ions are already in processing zone ->
         # important for 2-qubit gates
         # -> leave ion in processing zone if needed in a 2-qubit gate
-        for i in range(min(len(graph.pzs), len(sequence))):
+        for i in range(min(len(graph.pzs), len(graph.sequence))):
             # only continue if previous ion was processed
-            gate = sequence[i]
+            gate = graph.sequence[i]
 
             if len(gate) == 2:
                 ion1, ion2 = gate
@@ -249,14 +210,15 @@ def main(graph, sequence, partition, cycle_or_paths):
         processed_ions = []
         previous_ion_processed = True
         pzs = graph.pzs.copy()
+        graph.best_gates = graph.sequence[:min(len(graph.pzs), len(graph.sequence))]
         # go through the first gates in the sequence (as many as pzs or sequence length)
         # for now, gates are processed in order
         # (can only be processed in parallel if previous gates are processed)
-        for i in range(min(len(graph.pzs), len(sequence))):
+        for i in range(min(len(graph.pzs), len(graph.sequence))):
             # only continue if previous ion was processed
-            if not previous_ion_processed:
+            if not previous_ion_processed:  # new TODO go through all pzs and whole front layer now? need compilation flag here as well
                 break
-            gate = sequence[i]
+            gate = graph.best_gates[i]
             ion_processed = False
             # wenn auf weg zu pz in anderer pz -> wird processed?
             # Problem nur für 2-qubit gate? -> TODO fix
@@ -323,16 +285,12 @@ def main(graph, sequence, partition, cycle_or_paths):
 
         # Remove processed ions from the sequence
         for gate in processed_ions:
-            sequence.remove(gate)
+            graph.sequence.remove(gate)
 
-        if len(sequence) == 0:
+        if len(graph.sequence) == 0:
             print(f"All ions have arrived at their destination in {timestep} timesteps")
             break
 
         timestep += 1
 
     return timestep
-
-
-# TODO entern pzs nicht gleichzeitig
-# pz executed gates nicht richtig (ions in pzs aber werden nicht executed)

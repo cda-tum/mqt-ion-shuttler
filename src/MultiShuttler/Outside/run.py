@@ -9,29 +9,35 @@ import numpy as np
 from datetime import datetime
 from plotting import plot_state
 from graph_utils import get_idx_from_idc
+from compilation import create_initial_sequence
 
 plot = True
 save = False
 
-paths = True
+paths = False
 cycle_or_paths = "Paths" if paths else "Cycles"
 
 failing_junctions = 0
 
-# 3333 seed1 pzs2
+# 3333 seed0 pzs2 failing junctions1 paths -> can't push through to pz because of a blockage
 archs = [
-    [3, 3, 1, 1],
+     [3, 3, 1, 1],
     # [3, 3, 2, 2],
     # [3, 3, 3, 3],
     # [4, 4, 1, 1],
-    # [4, 4, 2, 2],
+    #[4, 4, 2, 2],
     # [4, 4, 3, 3],
-    # [3, 3, 1, 1],
-    # [3, 3, 2, 2],
+    # [5, 5, 1, 1],
+    # [5, 5, 2, 2],
+    #[4, 4, 3, 3],
+    # [6, 6, 1, 1],
+    # [7, 7, 1, 1],
+    # [8, 8, 1, 1]
 ]
-seeds = [0]# 2, 3, 4]  # , 1, 2, 3, 4]
+# run all seeds
+seeds = [0]#, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [4]
+number_of_pzs = [4]#1, 2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
@@ -42,7 +48,7 @@ for m, n, v, h in archs:
         for seed in seeds:
             start_time = datetime.now()
 
-            height = -1 # height > -1 (position of pz outside of mz) -> all edges can be ordered by sum -> if height -1 -> edge may be smaller in edge_idc (important for get_idx_from_idc())
+            height = -1.5 # height > -1 (position of pz outside of mz) -> all edges can be ordered by sum -> if height -1 -> edge may be smaller in edge_idc (important for get_idx_from_idc())
 
             exit1 = (float((m-1)*v), float((n-1)*h))
             entry1 = (float((m-1)*v), float(0))
@@ -71,26 +77,34 @@ for m, n, v, h in archs:
             pzgraph_creator = PZCreator(m, n, v, h, failing_junctions, pzs)
             G = pzgraph_creator.get_graph()
             G.mz_graph = MZ_graph
+            
+            G.seed = seed
 
             G.idc_dict = create_idc_dictionary(G)
             G.pzs = pzs
             G.parking_edges_idxs = []
             G.pzs_name_map = {}
+            G.edge_to_pz_map = {}
             for pz in G.pzs:
                 G.parking_edges_idxs.append(get_idx_from_idc(G.idc_dict, pz.parking_edge))
                 G.pzs_name_map[pz.name] = pz
+                for edge_idx in pz.path_to_pz_idxs:
+                    G.edge_to_pz_map[edge_idx] = pz
+                G.edge_to_pz_map[get_idx_from_idc(G.idc_dict, pz.parking_edge)] = pz
+                for edge_idx in pz.path_from_pz_idxs:
+                    G.edge_to_pz_map[edge_idx] = pz
             print(f"parking_edges_idxs: {G.parking_edges_idxs}")
             
             G.max_num_parking = 2
             for pz in G.pzs:
-                pz.max_num_parking = G.max_num_parking # if changed here, also change in shuttle.py (check_duplicates) and check for further updates to max_num_parking
+                pz.max_num_parking = G.max_num_parking # if changed here (meaning pzs can hold different amounts of ions), also change in shuttle.py (check_duplicates) and check for further updates to max_num_parking
 
             G.plot = plot
             G.save = save
             G.arch = str([m, n, v, h])
 
             number_of_mz_edges = len(MZ_graph.edges())
-            number_of_chains = math.ceil(.7*len(MZ_graph.edges()))
+            number_of_chains = math.ceil(.5*len(MZ_graph.edges()))
             
 
             # plot for paper
@@ -102,7 +116,8 @@ for m, n, v, h in archs:
             algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
             #algorithm = "full_register_access"
             qasm_file_path = (
-                f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+                #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+                f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
             )
 
             edges = list(G.edges())
@@ -111,9 +126,13 @@ for m, n, v, h in archs:
             G.idc_dict = create_idc_dictionary(G)
             G.state = get_ions(G)
 
-            sequence = compile(qasm_file_path)
+            best_gates = False
+            if best_gates:
+                sequence, flat_sequence, dag, next_node = create_initial_sequence([], qasm_file_path, compilation=best_gates)
+            else:
+                sequence = compile(qasm_file_path)
             G.sequence = sequence
-            print(len(sequence), "len seq")
+            print(len(G.sequence), "len seq")
 
             # if there is a real tuple in sequence (2-qbuit gate) use partitioning
             # if any(len(i) > 1 for i in sequence):
@@ -164,7 +183,7 @@ for m, n, v, h in archs:
             for elements in partition.values():
                 all_partition_elements.extend(elements)
             unique_sequence = []
-            for seq_elem in sequence:
+            for seq_elem in G.sequence:
                 for elem in seq_elem:
                     if elem not in unique_sequence:
                         unique_sequence.append(elem)
@@ -178,7 +197,7 @@ for m, n, v, h in archs:
                     not common_elements
                 ), f"{common_elements} are overlapping in partitions"
 
-            timesteps = main(G, sequence, partition, cycle_or_paths)
+            timesteps = main(G, partition, cycle_or_paths)
             end_time = datetime.now()
             cpu_time = end_time - start_time
 
@@ -198,13 +217,13 @@ for m, n, v, h in archs:
         cpu_time_average[number_of_pz] = np.mean(cpu_time_array)
 
         # save averages
-        with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
+        with open(f"src/MultiShuttler/Outside/benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(
-                f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}\n"
+                f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, paths: {paths}\n"
             )
 
 for num_pzs in number_of_pzs:
-    print(f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}")
+    print(f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}, paths: {paths}")
 
 # TODOs:
 # - TODO 1: gate_execution_finished -> implement different gate execution times
@@ -212,3 +231,6 @@ for num_pzs in number_of_pzs:
 # - TODO 3: new_gate_starting -> would need to know next gate at pz - checks in scheduling.py if new gate can start with ions in parking - would stop all ions in exit
 
 # TODO maybe check logic of moving into exit (check if it is really important enough to move into exit -> cannot really check anymore if is important enough at pz, since new logic trys to just move everything through -> so maybe need to implement bouncer at exit?)
+
+# for qce benchmarks: maybe architectural design explore? -> constant number of ions and see impact of pzs -> can better evaluate if architecture is influenced (otherwise could be influence of longer circuits)
+# for later papers: failing junctions + more design exploration like qce24? -> ions can vary, but circuit size same? -> see impact of unused ions etc.

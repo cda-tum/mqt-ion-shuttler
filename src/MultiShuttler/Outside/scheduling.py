@@ -88,7 +88,7 @@ def pick_pz_for_2_q_gate(graph, ion0, ion1):
     return closest_pz
 
 
-def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=10):
+def create_priority_queue(graph, pz_executing_gate_order, max_length=10):
     """
     Create a priority queue based on a given graph and sequence of gates.
     Also creates a dictionary of the next gate of each processing zone.
@@ -106,7 +106,7 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
 
     unique_sequence = OrderedDict()
     graph.next_gate_at_pz = {}
-    for seq_elem in sequence:
+    for seq_elem in graph.sequence:
         # 1-qubit gate
         if len(seq_elem) == 1:
             elem = seq_elem[0]
@@ -155,7 +155,7 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
             if pz.name not in graph.next_gate_at_pz:
                 graph.next_gate_at_pz[pz.name] = []
 
-    # NEW: add ions in exit connections to priority queue as below for in move_list
+    # NEW: add ions in connections to priority queue as below for in move_list
     ions_edges = get_ions(graph)
     
     # order pz according to gates
@@ -167,7 +167,8 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
 
     for pz_name in ordered_pzs:
         pz = graph.pzs_name_map[pz_name]
-
+        
+        # EXIT
         # NEW: add ions in exit connections to priority queue as below for in move_list (need both?)
         ions_in_exit_connections = []
         for edge_idx in pz.path_to_pz_idxs:  # order follows path_to_pz_idxs
@@ -183,6 +184,7 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
                 unique_sequence[ion] = pz.name
                 unique_sequence.move_to_end(ion, last=False)
 
+        # ENTRY
         # get ions in all entry edges and place in front
         # ion in entry must move out TODO for multiple pzs could be the case that out of entry moves block each other -> can't move out of some pzs -> need blocks in these pzs?
         ions_in_entry_connections = []
@@ -198,9 +200,7 @@ def create_priority_queue(graph, sequence, pz_executing_gate_order, max_length=1
                     unique_sequence.remove(ion)
                 unique_sequence[ion] = pz.name
                 unique_sequence.move_to_end(ion, last=False)
-        
-        # 
-        #if i
+
     print('locked gates', graph.locked_gates)
     
     return unique_sequence, graph.next_gate_at_pz
@@ -516,6 +516,7 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
                         else:
                             all_cycles.pop(ion)
                             print(f'stopped ion {ion} from entering exit since gate {gate} is not locked yet')
+                            break
 
     return all_cycles
 
@@ -598,7 +599,6 @@ def rotate(graph, ion, cycle_idcs):
                 pass
 
         first = False
-        print('\n', current_ion, last_ion, graph.in_process)
         if (
             current_ion != []
             and current_ion != last_ion
@@ -621,7 +621,6 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
             pass
     # skip stop moves
     for ion, indiv_cycle_idcs in rotate_cycles_idcs.items():
-        print('start rotate', ion, indiv_cycle_idcs)
         if len(indiv_cycle_idcs) == 2:
             if indiv_cycle_idcs[0] == indiv_cycle_idcs[1]:
                 # cycle {indiv_cycle_idcs}, since it is a stop move")
@@ -631,9 +630,7 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
                     if get_idx_from_idc(graph.idc_dict, indiv_cycle_idcs[0]) == get_idx_from_idc(graph.idc_dict, pz.parking_edge
                     ) and get_idx_from_idc(graph.idc_dict, indiv_cycle_idcs[1]) == get_idx_from_idc(graph.idc_dict, pz.first_entry_connection_from_pz):
                         pz.out_of_parking_move = ion
-        print('exec rotate', ion, indiv_cycle_idcs)
         rotate(graph, ion, indiv_cycle_idcs)
-        print('finished rotate')
 
     # extra clause if an ion is moving out of pz anyway (on its way to another pz) -> do not need to move out another ion
     for pz in graph.pzs:

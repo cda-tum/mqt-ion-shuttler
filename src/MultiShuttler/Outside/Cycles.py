@@ -36,7 +36,7 @@ def find_ions_in_parking(graph, pz):
     ]
     return ions
 
-# get list of edge idxs of ion chains
+# get list of edge idxs of ions
 def get_state_idxs(graph):
     ions_edge_idxs = []
     for edge_idc in get_ions(graph).values():
