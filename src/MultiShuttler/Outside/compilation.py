@@ -231,12 +231,12 @@ def remove_node_by_ions(dag, ions):
     
     return False
 
-def update_dag_and_sequence(dag, sequence, processed_gates):
-    for gate in processed_gates:
-        remove_node_by_ions(dag, gate)
-        sequence.remove(gate)
+#def update_dag_and_sequence(dag, sequence, processed_gates):
+  #  for gate in processed_gates:
+    #    remove_node_by_ions(dag, gate)
+      #  sequence.remove(gate)
 
-def pz_gates_map(graph, front_layer_gates):
+def map_gates_to_pzs(graph, front_layer_gates): # new TODO need to swap keys and values? Need a real gate info map? node to pz? then take indices later? node should be unique
     # create list of all gates at each processing zone
     front_layer_info = {pz.name: [] for pz in graph.pzs}
     for seq_elem in front_layer_gates:
@@ -261,19 +261,20 @@ def pz_gates_map(graph, front_layer_gates):
 
 def remove_processed_gates_from_sequence_non_destructive(graph, dag, dist_map, sequence, max_number_of_front_gates=4):
     """Get the sequence of gates from the DAG non-destructively."""
-    number_of_pzs = 3
 
     ordered_sequence = []
     processed_nodes = set()  # Track nodes we've "virtually removed"
-    first_gates = {}
-    for i in range(number_of_pzs):
+
+    for pz in range(graph.pzs):
         # Get front layer excluding already processed nodes
-        first_gates = get_front_layer_non_destructive(dag, processed_nodes)
+        front_layer = get_front_layer_non_destructive(dag, processed_nodes)
         
-        if not first_gates:
+        if not front_layer:
             break
+
+        first_gates = [node.indices for node in front_layer]
             
-        pz = i
+        gates_pz_map = map_gates_to_pzs(graph, first_gates)
         first_gates[pz] = find_best_gate(first_gates, dist_map) # new TODO hier first gates und oben, oben aber front layer, front layer in gate_info_list verwenden?
             
         # "Virtually remove" the node by adding it to processed_nodes
