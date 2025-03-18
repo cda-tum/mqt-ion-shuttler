@@ -236,10 +236,10 @@ def update_dag_and_sequence(dag, sequence, processed_gates):
         remove_node_by_ions(dag, gate)
         sequence.remove(gate)
 
-def pz_gates_map(graph, front_layer):
+def pz_gates_map(graph, front_layer_gates):
     # create list of all gates at each processing zone
     front_layer_info = {pz.name: [] for pz in graph.pzs}
-    for seq_elem in front_layer:
+    for seq_elem in front_layer_gates:
         if len(seq_elem) == 1:
             elem = seq_elem[0]
             pz = graph.map_to_pz[elem]
@@ -259,7 +259,7 @@ def pz_gates_map(graph, front_layer):
     return front_layer_info
 
 
-def restructure_sequence_non_destructive(graph, dag, dist_map, sequence, max_number_of_front_gates=4):
+def remove_processed_gates_from_sequence_non_destructive(graph, dag, dist_map, sequence, max_number_of_front_gates=4):
     """Get the sequence of gates from the DAG non-destructively."""
     number_of_pzs = 3
 
@@ -317,6 +317,7 @@ def get_all_first_gates_and_update_sequence(graph, dag, dist_map, max_rounds=5):
 
 
 if __name__ == "__main__":
+    """
     num_ion_chains = 3
     distance_map = {0: 10, 1: 33, 2: 5}#, 3: 11, 4: 2, 5: 3}
     partition =  {'pz1': [2], 'pz2': [1], 'pz3': [0]}#{'pz1': [2, 4], 'pz2': [5, 1], 'pz3': [3], 'pz4': [0]}
@@ -330,10 +331,10 @@ if __name__ == "__main__":
     update_dag_and_sequence(dag_dep, seq, processed_gates=processed_gates)
     print('updated sequence: \n', seq)
 
-    seq = restructure_sequence_non_destructive(None, dag_dep, distance_map, seq, max_number_of_front_gates=40)
+    seq = remove_processed_gates_from_sequence_non_destructive(None, dag_dep, distance_map, seq, max_number_of_front_gates=40)
 
 
-"""
+    
     while True:
         processed_gates = [tuple(node.qindices) for node in dag_dep.get_nodes()][:3]
         update_dag_and_sequence(dag_dep, seq, processed_gates=processed_gates)
@@ -343,7 +344,7 @@ if __name__ == "__main__":
 
         if len([node for node in dag_dep.get_nodes()]) == 0:
             break
-    
+    """
     
     #dag_dep.draw(filename='dags.png')
 
@@ -411,7 +412,7 @@ if __name__ == "__main__":
     G.arch = str([m, n, v, h])
 
     number_of_mz_edges = len(MZ_graph.edges())
-    number_of_chains = 3#math.ceil(.5*len(MZ_graph.edges()))
+    number_of_chains = math.ceil(.5*len(MZ_graph.edges()))
     
 
     # plot for paper
@@ -420,8 +421,8 @@ if __name__ == "__main__":
     # )
 
     print(f"Number of chains: {number_of_chains}")
-    algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
-    #algorithm = "full_register_access"
+    #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+    algorithm = "full_register_access"
     qasm_file_path = (
         #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
         f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
@@ -433,9 +434,10 @@ if __name__ == "__main__":
     G.idc_dict = create_idc_dictionary(G)
     G.state = get_ions(G)
 
-    best_gates = False
+    best_gates = True
+    dist_map = {0: 10, 1: 33, 2: 5, 3: 11, 4: 2, 5: 3}
     if best_gates:
-        sequence, flat_sequence, dag, next_node = create_initial_sequence([], qasm_file_path, compilation=best_gates)
+        sequence, flat_sequence, dag, next_node = create_initial_sequence(dist_map, qasm_file_path, compilation=best_gates)
     else:
         sequence = compile(qasm_file_path)
     G.sequence = sequence
@@ -504,6 +506,8 @@ if __name__ == "__main__":
             not common_elements
         ), f"{common_elements} are overlapping in partitions"
 
-    Gate_info_map_new = pz_gates_map(G)
+    front_layer = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
+    front_layer_gates = [node.qindices for node in front_layer]
+    print(front_layer)
+    Gate_info_map_new = pz_gates_map(G, front_layer_gates=front_layer_gates)
     print(Gate_info_map_new)
-"""
