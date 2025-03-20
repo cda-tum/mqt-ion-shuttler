@@ -20,7 +20,7 @@ import networkx as nx
 import numpy as np
 from datetime import datetime
 from plotting import plot_state
-from graph_utils import get_idx_from_idc
+from graph_utils import get_idx_from_idc, create_dist_dict, update_distance_map
 
 
 
@@ -76,11 +76,9 @@ def compile(filename):
     # Check if the file is a valid QASM file
     if not is_qasm_file(filename):
         raise ValueError("Invalid QASM file format")
-
     # Parse the QASM file to extract the qubits used for each gate
     parse_qasm(filename)
     sequence = parse_qasm(filename)
-
     return sequence
 
 
@@ -102,12 +100,13 @@ def remove_node(dag, node):
     dag._multi_graph.remove_node(node.node_id)
 
 
-def find_best_gate(front_layer, dist_map):
+def find_best_gate(front_layer, dist_map, gate_info_map):
     """Find the best gate to execute based on distance."""
     min_gate_cost = math.inf
     for _i, gate_node in enumerate(front_layer):
         qubit_indices = gate_node.qindices
-        gate_cost = max([dist_map[qs] for qs in qubit_indices])
+        pz_of_node = gate_info_map[gate_node]
+        gate_cost = max([dist_map[qs][pz_of_node] for qs in qubit_indices])
         # if both ions of 2-qubit gate are in pz execute 2-qubit gate
         if len(qubit_indices) == 2 and gate_cost == 0:
             return gate_node
@@ -119,19 +118,30 @@ def find_best_gate(front_layer, dist_map):
 
 def manual_copy_dag(dag):
     new_dag = DAGDependency()
-
     # Recreate quantum registers in the new DAG
     for qreg in dag.qregs.values():
         new_dag.add_qreg(qreg)
-
     # Iterate over all operation nodes in the original DAG and copy them
     for node in dag.get_nodes():
         new_dag.add_op_node(node.op, node.qargs, node.cargs)
-
     return new_dag
 
+def create_dag(filename):
+    qc = QuantumCircuit.from_qasm_file(filename)
+    # Remove barriers
+    qc = RemoveBarriers()(qc)
+    # Remove measurement operations
+    qc = RemoveFinalMeasurements()(qc)
+    dag_dep = circuit_to_dagdependency(qc)
+    return dag_dep
 
-def create_initial_sequence(distance_map, filename, compilation):
+def create_initial_sequence(filename):
+    # assert file is a qasm file
+    assert is_qasm_file(filename), "The file is not a valid QASM file."
+    seq = parse_qasm(filename)
+    return seq
+
+def create_updated_sequence_destructive(graph, filename, dag_dep, compilation):
     # assert file is a qasm file
     assert is_qasm_file(filename), "The file is not a valid QASM file."
 
@@ -141,52 +151,57 @@ def create_initial_sequence(distance_map, filename, compilation):
         next_node = None
         dag_dep = None
     else:
-        qc = QuantumCircuit.from_qasm_file(filename)
-        # Remove barriers
-        qc = RemoveBarriers()(qc)
-        # Remove measurement operations
-        qc = RemoveFinalMeasurements()(qc)
-
-        dag_dep = circuit_to_dagdependency(qc)
         working_dag = manual_copy_dag(dag_dep)
         seq = []
-        first_flag = True
+
+        dist_dict = create_dist_dict(graph)
+        dist_map = update_distance_map(graph, dist_dict)
+
+        # first_flag = True
         while True:
             first_gates = get_front_layer(working_dag)
             if not first_gates:
                 break
-            first_gate_to_excute = find_best_gate(first_gates, distance_map)
-            if first_flag == True:
-                next_node = first_gate_to_excute
-            first_flag = False
-            remove_node(working_dag, first_gate_to_excute)
-            seq.append(tuple(first_gate_to_excute.qindices))
+            # get all pzs of this front layer gates (in this logic have to reverse the dict)
+            pz_info_map = map_front_gates_to_pzs(G, front_layer_nodes=first_gates)
+            # reverse it
+            gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
+
+            for pz_name in pz_info_map:
+                # only include pzs that can process a gate of front layer
+                if pz_info_map[pz_name]:
+                    first_gate_to_excute = find_best_gate(pz_info_map[pz_name], dist_map, gate_info_map)
+                    # if first_flag == True:
+                    #     next_node = first_gate_to_excute
+                    # first_flag = False
+                    remove_node(working_dag, first_gate_to_excute)
+                    seq.append(tuple(first_gate_to_excute.qindices))
         
 
     flat_seq = [item for sublist in seq for item in sublist]
 
-    return seq, flat_seq, dag_dep, next_node
+    return seq, flat_seq, dag_dep#, next_node
 
-def update_sequence(dag, dist_map, sequence, max_number_of_front_gates=4):
-    """Get the sequence of gates from the DAG.
-    Creates a new DAG and removes all gates from it while creating the sequence."""
-    working_dag = manual_copy_dag(dag)
-    ordered_sequence = []
-    i = 0
-    while i < max_number_of_front_gates:
-        first_gates = get_front_layer(working_dag)
-        if not first_gates:
-            break
-        first_gate_to_excute = find_best_gate(first_gates, dist_map)
-        if i == 0:
-            first_node = first_gate_to_excute
-        i += 1
-        remove_node(working_dag, first_gate_to_excute)
-        print(tuple(first_gate_to_excute.qindices))
-        sequence.remove(tuple(first_gate_to_excute.qindices))
-        ordered_sequence.append(tuple(first_gate_to_excute.qindices))
-    sequence = ordered_sequence + sequence
-    return sequence, first_node
+# def update_sequence(dag, dist_map, sequence, max_number_of_front_gates=4):
+#     """Get the sequence of gates from the DAG.
+#     Creates a new DAG and removes all gates from it while creating the sequence."""
+#     working_dag = manual_copy_dag(dag)
+#     ordered_sequence = []
+#     i = 0
+#     while i < max_number_of_front_gates:
+#         first_gates = get_front_layer(working_dag)
+#         if not first_gates:
+#             break
+#         first_gate_to_excute = find_best_gate(first_gates, dist_map)
+#         if i == 0:
+#             first_node = first_gate_to_excute
+#         i += 1
+#         remove_node(working_dag, first_gate_to_excute)
+#         print(tuple(first_gate_to_excute.qindices))
+#         sequence.remove(tuple(first_gate_to_excute.qindices))
+#         ordered_sequence.append(tuple(first_gate_to_excute.qindices))
+#     sequence = ordered_sequence + sequence
+#     return sequence, first_node
 
 
 def get_front_layer_non_destructive(dag, virtually_processed_nodes):
@@ -205,46 +220,47 @@ def get_front_layer_non_destructive(dag, virtually_processed_nodes):
             
     return front_layer
 
-def remove_node_by_ions(dag, ions):
-    """
-    Remove a node from the DAG based on the qubits it operates on.
+# def remove_node_by_ions(dag, ions):
+#     """
+#     Remove a node from the DAG based on the qubits it operates on.
     
-    Args:
-        dag: The directed acyclic graph
-        qubits: A tuple or list containing the qubits the gate operates on
+#     Args:
+#         dag: The directed acyclic graph
+#         qubits: A tuple or list containing the qubits the gate operates on
     
-    Returns:
-        bool: True if a node was found and removed, False otherwise
-    """
-    target_node = None
+#     Returns:
+#         bool: True if a node was found and removed, False otherwise
+#     """
+#     target_node = None
     
-    # Search for the node with matching qubits
-    for node in dag.get_nodes():
-        if tuple(node.qindices) == tuple(ions):
-            target_node = node
-            break
+#     # Search for the node with matching qubits
+#     for node in dag.get_nodes():
+#         if tuple(node.qindices) == tuple(ions):
+#             target_node = node
+#             break
     
-    # If found, remove the node
-    if target_node:
-        remove_node(dag, target_node)
-        return True
+#     # If found, remove the node
+#     if target_node:
+#         remove_node(dag, target_node)
+#         return True
     
-    return False
+#     return False
 
 #def update_dag_and_sequence(dag, sequence, processed_gates):
   #  for gate in processed_gates:
     #    remove_node_by_ions(dag, gate)
       #  sequence.remove(gate)
 
-def map_gates_to_pzs(graph, front_layer_gates): # new TODO need to swap keys and values? Need a real gate info map? node to pz? then take indices later? node should be unique
-    # create list of all gates at each processing zone
-    front_layer_info = {pz.name: [] for pz in graph.pzs}
-    for seq_elem in front_layer_gates:
+def map_front_gates_to_pzs(graph, front_layer_nodes):
+    """Create list of all gates at each processing zone."""
+    gates_of_pz_info = {pz.name: [] for pz in graph.pzs}
+    for seq_node in front_layer_nodes:
+        seq_elem = tuple(seq_node.qindices)
         if len(seq_elem) == 1:
             elem = seq_elem[0]
             pz = graph.map_to_pz[elem]
-            if front_layer_info[pz] == []:
-                front_layer_info[pz].append(elem)
+            #if gates_of_pz_info[pz] == []:
+            
         elif len(seq_elem) == 2:
             # only pick processing zone for 2-qubit gate if not already locked -> then lock it
             if seq_elem not in graph.locked_gates:
@@ -252,70 +268,99 @@ def map_gates_to_pzs(graph, front_layer_gates): # new TODO need to swap keys and
                 graph.locked_gates[seq_elem] = pz
             else:
                 pz = graph.locked_gates[seq_elem]
-            if front_layer_info[pz] == []:
-                front_layer_info[pz].append(seq_elem[0])
-                front_layer_info[pz].append(seq_elem[1])
+            #if gates_of_pz_info[pz] == []:
+            # gates_of_pz_info[pz].append(seq_elem[0])
+            # gates_of_pz_info[pz].append(seq_elem[1])
+        else:
+            raise ValueError("wrong gate type")
+        
+        gates_of_pz_info[pz].append(seq_node)
 
-    return front_layer_info
+    return gates_of_pz_info
 
 
-def remove_processed_gates_from_sequence_non_destructive(graph, dag, dist_map, sequence, max_number_of_front_gates=4):
-    """Get the sequence of gates from the DAG non-destructively."""
+def remove_processed_gates(graph, dag, removed_nodes):
+    """
+    Remove the processed gates of each processing zone from both the DAG and sequence.
+    
+    Args:
+        graph: Graph object containing the gate sequence
+        dag: DAG representing dependencies between gates
+        first_gates_by_pz: Dictionary mapping processing zones to their first gates
+    """ 
+    # Track which gates are removed
+    removed_gates = []
+    
+    # Process each processing zone's first gate
+    for pz_name, first_gate in removed_nodes.items():
+        # Remove the gate from the sequence
+        gate_indices = tuple(first_gate.qindices)
+        if gate_indices in graph.sequence:
+            graph.sequence.remove(gate_indices)
+            removed_gates.append(first_gate)
+            print(f"Removed gate {gate_indices} from sequence for PZ {pz_name}")
+        
+        # Remove the gate from the DAG
+        node_id = first_gate.node_id
+        if dag.get_node(node_id):
+            dag._multi_graph.remove_node(node_id)
+            print(f"Removed node {node_id} from DAG for PZ {pz_name}")
 
+
+def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, dist_map, max_rounds=5):
+    """Get the first gates from the DAG for each processing zone.
+    Continue finding the subsequent "first gates" and update the sequence accordingly.
+    Creates a compiled list of gates (ordered) for each pz from the DAG Dependency."""
+    
     ordered_sequence = []
     processed_nodes = set()  # Track nodes we've "virtually removed"
+    # Dictionary to store the first gate for each processing zone
+    first_nodes_by_pz = {}
 
-    for pz in range(graph.pzs):
+    for round in range(max_rounds):
         # Get front layer excluding already processed nodes
-        front_layer = get_front_layer_non_destructive(dag, processed_nodes)
+        front_layer_nodes = get_front_layer_non_destructive(dag, processed_nodes)
         
-        if not front_layer:
+        # If front layer is empty, we're done
+        if not front_layer_nodes:
             break
-
-        first_gates = [node.indices for node in front_layer]
             
-        gates_pz_map = map_gates_to_pzs(graph, first_gates)
-        first_gates[pz] = find_best_gate(first_gates, dist_map) # new TODO hier first gates und oben, oben aber front layer, front layer in gate_info_list verwenden?
-            
-        # "Virtually remove" the node by adding it to processed_nodes
-        processed_nodes.add(first_gates[pz].node_id)
+        pz_info_map = map_front_gates_to_pzs(graph, front_layer_nodes)
+        gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
         
-        #print(tuple(first_gate_to_execute.qindices))
-        sequence.remove(tuple(first_gates[pz].qindices))
-        ordered_sequence.append(tuple(first_gates[pz].qindices))
-    
-    sequence = ordered_sequence + sequence
-    gate_info_list = None #TODO hier für jede pz first gate speichern
-    return sequence
-
-def get_all_first_gates_and_update_sequence(graph, dag, dist_map, max_rounds=5):
-    """Get the first gates from the DAG for each pz."""
-    gate_info_list = {}
-    ordered_sequence = []
-    processed_nodes = set()  # Track nodes we've "virtually removed"
-    
-    for round in max_rounds:
-        first_gates = {pz: [] for pz in graph.pzs}
-        # Get front layer excluding already processed nodes
-        first_gates = get_front_layer_non_destructive(dag, processed_nodes)
+        # Track gates processed in this round to ensure maximum parallelism
+        round_processed_gates = []
         
-        for pz in range(graph.pzs):
-            first_gates[pz].append(find_best_gate(first_gates, dist_map))
+        # Process one gate for each processing zone that has available gates
+        for pz_name in pz_info_map:
+            if pz_info_map[pz_name]:
+                # Find the best gate for this processing zone
+                best_gate = find_best_gate(pz_info_map[pz_name], dist_map, gate_info_map)
 
-            # save first gates of each pz as gate_info_list
-            if round == 0:
-                gate_info_list[pz.name] = [first_gates[pz][0]]
-            
-            # "Virtually remove" the node by adding it to processed_nodes (used in get_front_layer)
-            processed_nodes.add(first_gates[pz].node_id)
+                # Save the first gate that can be processed for each pz (only of first round, since otherwise can not be simultaneously processed)
+                if round == 0 and pz_name not in first_nodes_by_pz:
+                    first_nodes_by_pz[pz_name] = best_gate
 
-            ordered_sequence.append(tuple(first_gates[pz].qindices))
-            sequence.remove(tuple(first_gates[pz].qindices))
+                # Add to the processed list for this round
+                round_processed_gates.append(best_gate)
+                
+                # Update the ordered sequence
+                ordered_sequence.append(tuple(best_gate.qindices))
+                
+                # Mark as processed
+                processed_nodes.add(best_gate.node_id)
+                
+                print(f'Selected gate for PZ {pz_name} in round {round}: {best_gate}')
+        
+        # Remove all processed gates from the original sequence
+        for gate in round_processed_gates:
+            if tuple(gate.qindices) in graph.sequence:
+                graph.sequence.remove(tuple(gate.qindices))
     
-    sequence = ordered_sequence + sequence
+    # Update the final sequence
+    graph.sequence = ordered_sequence + graph.sequence
     
-    return sequence
-
+    return first_nodes_by_pz
 
 if __name__ == "__main__":
     """
@@ -430,19 +475,13 @@ if __name__ == "__main__":
     )
 
     edges = list(G.edges())
-
     create_starting_config(G, number_of_chains, seed=seed)
     G.idc_dict = create_idc_dictionary(G)
     G.state = get_ions(G)
 
-    best_gates = True
-    dist_map = {0: 10, 1: 33, 2: 5, 3: 11, 4: 2, 5: 3}
-    if best_gates:
-        sequence, flat_sequence, dag, next_node = create_initial_sequence(dist_map, qasm_file_path, compilation=best_gates)
-    else:
-        sequence = compile(qasm_file_path)
-    G.sequence = sequence
-    print(len(G.sequence), "len seq")
+    G.sequence = create_initial_sequence(qasm_file_path)
+
+
 
     # if there is a real tuple in sequence (2-qbuit gate) use partitioning
     # if any(len(i) > 1 for i in sequence):
@@ -507,8 +546,49 @@ if __name__ == "__main__":
             not common_elements
         ), f"{common_elements} are overlapping in partitions"
 
-    front_layer = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
-    front_layer_gates = [node.qindices for node in front_layer]
-    print(front_layer)
-    Gate_info_map_new = pz_gates_map(G, front_layer_gates=front_layer_gates)
-    print(Gate_info_map_new)
+
+
+    best_gates = True
+
+    if best_gates:
+        dag = create_dag(qasm_file_path)
+    else:
+        dag = None
+
+
+    front_layer_nodes = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
+    #front_layer_gates = [node.qindices for node in front_layer]
+    print(front_layer_nodes)
+    pz_info_map = map_front_gates_to_pzs(G, front_layer_nodes=front_layer_nodes)
+    print('pz info map: ', pz_info_map)
+    gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
+    print('gate info map: ', gate_info_map)
+
+
+    G.dist_dict = create_dist_dict(G)
+    print('\n dist_dict: ', G.dist_dict)
+    G.dist_map = update_distance_map(G, G.dist_dict)
+    print('\n dist_map: ', G.dist_map)
+
+    print('initial sequence: ', G.sequence)
+    sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, compilation=best_gates)
+
+    G.sequence = sequence
+
+
+
+
+
+
+
+
+
+    print('pre restructure: ', G.sequence)
+    next_processable_gates = get_all_first_gates_and_update_sequence_non_destructive(G, dag, G.dist_map)
+    print('after restructure: ', G.sequence)
+    print('\n next gates to process: ', next_processable_gates)
+    processed_gates = next_processable_gates
+    #dag.draw(filename='dag_init.png')
+    remove_processed_gates(G, dag, processed_gates)
+    #dag.draw(filename='dags_new.png')
+    print('after processing: ', G.sequence)

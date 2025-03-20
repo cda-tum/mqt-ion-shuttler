@@ -21,22 +21,33 @@ def get_idc_from_idx(edge_dictionary, idx):
     return next((k for k, v in edge_dictionary.items() if v == idx), None)#list(edge_dictionary.values()).index(idx)
 
 def create_dist_dict(graph):
-    # create dictionary with all distances to entry
-    graph.dist_dict = {}
-    for edge_idc in graph.edges():
-        # keep node ordering consistent:
-        edge_idx = get_idx_from_idc(graph.idc_dict, edge_idc)
-        graph.dist_dict[get_idc_from_idx(graph.idc_dict, edge_idx)] = calc_dist_to_pz(
-            self.pzgraph_creator, get_idx_from_idc(graph.idc_dict, edge_idc)
-        )
+    # create dictionary of dictionary with all distances to entry of each edge for each pz
+    from Cycles import find_path_edge_to_edge
+    dist_dict = {}
+    for pz in graph.pzs:
+        pz_dict = {}
+        for edge_idc in graph.edges():
+            # keep node ordering consistent:
+            edge_idx = get_idx_from_idc(graph.idc_dict, edge_idc)
 
-# calc distance to parking edge for all ion chains
-def update_distance_map(graph):
+            pz_dict[get_idc_from_idx(graph.idc_dict, edge_idx)] = find_path_edge_to_edge(graph, edge_idc, pz.entry_edge)
+            
+        dist_dict[pz.name] = pz_dict
+    return dist_dict
+
+# calc distance to parking edge for all ions
+def update_distance_map(graph, dist_dict):
+    """Update a distance map that tracks the distances to each pz for each ion of current state.
+    Dict: {ion: {'pz_name': distance}}, 
+    e.g.,  {0: {'pz1': 2, 'pz2': 2, 'pz3': 1}, 1: {'pz1': 4, 'pz2': 1, 'pz3': 2}, 2: {'pz1': 3, 'pz2': 1, 'pz3': 3}}"""
     from Cycles import get_state_idxs
-    graph.distance_map = {}
-    for ion, edge_idx in enumerate(get_state_idxs()):
-        graph.distance_map[ion] = graph.dist_dict[get_idc_from_idx(graph.idc_dict, edge_idx)]
-    return graph.distance_map
+    distance_map = {}
+    for ion, edge_idx in enumerate(get_state_idxs(graph)):
+        pz_dict = {}
+        for pz in graph.pzs:
+            pz_dict[pz.name] = len(dist_dict[pz.name][get_idc_from_idx(graph.idc_dict, edge_idx)])
+        distance_map[ion] = pz_dict
+    return distance_map
 
 # Function to convert all nodes to float
 def convert_nodes_to_float(graph):
