@@ -163,7 +163,7 @@ def create_updated_sequence_destructive(graph, filename, dag_dep, compilation):
             if not first_gates:
                 break
             # get all pzs of this front layer gates (in this logic have to reverse the dict)
-            pz_info_map = map_front_gates_to_pzs(G, front_layer_nodes=first_gates)
+            pz_info_map = map_front_gates_to_pzs(graph, front_layer_nodes=first_gates)
             # reverse it
             gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
 
@@ -252,7 +252,7 @@ def get_front_layer_non_destructive(dag, virtually_processed_nodes):
       #  sequence.remove(gate)
 
 def map_front_gates_to_pzs(graph, front_layer_nodes):
-    """Create list of all gates at each processing zone."""
+    """Create list of all front layer gates at each processing zone."""
     gates_of_pz_info = {pz.name: [] for pz in graph.pzs}
     for seq_node in front_layer_nodes:
         seq_elem = tuple(seq_node.qindices)
@@ -308,7 +308,7 @@ def remove_processed_gates(graph, dag, removed_nodes):
 
 
 def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, dist_map, max_rounds=5):
-    """Get the first gates from the DAG for each processing zone.
+    """Get the first gates from the DAG for each processing zone (only first round, so they are simultaneously processable).
     Continue finding the subsequent "first gates" and update the sequence accordingly.
     Creates a compiled list of gates (ordered) for each pz from the DAG Dependency."""
     
@@ -350,7 +350,7 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, dist_map
                 # Mark as processed
                 processed_nodes.add(best_gate.node_id)
                 
-                print(f'Selected gate for PZ {pz_name} in round {round}: {best_gate}')
+                #print(f'Selected gate for PZ {pz_name} in round {round}: {best_gate}')
         
         # Remove all processed gates from the original sequence
         for gate in round_processed_gates:

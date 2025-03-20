@@ -9,7 +9,7 @@ import numpy as np
 from datetime import datetime
 from plotting import plot_state
 from graph_utils import get_idx_from_idc
-from compilation import create_initial_sequence
+from compilation import create_initial_sequence, create_dag, create_updated_sequence_destructive, get_front_layer_non_destructive, get_all_first_gates_and_update_sequence_non_destructive, map_front_gates_to_pzs, create_dist_dict, update_distance_map
 
 plot = True
 save = False
@@ -21,16 +21,16 @@ failing_junctions = 0
 
 # 3333 seed0 pzs2 failing junctions1 paths -> can't push through to pz because of a blockage
 archs = [
-     [3, 3, 1, 1],
+     #[3, 3, 1, 1],
     # [3, 3, 2, 2],
-    # [3, 3, 3, 3],
+    [3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
     # [4, 4, 1, 1],
     #[4, 4, 2, 2],
     # [4, 4, 3, 3],
-    # [5, 5, 1, 1],
+    #[5, 5, 1, 1],
     # [5, 5, 2, 2],
     #[4, 4, 3, 3],
-    # [6, 6, 1, 1],
+    #[6, 6, 1, 1],
     # [7, 7, 1, 1],
     # [8, 8, 1, 1]
 ]
@@ -113,8 +113,8 @@ for m, n, v, h in archs:
             # )
 
             print(f"Number of chains: {number_of_chains}")
-            algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
-            #algorithm = "full_register_access"
+            #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            algorithm = "full_register_access"
             qasm_file_path = (
                 #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
                 f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
@@ -123,16 +123,14 @@ for m, n, v, h in archs:
             edges = list(G.edges())
 
             create_starting_config(G, number_of_chains, seed=seed)
-            G.idc_dict = create_idc_dictionary(G)
+
             G.state = get_ions(G)
 
-            best_gates = False
-            if best_gates:
-                sequence, flat_sequence, dag, next_node = create_initial_sequence([], qasm_file_path, compilation=best_gates)
-            else:
-                sequence = compile(qasm_file_path)
-            G.sequence = sequence
-            print(len(G.sequence), "len seq")
+
+            ### initial sequence (naive) ###
+            G.sequence = create_initial_sequence(qasm_file_path)
+
+            ### partitioning ###
 
             # if there is a real tuple in sequence (2-qbuit gate) use partitioning
             # if any(len(i) > 1 for i in sequence):
@@ -197,7 +195,34 @@ for m, n, v, h in archs:
                     not common_elements
                 ), f"{common_elements} are overlapping in partitions"
 
-            timesteps = main(G, partition, cycle_or_paths)
+
+
+
+
+
+            compilation = True
+
+            if compilation:
+                dag = create_dag(qasm_file_path)
+                front_layer_nodes = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
+                pz_info_map = map_front_gates_to_pzs(G, front_layer_nodes=front_layer_nodes)
+                gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
+
+                G.dist_dict = create_dist_dict(G)
+                G.dist_map = update_distance_map(G, G.dist_dict)
+                G.locked_gates = {}
+                sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, compilation=compilation)
+                G.sequence = sequence
+            else:
+                dag = None
+
+
+
+
+
+
+
+            timesteps = main(G, partition,dag, cycle_or_paths, compilation=compilation)
             end_time = datetime.now()
             cpu_time = end_time - start_time
 

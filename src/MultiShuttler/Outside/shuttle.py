@@ -12,7 +12,7 @@ from scheduling import (
     update_entry_and_exit_cycles,
     find_out_of_entry_moves
 )
-from compilation import update_sequence, create_initial_sequence
+from compilation import create_initial_sequence, get_all_first_gates_and_update_sequence_non_destructive, remove_processed_gates
 from plotting import plot_state
 import os
 from datetime import datetime
@@ -117,7 +117,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
         )
 
 
-def main(graph, partition, cycle_or_paths):
+def main(graph, partition, dag, cycle_or_paths, compilation):
     timestep = 0
     max_timesteps = 1e6
     graph.state = get_ions(graph)
@@ -146,6 +146,8 @@ def main(graph, partition, cycle_or_paths):
         #pz.new_gate_starting  = False (= gate_element in chains_in_parking -> flag needed to solve rare edge case that ion waits in exit, can't move to pz but also no gate can be executed (see scheduling.py))
 
     graph.in_process = []
+    if compilation:
+        next_processable_gate_nodes = get_all_first_gates_and_update_sequence_non_destructive(graph, dag, graph.dist_map)
     
     while timestep < max_timesteps:    
         print(f"\nStarting timestep {timestep}")
@@ -155,11 +157,16 @@ def main(graph, partition, cycle_or_paths):
             pz.rotate_entry = False
             pz.out_of_parking_move = None
 
-        # update gate_info_list (list of next gate at pz)
-        gate_info_list = create_gate_info_list(graph)
+        if compilation:
+            gate_info_list =  {pz.name: [] for pz in graph.pzs}
+            for pz_name, node in next_processable_gate_nodes.items():
+                gate_info_list[pz_name].append(tuple(ion for ion in node.qindices))
+        else:
+            # update gate_info_list (list of next gate at pz)
+            gate_info_list = create_gate_info_list(graph)
         print(f"Gate info list: {gate_info_list}")
 
-        # pz order (only used to add ions in exit to front of prio queue)
+        # pz order - find next pz that processes a gate (only used to add ions in exit to front of prio queue)
         pz_executing_gate_order = find_pz_order(graph, gate_info_list)
         print(f"Next processing zone executing gate (next 10): {pz_executing_gate_order[:10]}")
 
@@ -207,22 +214,15 @@ def main(graph, partition, cycle_or_paths):
 
         # Check the state of each ion in the sequence
         graph.state = get_ions(graph)
-        processed_ions = []
-        previous_ion_processed = True
-        pzs = graph.pzs.copy()
-        graph.best_gates = graph.sequence[:min(len(graph.pzs), len(graph.sequence))]
-        # go through the first gates in the sequence (as many as pzs or sequence length)
-        # for now, gates are processed in order
-        # (can only be processed in parallel if previous gates are processed)
-        for i in range(min(len(graph.pzs), len(graph.sequence))):
-            # only continue if previous ion was processed
-            if not previous_ion_processed:  # new TODO go through all pzs and whole front layer now? need compilation flag here as well
-                break
-            gate = graph.best_gates[i]
-            ion_processed = False
-            # wenn auf weg zu pz in anderer pz -> wird processed?
-            # Problem nur für 2-qubit gate? -> TODO fix
-            for pz in pzs:
+
+        if compilation:
+            processed_nodes = {}
+            #pzs = graph.pzs.copy()
+            print('\nnext_proc gates', next_processable_gate_nodes)
+            for pz_name, gate_node in next_processable_gate_nodes.items():
+                print('\n pz, gate: ', pz_name, gate_node.qindices)
+                pz = graph.pzs_name_map[pz_name]
+                gate = tuple(ion for ion in gate_node.qindices)
                 if len(gate) == 1:
                     ion = gate[0]
                     if get_idx_from_idc(graph.idc_dict, graph.state[ion]) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
@@ -231,33 +231,19 @@ def main(graph, partition, cycle_or_paths):
                         print(f"Ion {ion} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
                         gate_time = 1
                         if pz.time_in_pz_counter == gate_time:
-                            processed_ions.insert(0, (ion,))
-                            ion_processed = True
+                            processed_nodes[pz_name] = gate_node
                             # remove the processing zone from the list
                             # (it can only process one ion)
-                            pzs.remove(pz)
+                            #pzs.remove(pz)
                             # graph.in_process.append(ion)
 
                             pz.time_in_pz_counter = 0
                             pz.gate_execution_finished = True
-                            break
+                            #break
                 elif len(gate) == 2:
                     ion1, ion2 = gate
                     state1 = graph.state[ion1]
                     state2 = graph.state[ion2]
-
-                    # The following is now done at the beginning of next timestep
-                    # (otherwise would do it double
-                    # -> would leave the ones from last time step in in_process
-                    #  -> would not move even though
-                    # they are move out of pz by preprocessing)
-                    # append ion to in_process if it is in the correct processing zone
-                    # if state1 == pz.parking_edge and ion1 in next_gate_at_pz_dict[pz.name]
-                    # and ion2 in next_gate_at_pz_dict[pz.name]:
-                    #     graph.in_process.append(ion1)
-                    # if state2 == pz.parking_edge and ion1 in next_gate_at_pz_dict[pz.name]
-                    # and ion2 in next_gate_at_pz_dict[pz.name]: # also 1 qubit gate?
-                    #     graph.in_process.append(ion2)
 
                     # if both ions are in the processing zone, process the gate
                     if get_idx_from_idc(graph.idc_dict, state1) == get_idx_from_idc(graph.idc_dict, pz.parking_edge) and get_idx_from_idc(graph.idc_dict, state2) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
@@ -266,11 +252,10 @@ def main(graph, partition, cycle_or_paths):
                         print(f"Ions {ion1} and {ion2} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
                         gate_time = 3
                         if pz.time_in_pz_counter == gate_time:
-                            processed_ions.insert(0, (ion1, ion2))
-                            ion_processed = True
+                            processed_nodes[pz_name] = gate_node
                             # remove the processing zone from the list
                             # (it can only process one gate)
-                            pzs.remove(pz)
+                            #pzs.remove(pz)
 
                             # remove the locked pz of the processed two-qubit gate
                             if gate in graph.locked_gates:
@@ -278,14 +263,98 @@ def main(graph, partition, cycle_or_paths):
                                     graph.locked_gates.pop(gate)
                             pz.time_in_pz_counter = 0
                             pz.gate_execution_finished = True
-                            break
+                            #break
                 else:
                     raise ValueError("Invalid gate format")
-            previous_ion_processed = ion_processed
 
-        # Remove processed ions from the sequence
-        for gate in processed_ions:
-            graph.sequence.remove(gate)
+        else:
+            # TODO if no compilation has to still be front layer for simultaneous gates?
+            processed_ions = []
+            previous_ion_processed = True
+            pzs = graph.pzs.copy()
+            next_gates = graph.sequence[:min(len(graph.pzs), len(graph.sequence))]
+            # go through the first gates in the sequence (as many as pzs or sequence length)
+            # for now, gates are processed in order
+            # (can only be processed in parallel if previous gates are processed)
+            for i in range(min(len(graph.pzs), len(graph.sequence))):
+                # only continue if previous ion was processed
+                if not previous_ion_processed:  # new TODO go through all pzs and whole front layer now? need compilation flag here as well
+                    break
+                gate = next_gates[i]
+                ion_processed = False
+                # wenn auf weg zu pz in anderer pz -> wird processed?
+                # Problem nur für 2-qubit gate? -> TODO fix
+                for pz in pzs:
+                    if len(gate) == 1:
+                        ion = gate[0]
+                        if get_idx_from_idc(graph.idc_dict, graph.state[ion]) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
+                            pz.gate_execution_finished = False # set False, then check below if gate time is finished -> then True
+                            pz.time_in_pz_counter += 1
+                            print(f"Ion {ion} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
+                            gate_time = 1
+                            if pz.time_in_pz_counter == gate_time:
+                                processed_ions.insert(0, (ion,))
+                                ion_processed = True
+                                # remove the processing zone from the list
+                                # (it can only process one ion)
+                                pzs.remove(pz)
+                                # graph.in_process.append(ion)
+
+                                pz.time_in_pz_counter = 0
+                                pz.gate_execution_finished = True
+                                break
+                    elif len(gate) == 2:
+                        ion1, ion2 = gate
+                        state1 = graph.state[ion1]
+                        state2 = graph.state[ion2]
+
+                        # The following is now done at the beginning of next timestep
+                        # (otherwise would do it double
+                        # -> would leave the ones from last time step in in_process
+                        #  -> would not move even though
+                        # they are move out of pz by preprocessing)
+                        # append ion to in_process if it is in the correct processing zone
+                        # if state1 == pz.parking_edge and ion1 in next_gate_at_pz_dict[pz.name]
+                        # and ion2 in next_gate_at_pz_dict[pz.name]:
+                        #     graph.in_process.append(ion1)
+                        # if state2 == pz.parking_edge and ion1 in next_gate_at_pz_dict[pz.name]
+                        # and ion2 in next_gate_at_pz_dict[pz.name]: # also 1 qubit gate?
+                        #     graph.in_process.append(ion2)
+
+                        # if both ions are in the processing zone, process the gate
+                        if get_idx_from_idc(graph.idc_dict, state1) == get_idx_from_idc(graph.idc_dict, pz.parking_edge) and get_idx_from_idc(graph.idc_dict, state2) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
+                            pz.gate_execution_finished = False # set False, then check below if gate time is finished -> then True
+                            pz.time_in_pz_counter += 1
+                            print(f"Ions {ion1} and {ion2} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
+                            gate_time = 3
+                            if pz.time_in_pz_counter == gate_time:
+                                processed_ions.insert(0, (ion1, ion2))
+                                ion_processed = True
+                                # remove the processing zone from the list
+                                # (it can only process one gate)
+                                pzs.remove(pz)
+
+                                # remove the locked pz of the processed two-qubit gate
+                                if gate in graph.locked_gates:
+                                    if graph.locked_gates[gate] == pz.name:
+                                        graph.locked_gates.pop(gate)
+                                pz.time_in_pz_counter = 0
+                                pz.gate_execution_finished = True
+                                break
+                    else:
+                        raise ValueError("Invalid gate format")
+                previous_ion_processed = ion_processed
+
+        # Remove processed ions from the sequence (and dag if compilation)
+        if compilation:
+            print('processed', processed_nodes)
+            if processed_nodes:
+                remove_processed_gates(graph, dag, processed_nodes)
+                next_processable_gate_nodes = get_all_first_gates_and_update_sequence_non_destructive(graph, dag, graph.dist_map)
+                print('next gates', [node.qindices for node in next_processable_gate_nodes.values()])
+        else:
+            for gate in processed_ions:
+                graph.sequence.remove(gate)
 
         if len(graph.sequence) == 0:
             print(f"All ions have arrived at their destination in {timestep} timesteps")
