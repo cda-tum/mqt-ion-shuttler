@@ -334,6 +334,7 @@ def bfs_free_edge(graph, node, other_next_edges):
     return None
 
 def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, other_next_edges=None):
+    print('start with ', pz.name)
     pz.rotate_entry = False
     pz.ion_to_park = find_ion_in_edge(graph, pz.path_to_pz[-1])
     pz.ion_to_move_out_of_pz = None
@@ -349,25 +350,25 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
     in_and_into_exit_moves = {}
     for rotate_ion in move_list:
         edge_idc = ion_chains[rotate_ion]
-
         # change pz to pz of position (if ion is in a pz and moves to other, pz would otherwise be the target pz, need position pz for following logic)
         if graph.get_edge_data(edge_idc[0], edge_idc[1])['edge_type'] != 'trap':
             # save target pz
             target_pz = pz # for finding next edge
             edge_idx = get_idx_from_idc(graph.idc_dict, edge_idc)
-            pz = graph.edge_to_pz_map[edge_idx]
+            position_pz = graph.edge_to_pz_map[edge_idx]
         else:
             target_pz = pz
-
+            position_pz = pz
+            
         # move from entry to memory zone
         # following checks are done with ion position (edge_idc)
-        if get_idx_from_idc(graph.idc_dict, edge_idc) in pz.path_from_pz_idxs:
+        if get_idx_from_idc(graph.idc_dict, edge_idc) in position_pz.path_from_pz_idxs:
             # if in entry (last edge of entry connections, connected to mz)
             if get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(
-                graph.idc_dict, pz.entry_edge
+                graph.idc_dict, position_pz.entry_edge
             ):  # in graph.pzgraph_creator.path_from_pz_idxs:
                 other_next_edges = [] #TODO
-                starting_search_node = pz.entry_node
+                starting_search_node = position_pz.entry_node
                 target_edge = bfs_free_edge(graph, starting_search_node, other_next_edges)
                 # calc path to target edge (node path does not include target edge and in this case - also not the start node)
                 start_node = [node for node in edge_idc if graph.nodes(data=True)[node]['node_type'] in ["entry_connection_node", "processing_zone_node"]][0]
@@ -381,9 +382,9 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
             
             # if in entry connection -> move to next edge (is now done here instead of in find_next_edge)
             # this is basically an else here but need to loop over path_from_pz to find next edge
-            for i, edge_idx in enumerate(pz.path_from_pz_idxs[:-1]):
+            for i, edge_idx in enumerate(position_pz.path_from_pz_idxs[:-1]):
                 if get_idx_from_idc(graph.idc_dict, edge_idc) == edge_idx:
-                    next_edge = get_idc_from_idx(graph.idc_dict, pz.path_from_pz_idxs[i + 1])
+                    next_edge = get_idc_from_idx(graph.idc_dict, position_pz.path_from_pz_idxs[i + 1])
                     edge_idc, next_edge = find_ordered_edges(graph, edge_idc, next_edge)
                     all_cycles[rotate_ion] = [edge_idc, next_edge]
         
@@ -393,20 +394,20 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
         else:
             next_edge = find_next_edge(graph, edge_idc, target_pz.parking_edge)
             edge_idc, next_edge = find_ordered_edges(graph, edge_idc, next_edge)
-
+            print('next, ', rotate_ion, next_edge, target_pz.parking_edge)
             # moves in exit and into parking_edge (blocks if parking is full)
             if get_idx_from_idc(graph.idc_dict, next_edge) in [
-                *pz.path_to_pz_idxs,
-                get_idx_from_idc(graph.idc_dict, pz.parking_edge),
+                *position_pz.path_to_pz_idxs,
+                get_idx_from_idc(graph.idc_dict, position_pz.parking_edge),
             ]:
-                in_and_into_exit_moves[pz.name] = {rotate_ion: edge_idc}
+                in_and_into_exit_moves[position_pz.name] = {rotate_ion: edge_idc}
                 all_cycles[rotate_ion] = [edge_idc, next_edge]
                 # block moves to pz if parking is full (now blocks if parking not open and ion moving in exit and its next edge is in state_idxs)
                 if parking_open is False and (get_idx_from_idc(graph.idc_dict, next_edge) in get_state_idxs(graph)):
                     all_cycles[rotate_ion] = [edge_idc, edge_idc]
 
             # covers all shuttling in memory zone (does not cover entry connections anymore, see above)
-            elif not check_if_edge_is_filled(graph, next_edge) or edge_idc == next_edge or get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
+            elif not check_if_edge_is_filled(graph, next_edge) or edge_idc == next_edge or get_idx_from_idc(graph.idc_dict, edge_idc) == get_idx_from_idc(graph.idc_dict, position_pz.parking_edge):
                 all_cycles[rotate_ion] = [edge_idc, next_edge]
             else:
                 
