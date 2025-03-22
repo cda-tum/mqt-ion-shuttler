@@ -64,6 +64,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
 
     # Update ion chains after preprocess
     graph.state = get_ions(graph)
+
     check_duplicates(graph)
     print(f"priority queue: {priority_queue}")
     part_prio_queues = get_partitioned_priority_queues(graph, priority_queue, partition)
@@ -100,7 +101,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     # Update ion chains after rotate
     graph.state = get_ions(graph)
 
-    labels = ("timestep %s" % timestep, "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
+    labels = ("timestep and seq length %s %s" % (timestep, len(graph.sequence)), "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
 
     if timestep >= 0 and (graph.plot == True or graph.save == True):
         plot_state(
@@ -126,19 +127,19 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
     if graph.save is True:
         os.makedirs(unique_folder, exist_ok=True)
 
-    if any([graph.plot, graph.save]):
-        plot_state(
-            graph,
-            labels=("Initial state", None),
-            plot_ions=True,
-            show_plot=graph.plot,
-            save_plot=graph.save,
-            plot_cycle=False,
-            plot_pzs=True,
-            filename=os.path.join(
-                unique_folder, "%s_timestep_%s.pdf" % (graph.arch, timestep)
-            ),
-        )
+    # if any([graph.plot, graph.save]):
+    #     plot_state(
+    #         graph,
+    #         labels=("Initial state", None),
+    #         plot_ions=True,
+    #         show_plot=graph.plot,
+    #         save_plot=graph.save,
+    #         plot_cycle=False,
+    #         plot_pzs=True,
+    #         filename=os.path.join(
+    #             unique_folder, "%s_timestep_%s.pdf" % (graph.arch, timestep)
+    #         ),
+    #     )
 
     for pz in graph.pzs:
         pz.time_in_pz_counter = 0
@@ -146,12 +147,14 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
         #pz.new_gate_starting  = False (= gate_element in chains_in_parking -> flag needed to solve rare edge case that ion waits in exit, can't move to pz but also no gate can be executed (see scheduling.py))
 
     graph.in_process = []
+
     if compilation:
-        next_processable_gate_nodes = get_all_first_gates_and_update_sequence_non_destructive(graph, dag, graph.dist_map)
+        next_processable_gate_nodes = get_all_first_gates_and_update_sequence_non_destructive(graph, dag)
     
+
     while timestep < max_timesteps:    
         print(f"\nStarting timestep {timestep}")
-        print(f"Remaining sequence (10 gates): {graph.sequence[:10]}")
+        print(f"Remaining sequence (10 gates): {graph.sequence[:10]}  with length {len(graph.sequence)}")
 
         for pz in graph.pzs:
             pz.rotate_entry = False
@@ -160,14 +163,15 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
         if compilation:
             gate_info_list =  {pz.name: [] for pz in graph.pzs}
             for pz_name, node in next_processable_gate_nodes.items():
-                gate_info_list[pz_name].append(tuple(ion for ion in node.qindices))
+                for ion in node.qindices:
+                    gate_info_list[pz_name].append(ion)
         else:
             # update gate_info_list (list of next gate at pz)
             gate_info_list = create_gate_info_list(graph)
         print(f"Gate info list: {gate_info_list}")
 
         # pz order - find next pz that processes a gate (only used to add ions in exit to front of prio queue)
-        pz_executing_gate_order = find_pz_order(graph, gate_info_list)
+        pz_executing_gate_order = find_pz_order(graph, gate_info_list) # new TODO why is []?
         print(f"Next processing zone executing gate (next 10): {pz_executing_gate_order[:10]}")
 
         # reset locked gates, prio q recalcs them (2-qubit gates get locked after each execution)
@@ -195,14 +199,14 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
                         and ion2 in next_gate_at_pz_dict[pz.name]
                     ):
                         graph.in_process.append(ion1)
-                        print(f"Added ion {ion1} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
+                        #print(f"Added ion {ion1} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
                     if (
                         state2 == pz.parking_edge
                         and ion1 in next_gate_at_pz_dict[pz.name]
                         and ion2 in next_gate_at_pz_dict[pz.name]
                     ):
                         graph.in_process.append(ion2)
-                        print(f"Added ion {ion2} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
+                        #print(f"Added ion {ion2} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
 
         # print('in process before shuttling:', graph.in_process)
 
@@ -220,18 +224,20 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
             #pzs = graph.pzs.copy()
             print('\nnext_proc gates', next_processable_gate_nodes)
             for pz_name, gate_node in next_processable_gate_nodes.items():
-                print('\n pz, gate: ', pz_name, gate_node.qindices)
                 pz = graph.pzs_name_map[pz_name]
                 gate = tuple(ion for ion in gate_node.qindices)
                 if len(gate) == 1:
                     ion = gate[0]
                     if get_idx_from_idc(graph.idc_dict, graph.state[ion]) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
                         pz.gate_execution_finished = False # set False, then check below if gate time is finished -> then True
+                        graph.getting_processed.append(gate_node)
                         pz.time_in_pz_counter += 1
                         print(f"Ion {ion} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
                         gate_time = 1
+                        
                         if pz.time_in_pz_counter == gate_time:
                             processed_nodes[pz_name] = gate_node
+                            graph.getting_processed.remove(gate_node)
                             # remove the processing zone from the list
                             # (it can only process one ion)
                             #pzs.remove(pz)
@@ -248,6 +254,7 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
                     # if both ions are in the processing zone, process the gate
                     if get_idx_from_idc(graph.idc_dict, state1) == get_idx_from_idc(graph.idc_dict, pz.parking_edge) and get_idx_from_idc(graph.idc_dict, state2) == get_idx_from_idc(graph.idc_dict, pz.parking_edge):
                         pz.gate_execution_finished = False # set False, then check below if gate time is finished -> then True
+                        graph.getting_processed.append(gate_node)
                         pz.time_in_pz_counter += 1
                         print(f"Ions {ion1} and {ion2} at Processing Zone {pz.name} for time {pz.time_in_pz_counter}")
                         gate_time = 3
@@ -263,6 +270,7 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
                                     graph.locked_gates.pop(gate)
                             pz.time_in_pz_counter = 0
                             pz.gate_execution_finished = True
+                            graph.getting_processed.remove(gate_node)
                             #break
                 else:
                     raise ValueError("Invalid gate format")
@@ -347,11 +355,9 @@ def main(graph, partition, dag, cycle_or_paths, compilation):
 
         # Remove processed ions from the sequence (and dag if compilation)
         if compilation:
-            print('processed', processed_nodes)
             if processed_nodes:
                 remove_processed_gates(graph, dag, processed_nodes)
-                next_processable_gate_nodes = get_all_first_gates_and_update_sequence_non_destructive(graph, dag, graph.dist_map)
-                print('next gates', [node.qindices for node in next_processable_gate_nodes.values()])
+                next_processable_gate_nodes = get_all_first_gates_and_update_sequence_non_destructive(graph, dag)
         else:
             for gate in processed_ions:
                 graph.sequence.remove(gate)

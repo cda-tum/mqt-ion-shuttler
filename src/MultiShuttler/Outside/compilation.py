@@ -13,7 +13,7 @@ from scheduling import pick_pz_for_2_q_gate
 
 
 from graph_utils import GraphCreator, PZCreator, ProcessingZone, create_idc_dictionary
-from Cycles import create_starting_config, find_path_edge_to_edge
+from Cycles import create_starting_config, find_path_edge_to_edge, get_state_idxs
 from scheduling import get_ions
 import math
 import networkx as nx
@@ -100,10 +100,12 @@ def remove_node(dag, node):
     dag._multi_graph.remove_node(node.node_id)
 
 
-def find_best_gate(front_layer, dist_map, gate_info_map):
+def find_best_gate(graph, front_layer, dist_map, gate_info_map):
     """Find the best gate to execute based on distance."""
     min_gate_cost = math.inf
     for _i, gate_node in enumerate(front_layer):
+        if gate_node in graph.getting_processed:
+            return gate_node
         qubit_indices = gate_node.qindices
         pz_of_node = gate_info_map[gate_node]
         gate_cost = max([dist_map[qs][pz_of_node] for qs in qubit_indices])
@@ -154,8 +156,9 @@ def create_updated_sequence_destructive(graph, filename, dag_dep, compilation):
         working_dag = manual_copy_dag(dag_dep)
         seq = []
 
-        dist_dict = create_dist_dict(graph)
-        dist_map = update_distance_map(graph, dist_dict)
+        graph.dist_dict = create_dist_dict(graph)
+        state = get_state_idxs(graph)
+        dist_map = update_distance_map(graph, state)
 
         # first_flag = True
         while True:
@@ -170,7 +173,7 @@ def create_updated_sequence_destructive(graph, filename, dag_dep, compilation):
             for pz_name in pz_info_map:
                 # only include pzs that can process a gate of front layer
                 if pz_info_map[pz_name]:
-                    first_gate_to_excute = find_best_gate(pz_info_map[pz_name], dist_map, gate_info_map)
+                    first_gate_to_excute = find_best_gate(graph, pz_info_map[pz_name], dist_map, gate_info_map)
                     # if first_flag == True:
                     #     next_node = first_gate_to_excute
                     # first_flag = False
@@ -275,7 +278,7 @@ def map_front_gates_to_pzs(graph, front_layer_nodes):
             raise ValueError("wrong gate type")
         
         gates_of_pz_info[pz].append(seq_node)
-
+    #print('\ngates of pz info: ', {pz: [node.qindices for node in nodes] for pz, nodes in gates_of_pz_info.items()}, '\n')
     return gates_of_pz_info
 
 
@@ -298,16 +301,16 @@ def remove_processed_gates(graph, dag, removed_nodes):
         if gate_indices in graph.sequence:
             graph.sequence.remove(gate_indices)
             removed_gates.append(first_gate)
-            print(f"Removed gate {gate_indices} from sequence for PZ {pz_name}")
+            #print(f"Removed gate {gate_indices} from sequence for PZ {pz_name}")
         
         # Remove the gate from the DAG
         node_id = first_gate.node_id
         if dag.get_node(node_id):
             dag._multi_graph.remove_node(node_id)
-            print(f"Removed node {node_id} from DAG for PZ {pz_name}")
+            #print(f"Removed node {node_id} from DAG for PZ {pz_name}")
 
 
-def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, dist_map, max_rounds=5):
+def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_rounds=5):
     """Get the first gates from the DAG for each processing zone (only first round, so they are simultaneously processable).
     Continue finding the subsequent "first gates" and update the sequence accordingly.
     Creates a compiled list of gates (ordered) for each pz from the DAG Dependency."""
@@ -317,6 +320,10 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, dist_map
     # Dictionary to store the first gate for each processing zone
     first_nodes_by_pz = {}
 
+    # update dist map
+    state = get_state_idxs(graph)
+    dist_map = update_distance_map(graph, state)
+    print('dist_map: ', dist_map)
     for round in range(max_rounds):
         # Get front layer excluding already processed nodes
         front_layer_nodes = get_front_layer_non_destructive(dag, processed_nodes)
@@ -334,8 +341,10 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, dist_map
         # Process one gate for each processing zone that has available gates
         for pz_name in pz_info_map:
             if pz_info_map[pz_name]:
+                
                 # Find the best gate for this processing zone
-                best_gate = find_best_gate(pz_info_map[pz_name], dist_map, gate_info_map)
+                best_gate = find_best_gate(graph, pz_info_map[pz_name], dist_map, gate_info_map)
+                print('found best gate: ', best_gate.qindices)
 
                 # Save the first gate that can be processed for each pz (only of first round, since otherwise can not be simultaneously processed)
                 if round == 0 and pz_name not in first_nodes_by_pz:
@@ -567,7 +576,8 @@ if __name__ == "__main__":
 
     G.dist_dict = create_dist_dict(G)
     print('\n dist_dict: ', G.dist_dict)
-    G.dist_map = update_distance_map(G, G.dist_dict)
+    state = get_state_idxs(G)
+    G.dist_map = update_distance_map(G, state)
     print('\n dist_map: ', G.dist_map)
 
     print('initial sequence: ', G.sequence)
@@ -584,7 +594,7 @@ if __name__ == "__main__":
 
 
     print('pre restructure: ', G.sequence)
-    next_processable_gates = get_all_first_gates_and_update_sequence_non_destructive(G, dag, G.dist_map)
+    next_processable_gates = get_all_first_gates_and_update_sequence_non_destructive(G, dag)
     print('after restructure: ', G.sequence)
     print('\n next gates to process: ', next_processable_gates)
     processed_gates = next_processable_gates

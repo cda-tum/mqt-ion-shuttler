@@ -200,8 +200,6 @@ def create_priority_queue(graph, pz_executing_gate_order, max_length=10):
                     unique_sequence.remove(ion)
                 unique_sequence[ion] = pz.name
                 unique_sequence.move_to_end(ion, last=False)
-
-    print('locked gates', graph.locked_gates)
     
     return unique_sequence, graph.next_gate_at_pz
 
@@ -403,7 +401,8 @@ def create_cycles_for_moves(graph, move_list, prio_queue, cycle_or_paths, pz, ot
                 in_and_into_exit_moves[position_pz.name] = {rotate_ion: edge_idc}
                 all_cycles[rotate_ion] = [edge_idc, next_edge]
                 # block moves to pz if parking is full (now blocks if parking not open and ion moving in exit and its next edge is in state_idxs)
-                if parking_open is False and (get_idx_from_idc(graph.idc_dict, next_edge) in get_state_idxs(graph)):
+                if parking_open is False and (get_idx_from_idc(graph.idc_dict, next_edge) in get_state_idxs(graph).values()):
+                    print(f'blocked ion {rotate_ion} since parking open {parking_open} and {(get_idx_from_idc(graph.idc_dict, next_edge) in get_state_idxs(graph).values())}')
                     all_cycles[rotate_ion] = [edge_idc, edge_idc]
 
             # covers all shuttling in memory zone (does not cover entry connections anymore, see above)
@@ -429,13 +428,15 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
 
     # if pz full and no ion is moving out (not in state_idxs entry edge) but ion is moving in
     if len(ions_in_parking) >= pz.max_num_parking and pz.ion_to_park is not None:
+        print('ion to park', pz.ion_to_park)
         # if gate finished -> new space could be in parking
+        print('gate finished =', pz.gate_execution_finished)
         if pz.gate_execution_finished:
             # find least important chain in parking edge
             pz.ion_to_move_out_of_pz = find_least_import_ion_in_parking(
                 prio_queue, [*ions_in_parking]#, pz.ion_to_park]    # ion to park now always moves to pz (simplifies the pz shuttling, may be not optimal though), for that also changed: ion in exit always in move_list
             )
-
+            print('ion to move out', pz.ion_to_move_out_of_pz)
             # if ion moves out of parking edge -> check if ion in entry edge -> make sure it can move into MZ -> then move ion in parking to entry (if not, stop moves in exit) 
             # now only if the ion moving to pz is higher in prio queue or ion moving out not in prio queue (-> new logic of finding least important)
             # and new addition: if ion is moving in and can't move to pz because of the other clauses here -> if then no gate is executable with pz ions + ion moving in -> move ion in and least important out (worst case but to avoid complete blockages)

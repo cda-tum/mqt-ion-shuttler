@@ -1,5 +1,5 @@
 from graph_utils import GraphCreator, PZCreator, ProcessingZone, create_idc_dictionary
-from Cycles import create_starting_config, find_path_edge_to_edge
+from Cycles import create_starting_config, find_path_edge_to_edge, get_state_idxs
 from scheduling import get_ions
 from shuttle import main
 from compilation import compile
@@ -11,7 +11,7 @@ from plotting import plot_state
 from graph_utils import get_idx_from_idc
 from compilation import create_initial_sequence, create_dag, create_updated_sequence_destructive, get_front_layer_non_destructive, get_all_first_gates_and_update_sequence_non_destructive, map_front_gates_to_pzs, create_dist_dict, update_distance_map
 
-plot = True
+plot = False
 save = False
 
 paths = False
@@ -21,23 +21,23 @@ failing_junctions = 0
 
 # 3333 seed0 pzs2 failing junctions1 paths -> can't push through to pz because of a blockage
 archs = [
-     #[3, 3, 1, 1],
-    # [3, 3, 2, 2],
+    [3, 3, 1, 1],
+    [3, 3, 2, 2],
     [3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
-    # [4, 4, 1, 1],
-    #[4, 4, 2, 2],
-    # [4, 4, 3, 3],
-    #[5, 5, 1, 1],
-    # [5, 5, 2, 2],
+    [4, 4, 1, 1],
+    [4, 4, 2, 2],
+    [4, 4, 3, 3],
+    [5, 5, 1, 1],
+    [5, 5, 2, 2],
     #[4, 4, 3, 3],
-    #[6, 6, 1, 1],
+    [6, 6, 1, 1],
     # [7, 7, 1, 1],
     # [8, 8, 1, 1]
 ]
 # run all seeds
-seeds = [0]#, 3, 4]  # , 1, 2, 3, 4]
+seeds = [0, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [4]#1, 2, 3, 4]
+number_of_pzs = [2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
@@ -113,8 +113,8 @@ for m, n, v, h in archs:
             # )
 
             print(f"Number of chains: {number_of_chains}")
-            #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
-            algorithm = "full_register_access"
+            algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            #algorithm = "full_register_access"
             qasm_file_path = (
                 #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
                 f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
@@ -200,17 +200,20 @@ for m, n, v, h in archs:
 
 
 
-            compilation = True
+            compilation = False
 
             if compilation:
+                G.getting_processed = []
                 dag = create_dag(qasm_file_path)
+                G.locked_gates = {}
                 front_layer_nodes = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
                 pz_info_map = map_front_gates_to_pzs(G, front_layer_nodes=front_layer_nodes)
                 gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
 
                 G.dist_dict = create_dist_dict(G)
-                G.dist_map = update_distance_map(G, G.dist_dict)
-                G.locked_gates = {}
+                state = get_state_idxs(G)
+                G.dist_map = update_distance_map(G, state)
+
                 sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, compilation=compilation)
                 G.sequence = sequence
             else:
@@ -244,11 +247,11 @@ for m, n, v, h in archs:
         # save averages
         with open(f"src/MultiShuttler/Outside/benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(
-                f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, paths: {paths}\n"
+                f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, compilation: {compilation}, paths: {paths}\n"
             )
 
 for num_pzs in number_of_pzs:
-    print(f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}, paths: {paths}")
+    print(f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}, compilation: {compilation}, paths: {paths}")
 
 # TODOs:
 # - TODO 1: gate_execution_finished -> implement different gate execution times
@@ -257,5 +260,6 @@ for num_pzs in number_of_pzs:
 
 # TODO maybe check logic of moving into exit (check if it is really important enough to move into exit -> cannot really check anymore if is important enough at pz, since new logic trys to just move everything through -> so maybe need to implement bouncer at exit?)
 
+# TODO check at 3333 seed 0 compilation why slower with compilation -> check 4 moving to pz4 but getting pushed back by others? Priority queue correct?
 # for qce benchmarks: maybe architectural design explore? -> constant number of ions and see impact of pzs -> can better evaluate if architecture is influenced (otherwise could be influence of longer circuits)
 # for later papers: failing junctions + more design exploration like qce24? -> ions can vary, but circuit size same? -> see impact of unused ions etc.

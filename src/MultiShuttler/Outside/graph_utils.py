@@ -29,23 +29,24 @@ def create_dist_dict(graph):
         for edge_idc in graph.edges():
             # keep node ordering consistent:
             edge_idx = get_idx_from_idc(graph.idc_dict, edge_idc)
-
-            pz_dict[get_idc_from_idx(graph.idc_dict, edge_idx)] = find_path_edge_to_edge(graph, edge_idc, pz.entry_edge)
+            # for pz_path_idx in pz.path_to_pz_idxs:
+            #     if edge_idx == pz.path_to_pz:
+                
+            pz_dict[get_idc_from_idx(graph.idc_dict, edge_idx)] = find_path_edge_to_edge(graph, edge_idc, pz.parking_edge)
             
         dist_dict[pz.name] = pz_dict
     return dist_dict
 
 # calc distance to parking edge for all ions
-def update_distance_map(graph, dist_dict):
+def update_distance_map(graph, state):
     """Update a distance map that tracks the distances to each pz for each ion of current state.
     Dict: {ion: {'pz_name': distance}}, 
     e.g.,  {0: {'pz1': 2, 'pz2': 2, 'pz3': 1}, 1: {'pz1': 4, 'pz2': 1, 'pz3': 2}, 2: {'pz1': 3, 'pz2': 1, 'pz3': 3}}"""
-    from Cycles import get_state_idxs
     distance_map = {}
-    for ion, edge_idx in enumerate(get_state_idxs(graph)):
+    for ion, edge_idx in state.items():
         pz_dict = {}
         for pz in graph.pzs:
-            pz_dict[pz.name] = len(dist_dict[pz.name][get_idc_from_idx(graph.idc_dict, edge_idx)])
+            pz_dict[pz.name] = len(graph.dist_dict[pz.name][get_idc_from_idx(graph.idc_dict, edge_idx)])
         distance_map[ion] = pz_dict
     return distance_map
 

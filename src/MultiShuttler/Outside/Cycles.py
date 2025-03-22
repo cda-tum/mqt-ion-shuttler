@@ -36,11 +36,11 @@ def find_ions_in_parking(graph, pz):
     ]
     return ions
 
-# get list of edge idxs of ions
+# get dict of edge idxs of ions
 def get_state_idxs(graph):
-    ions_edge_idxs = []
-    for edge_idc in get_ions(graph).values():
-        ions_edge_idxs.append(get_idx_from_idc(graph.idc_dict, edge_idc))
+    ions_edge_idxs = {}
+    for ion, edge_idc in get_ions(graph).items():
+        ions_edge_idxs[ion] = get_idx_from_idc(graph.idc_dict, edge_idc)
     return ions_edge_idxs
 
 def find_least_import_ion_in_parking(seq, ions_in_parking):
