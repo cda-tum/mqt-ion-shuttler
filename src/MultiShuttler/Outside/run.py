@@ -21,23 +21,24 @@ failing_junctions = 0
 
 # 3333 seed0 pzs2 failing junctions1 paths -> can't push through to pz because of a blockage
 archs = [
-    [3, 3, 1, 1],
-    [3, 3, 2, 2],
-    [3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
-    [4, 4, 1, 1],
-    [4, 4, 2, 2],
-    [4, 4, 3, 3],
-    [5, 5, 1, 1],
-    [5, 5, 2, 2],
-    #[4, 4, 3, 3],
-    [6, 6, 1, 1],
+    # [5, 5, 5, 5],
+    # [3, 3, 1, 1],
+    # [3, 3, 2, 2],
+    #[3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
+    #[4, 4, 1, 1],
+    # [4, 4, 2, 2],
+     [4, 4, 3, 3],
+    # [5, 5, 1, 1],
+    # [5, 5, 3, 3],
+    # #[4, 4, 3, 3],
+    # [6, 6, 1, 1],
     # [7, 7, 1, 1],
     # [8, 8, 1, 1]
 ]
 # run all seeds
 seeds = [0, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [2, 3, 4]
+number_of_pzs = [2]#2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
@@ -107,9 +108,9 @@ for m, n, v, h in archs:
             number_of_chains = math.ceil(.5*len(MZ_graph.edges()))
             
 
-            # plot for paper
+            # # plot for paper
             # plot_state(
-            #     G, (None, None), plot_ions=True, show_plot=plot, save_plot=save
+            #     G, (None, None), plot_ions=False, show_plot=plot, save_plot=save
             # )
 
             print(f"Number of chains: {number_of_chains}")
@@ -129,6 +130,7 @@ for m, n, v, h in archs:
 
             ### initial sequence (naive) ###
             G.sequence = create_initial_sequence(qasm_file_path)
+            print('seq_length: ', len(G.sequence))
 
             ### partitioning ###
 
@@ -200,10 +202,11 @@ for m, n, v, h in archs:
 
 
 
-            compilation = False
+            compilation = True
 
             if compilation:
-                G.getting_processed = []
+                for pz in G.pzs:
+                    pz.getting_processed = []
                 dag = create_dag(qasm_file_path)
                 G.locked_gates = {}
                 front_layer_nodes = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
