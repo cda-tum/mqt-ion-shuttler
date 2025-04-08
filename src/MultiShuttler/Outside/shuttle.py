@@ -103,7 +103,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
 
     labels = ("timestep and seq length %s %s" % (timestep, len(graph.sequence)), "Sequence: %s" % [graph.sequence if len(graph.sequence) < 8 else graph.sequence[:8]])
 
-    if timestep >= 85 and (graph.plot == True or graph.save == True):
+    if timestep >= 3586 and (graph.plot == True or graph.save == True):
         plot_state(
             graph,
             labels,
