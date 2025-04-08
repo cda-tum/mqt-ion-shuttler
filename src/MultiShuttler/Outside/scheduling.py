@@ -52,6 +52,7 @@ def preprocess(graph, priority_queue):
                 need_rotate[i] = True
 
 
+
 # def create_general_priority_queue(graph, sequence, max_length=10):
 #     logging.debug("Entered create_priority_queue function")
 #     # TODO create real flat unique sequence?
@@ -443,6 +444,15 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
                 prio_queue, [*ions_in_parking]#, pz.ion_to_park]    # ion to park now always moves to pz (simplifies the pz shuttling, may be not optimal though), for that also changed: ion in exit always in move_list
             )
             print('ion to move out', pz.ion_to_move_out_of_pz, any(ion not in [pz.ion_to_park, *ions_in_parking] for ion in graph.next_gate_at_pz[pz.name]), graph.next_gate_at_pz[pz.name])
+            try: 
+                print('cases: ', (
+                ion_in_entry is None or (ion_in_entry is not None and out_of_entry_moves_pz is not None)), 
+                pz.ion_to_move_out_of_pz not in prio_queue,
+                (pz.ion_to_park in prio_queue and prio_queue.index(pz.ion_to_park) < prio_queue.index(pz.ion_to_move_out_of_pz)),
+                (any(ion not in [*ions_in_parking] for ion in graph.next_gate_at_pz[pz.name]))
+                )
+            except ValueError:
+                pass
             # if ion moves out of parking edge -> check if ion in entry edge -> make sure it can move into MZ -> then move ion in parking to entry (if not, stop moves in exit) 
             # now only if the ion moving to pz is higher in prio queue or ion moving out not in prio queue + new: can not execute a gate with pz ions (-> new logic of finding least important + new: does not move ions to pz if gates can still happen)
             # and new addition: if ion is moving in and can't move to pz because of the other clauses here -> if then no gate is executable with pz ions + ion moving in -> move ion in and least important out (worst case but to avoid complete blockages)
@@ -495,6 +505,7 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
                     pz.path_to_pz[-1],
                     pz.path_to_pz[-1],
                 ]
+                print('blocked ion to park: ', pz.ion_to_park)
         else:
             # else bring everything to a stop in exit
             # same as above
@@ -523,6 +534,14 @@ def update_entry_and_exit_cycles(graph, pz, all_cycles, in_and_into_exit_moves_p
                             all_cycles.pop(ion)
                             print(f'stopped ion {ion} from entering exit since gate {gate} is not locked yet')
                             break
+
+
+    # if gate is being processed and all ions are present in that pz -> stop moving out of pz 
+    # (now hard clause here, could be double of clauses above, but if no ion is moving to parking, above clause are not exectued -> need this one)
+    if not pz.gate_execution_finished and all(ion in ions_in_parking for ion in graph.next_gate_at_pz[pz.name]):
+        pz.rotate_entry = False
+        for ion in ions_in_parking:
+            all_cycles[ion] = [pz.parking_edge, pz.parking_edge]
 
     return all_cycles
 

@@ -257,7 +257,6 @@ def get_front_layer_non_destructive(dag, virtually_processed_nodes):
 
 def map_front_gates_to_pzs(graph, front_layer_nodes):
     """Create list of all front layer gates at each processing zone."""
-    print('started mapping front gates with locked gates: ', graph.locked_gates)
     gates_of_pz_info = {pz.name: [] for pz in graph.pzs}
     for seq_node in front_layer_nodes:
         seq_elem = tuple(seq_node.qindices)
@@ -271,11 +270,9 @@ def map_front_gates_to_pzs(graph, front_layer_nodes):
             # TODO 26.03. (2): seq_elem: [11, 10], in locked_gates: (11, 10) -> checked diese if clause nicht
             if seq_elem not in graph.locked_gates:
                 pz = pick_pz_for_2_q_gate(graph, seq_elem[0], seq_elem[1])
-                print('while mapping front gates, seq elem', seq_elem, 'was not in locked gates -> mapped to', pz)
                 graph.locked_gates[seq_elem] = pz
             else:
                 pz = graph.locked_gates[seq_elem]
-                print('while mapping front gates, seq elem', seq_elem, 'was in locked gates at', pz)
             #if gates_of_pz_info[pz] == []:
             # gates_of_pz_info[pz].append(seq_elem[0])
             # gates_of_pz_info[pz].append(seq_elem[1])

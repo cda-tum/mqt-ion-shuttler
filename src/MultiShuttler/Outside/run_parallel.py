@@ -21,34 +21,34 @@ cycle_or_paths = "Paths" if paths else "Cycles"
 failing_junctions = 0
 
 # 3333 seed0 pzs2 failing junctions1 paths -> can't push through to pz because of a blockage
-archs = [
-    [3, 3, 1, 1],
-    [3, 3, 2, 2],
-    [3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
-    [3, 3, 5, 5],
-    [3, 3, 10, 10],
-    [4, 4, 1, 1],
-    [4, 4, 2, 2],
-    [4, 4, 3, 3],
-    [4, 4, 5, 5],
-    [4, 4, 10, 10],
-    [5, 5, 1, 1],
-    [5, 5, 2, 2],
-    [5, 5, 3, 3],
-    [5, 5, 5, 5],
-    [5, 5, 10, 10],
-]
+# archs = [
+#     [3, 3, 1, 1],
+#     [3, 3, 2, 2],
+#     [3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
+#     [3, 3, 5, 5],
+#     [3, 3, 10, 10],
+#     [4, 4, 1, 1],
+#     [4, 4, 2, 2],
+#     [4, 4, 3, 3],
+#     [4, 4, 5, 5],
+#     [4, 4, 10, 10],
+#     [5, 5, 1, 1],
+#     [5, 5, 2, 2],
+#     [5, 5, 3, 3],
+#     [5, 5, 5, 5],
+#     [5, 5, 10, 10],
+# ]
 
 # run all seeds
 seeds = [0, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [2, 3, 4]
+number_of_pzs = [1]#, 2, 3, 4]
 
 m, n, v, h = [
+    int(sys.argv[1]),
     int(sys.argv[2]),
     int(sys.argv[3]),
     int(sys.argv[4]),
-    int(sys.argv[5]),
 ]
 timesteps_average = {}
 cpu_time_average = {}
@@ -114,7 +114,7 @@ for number_of_pz in number_of_pzs:
         G.arch = str([m, n, v, h])
 
         number_of_mz_edges = len(MZ_graph.edges())
-        number_of_chains = math.ceil(.5*len(MZ_graph.edges()))
+        number_of_chains = math.ceil(1.0*len(MZ_graph.edges()))
         
 
         # plot for paper
@@ -126,8 +126,8 @@ for number_of_pz in number_of_pzs:
         algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
         #algorithm = "full_register_access"
         qasm_file_path = (
-            #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
-            f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+            f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+            #f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
         )
 
         edges = list(G.edges())
@@ -210,10 +210,11 @@ for number_of_pz in number_of_pzs:
 
 
 
-        compilation = False
+        compilation = True
 
         if compilation:
-            G.getting_processed = []
+            for pz in G.pzs:
+                pz.getting_processed = []
             dag = create_dag(qasm_file_path)
             G.locked_gates = {}
             front_layer_nodes = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
@@ -254,8 +255,9 @@ for number_of_pz in number_of_pzs:
     timesteps_average[number_of_pz] = np.mean(timesteps_array)
     cpu_time_average[number_of_pz] = np.mean(cpu_time_array)
 
+
     # save averages
-    with open(f"src/MultiShuttler/Outside/benchmarks/{time}{algorithm}.txt", "a") as f:
+    with open(f"{time}{algorithm}.txt", "a") as f:
         f.write(
             f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, compilation: {compilation}, paths: {paths}\n"
         )

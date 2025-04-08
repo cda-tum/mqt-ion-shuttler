@@ -14,7 +14,7 @@ from compilation import create_initial_sequence, create_dag, create_updated_sequ
 plot = False
 save = False
 
-paths = False
+paths = False   #3 3 5 5 failing junctions 0 seed 0 #pzs 4
 cycle_or_paths = "Paths" if paths else "Cycles"
 
 failing_junctions = 0
@@ -23,22 +23,21 @@ failing_junctions = 0
 archs = [
     # [5, 5, 5, 5],
     # [3, 3, 1, 1],
-    # [3, 3, 2, 2],
-    #[3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
-    #[4, 4, 1, 1],
-    # [4, 4, 2, 2],
-     [4, 4, 3, 3],
+    # # [3, 3, 2, 2],
+    [3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
+    # [4, 4, 1, 1],
+    # # [4, 4, 2, 2],
+    # [3, 3, 5, 5],
     # [5, 5, 1, 1],
-    # [5, 5, 3, 3],
-    # #[4, 4, 3, 3],
-    # [6, 6, 1, 1],
+    #[4, 4, 3, 3],
+    #[5, 5, 3, 3],
     # [7, 7, 1, 1],
     # [8, 8, 1, 1]
 ]
 # run all seeds
-seeds = [0, 1, 2, 3, 4]  # , 1, 2, 3, 4]
+seeds = [0]#, 1, 2]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [2]#2, 3, 4]
+number_of_pzs = [4]#2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
@@ -105,7 +104,7 @@ for m, n, v, h in archs:
             G.arch = str([m, n, v, h])
 
             number_of_mz_edges = len(MZ_graph.edges())
-            number_of_chains = math.ceil(.5*len(MZ_graph.edges()))
+            number_of_chains = math.ceil(1.*len(MZ_graph.edges()))
             
 
             # # plot for paper
@@ -228,7 +227,7 @@ for m, n, v, h in archs:
 
 
 
-            timesteps = main(G, partition,dag, cycle_or_paths, compilation=compilation)
+            timesteps = main(G, partition, dag, cycle_or_paths, compilation=compilation)
             end_time = datetime.now()
             cpu_time = end_time - start_time
 
@@ -246,6 +245,8 @@ for m, n, v, h in archs:
         cpu_time_array = np.array(cpu_time_array)
         timesteps_average[number_of_pz] = np.mean(timesteps_array)
         cpu_time_average[number_of_pz] = np.mean(cpu_time_array)
+
+        print('\nseed: ', seed)
 
         # save averages
         with open(f"src/MultiShuttler/Outside/benchmarks/{time}{algorithm}.txt", "a") as f:
