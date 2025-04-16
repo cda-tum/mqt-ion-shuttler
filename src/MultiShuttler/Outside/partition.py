@@ -80,51 +80,102 @@ def construct_interaction_graph(circuit):
 #     return subgraphs#partitions
 
 
-def partition_graph_new(graph, n):
+# def partition_graph_new(graph, n):
+#     if n == 1:
+#         return [graph]
+
+#     assert n <= len(
+#         graph.nodes
+#     ), f"Number of partitions must be less or equal to the number of nodes {len(graph.nodes), graph.nodes, n}"
+#     partitions = [graph.copy()]
+#     new_partitions = []
+#     while len(partitions) < n:
+#         len_partitions = len(partitions)
+#         for i, partition in enumerate(partitions):
+#             if len_partitions + len(new_partitions) < n:
+#                 if len(partition) < 2:
+#                     new_partitions.append(partition)
+#                     len_partitions -= 1
+#                     continue
+
+#                 part1, part2 = kernighan_lin_bisection(partition)
+#                 new_partitions.append(graph.subgraph(part1).copy())
+#                 new_partitions.append(graph.subgraph(part2).copy())
+#             else:
+#                 new_partitions.append(partition)
+#         partitions = new_partitions
+#         new_partitions = []
+#     return partitions
+
+
+# def get_partition(qasm_file_path, n):
+#     circuit = read_qasm_file(qasm_file_path)
+#     interaction_graph = construct_interaction_graph(circuit)
+#     partition_graphs = partition_graph_new(interaction_graph, n)
+
+#     partition = []
+#     for graph in partition_graphs:
+#         partition.append(list(graph.nodes))
+
+#     return partition
+
+
+
+def partition_graph_balanced(graph, n):
+    """
+    Partitions 'graph' into n subgraphs, attempting to keep them balanced
+    in size, while using Kernighan-Lin bisection at every step.
+    """
     if n == 1:
         return [graph]
 
-    assert n <= len(
-        graph.nodes
-    ), f"Number of partitions must be less or equal to the number of nodes {len(graph.nodes), graph.nodes, n}"
-    partitions = [graph.copy()]
-    new_partitions = []
-    while len(partitions) < n:
-        len_partitions = len(partitions)
-        for i, partition in enumerate(partitions):
-            if len_partitions + len(new_partitions) < n:
-                if len(partition) < 2:
-                    new_partitions.append(partition)
-                    len_partitions -= 1
-                    continue
+    partitions = [graph.copy()]  # start with the entire graph in one partition
 
-                part1, part2 = kernighan_lin_bisection(partition)
-                new_partitions.append(graph.subgraph(part1).copy())
-                new_partitions.append(graph.subgraph(part2).copy())
-            else:
-                new_partitions.append(partition)
-        partitions = new_partitions
-        new_partitions = []
+    while len(partitions) < n:
+        # Pick the index of the largest partition.
+        # We'll try to split that partition further.
+        largest_idx = max(range(len(partitions)), key=lambda i: len(partitions[i]))
+        largest_partition = partitions.pop(largest_idx)
+
+        # If the partition is too small to split, put it back and stop.
+        if len(largest_partition) < 2:
+            partitions.append(largest_partition)
+            break
+
+        # Biset using Kernighan-Lin. This tries to produce two partitions
+        # of roughly equal size that minimize inter-partition edge cuts.
+        part1, part2 = kernighan_lin_bisection(largest_partition)
+        sub1 = largest_partition.subgraph(part1).copy()
+        sub2 = largest_partition.subgraph(part2).copy()
+
+        # Add these two new partitions back
+        partitions.append(sub1)
+        partitions.append(sub2)
+
+    # If we cannot reach exactly n partitions because subgraphs are all of size <2,
+    # then 'partitions' just won't grow further. The code ensures we never overshoot n.
     return partitions
 
 
 def get_partition(qasm_file_path, n):
     circuit = read_qasm_file(qasm_file_path)
     interaction_graph = construct_interaction_graph(circuit)
-    partition_graphs = partition_graph_new(interaction_graph, n)
+
+    partition_graphs = partition_graph_balanced(interaction_graph, n)
 
     partition = []
-    for graph in partition_graphs:
-        partition.append(list(graph.nodes))
+    for pg in partition_graphs:
+        partition.append(list(pg.nodes))
 
     return partition
+
 
 
 if __name__ == "__main__":
     # Example usage
     qasm_file_path = (
-        "QASM_files/full_register_access/full_register_access_2.qasm"
-        # "QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_36.qasm"
+        #"QASM_files/full_register_access/full_register_access_2.qasm"
+        "QASM_files/qft_no_swaps_nativegates_quantinuum_tket/qft_no_swaps_nativegates_quantinuum_tket_36.qasm"
     )
-    n = 5
+    n = 4
     print(get_partition(qasm_file_path, n))

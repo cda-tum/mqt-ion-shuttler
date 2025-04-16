@@ -11,6 +11,7 @@ from plotting import plot_state
 from graph_utils import get_idx_from_idc
 from compilation import create_initial_sequence, create_dag, create_updated_sequence_destructive, get_front_layer_non_destructive, get_all_first_gates_and_update_sequence_non_destructive, map_front_gates_to_pzs, create_dist_dict, update_distance_map
 import sys
+from partition import get_partition
 
 plot = False
 save = False
@@ -19,6 +20,7 @@ paths = False
 cycle_or_paths = "Paths" if paths else "Cycles"
 
 failing_junctions = 0
+compilation = True
 
 # 3333 seed0 pzs2 failing junctions1 paths -> can't push through to pz because of a blockage
 # archs = [
@@ -40,9 +42,9 @@ failing_junctions = 0
 # ]
 
 # run all seeds
-seeds = [0, 1, 2, 3, 4]  # , 1, 2, 3, 4]
+seeds = [5]#, 1, 2]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [1]#, 2, 3, 4]
+number_of_pzs = [1, 4, 2, 3]
 
 m, n, v, h = [
     int(sys.argv[1]),
@@ -50,6 +52,8 @@ m, n, v, h = [
     int(sys.argv[3]),
     int(sys.argv[4]),
 ]
+
+
 timesteps_average = {}
 cpu_time_average = {}
 for number_of_pz in number_of_pzs:
@@ -123,11 +127,15 @@ for number_of_pz in number_of_pzs:
         # )
 
         print(f"Number of chains: {number_of_chains}")
-        algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+        
+        algorithm = "random_half_no_swaps_nativegates_quantinuum_tket"
+        #algorithm = "random_no_swaps_nativegates_quantinuum_tket"
+        #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
         #algorithm = "full_register_access"
+        #algorithm = "ghz_nativegates_quantinuum_tket"
         qasm_file_path = (
-            f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
-            #f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+            #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+            f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
         )
 
         edges = list(G.edges())
@@ -139,16 +147,16 @@ for number_of_pz in number_of_pzs:
 
         ### initial sequence (naive) ###
         G.sequence = create_initial_sequence(qasm_file_path)
+        seq_length = len(G.sequence)
 
         ### partitioning ###
 
         # if there is a real tuple in sequence (2-qbuit gate) use partitioning
-        # if any(len(i) > 1 for i in sequence):
-        #     part = get_partition(qasm_file_path, len(G.pzs))
-        #     partition = {pz.name: part[i] for i, pz in enumerate(G.pzs)}
-        #     num_pzs = len(G.pzs)
-        # else:
-        if True:
+        if any(len(i) > 1 for i in G.sequence):
+            part = get_partition(qasm_file_path, len(G.pzs))
+            partition = {pz.name: part[i] for i, pz in enumerate(G.pzs)}
+            num_pzs = len(G.pzs)
+        else:
             # else place them in the closest processing zone (equally distributed)
             # TODO double check
             partition = {pz.name: [] for pz in G.pzs}
@@ -209,9 +217,6 @@ for number_of_pz in number_of_pzs:
 
 
 
-
-        compilation = True
-
         if compilation:
             for pz in G.pzs:
                 pz.getting_processed = []
@@ -259,7 +264,7 @@ for number_of_pz in number_of_pzs:
     # save averages
     with open(f"{time}{algorithm}.txt", "a") as f:
         f.write(
-            f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, compilation: {compilation}, paths: {paths}\n"
+            f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, gates: {seq_length}, compilation: {compilation}, paths: {paths}\n"
         )
 
 for num_pzs in number_of_pzs:

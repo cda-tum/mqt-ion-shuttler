@@ -10,6 +10,8 @@ from datetime import datetime
 from plotting import plot_state
 from graph_utils import get_idx_from_idc
 from compilation import create_initial_sequence, create_dag, create_updated_sequence_destructive, get_front_layer_non_destructive, get_all_first_gates_and_update_sequence_non_destructive, map_front_gates_to_pzs, create_dist_dict, update_distance_map
+from get_baseline import minimal_schedule_qiskit_dagdependency
+from partition import get_partition
 
 plot = False
 save = False
@@ -22,33 +24,38 @@ failing_junctions = 0
 # 3333 seed0 pzs2 failing junctions1 paths -> can't push through to pz because of a blockage
 archs = [
     # [5, 5, 5, 5],
-    # [3, 3, 1, 1],
+    #[3, 3, 1, 1],
     # # [3, 3, 2, 2],
-    [3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
-    # [4, 4, 1, 1],
-    # # [4, 4, 2, 2],
-    # [3, 3, 5, 5],
-    # [5, 5, 1, 1],
-    #[4, 4, 3, 3],
+    #[3, 3, 3, 3],   # TODO hier langsamer als ohne compilation - nutzt pz4 erst zum Schluss - partitioning praktisch max schlecht? - eval für mehr seeds und vergleiche - gate selection anpassen, dass es so kommutiert, dass alle pzs beladen? - sollte das nicht eig. schon so sein?
+    #[4, 4, 1, 1],
+    # [4, 4, 2, 2],
+    #[3, 3, 5, 5],
+    #[5, 5, 1, 1],
+    [4, 4, 3, 3],
     #[5, 5, 3, 3],
     # [7, 7, 1, 1],
     # [8, 8, 1, 1]
 ]
 # run all seeds
-seeds = [0]#, 1, 2]#, 1, 2, 3, 4]  # , 1, 2, 3, 4]
+seeds = [5]#, 2]#, 3, 4]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-number_of_pzs = [4]#2, 3, 4]
+number_of_pzs = [1]#, 2, 3, 4]
 
 for m, n, v, h in archs:
     timesteps_average = {}
     cpu_time_average = {}
+
+    no_time_taking = False
+    # TODO !!!
+    
+    
     for number_of_pz in number_of_pzs:
         timesteps_array = []
         cpu_time_array = []
         for seed in seeds:
             start_time = datetime.now()
 
-            height = -1.5 # height > -1 (position of pz outside of mz) -> all edges can be ordered by sum -> if height -1 -> edge may be smaller in edge_idc (important for get_idx_from_idc())
+            height = -4.5 # height > -1 (position of pz outside of mz) -> all edges can be ordered by sum -> if height -1 -> edge may be smaller in edge_idc (important for get_idx_from_idc())
 
             exit1 = (float((m-1)*v), float((n-1)*h))
             entry1 = (float((m-1)*v), float(0))
@@ -113,11 +120,13 @@ for m, n, v, h in archs:
             # )
 
             print(f"Number of chains: {number_of_chains}")
-            algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
+            
+            algorithm = "random_half_no_swaps_nativegates_quantinuum_tket"
+            #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
             #algorithm = "full_register_access"
             qasm_file_path = (
-                #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
-                f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+                f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+                #f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
             )
 
             edges = list(G.edges())
@@ -130,16 +139,16 @@ for m, n, v, h in archs:
             ### initial sequence (naive) ###
             G.sequence = create_initial_sequence(qasm_file_path)
             print('seq_length: ', len(G.sequence))
+            seq_length = len(G.sequence)
 
             ### partitioning ###
-
+            partitioning = True
             # if there is a real tuple in sequence (2-qbuit gate) use partitioning
-            # if any(len(i) > 1 for i in sequence):
-            #     part = get_partition(qasm_file_path, len(G.pzs))
-            #     partition = {pz.name: part[i] for i, pz in enumerate(G.pzs)}
-            #     num_pzs = len(G.pzs)
-            # else:
-            if True:
+            if partitioning: #any(len(i) > 1 for i in G.sequence):
+                part = get_partition(qasm_file_path, len(G.pzs))
+                partition = {pz.name: part[i] for i, pz in enumerate(G.pzs)}
+                num_pzs = len(G.pzs)
+            else:
                 # else place them in the closest processing zone (equally distributed)
                 # TODO double check
                 partition = {pz.name: [] for pz in G.pzs}
@@ -206,7 +215,10 @@ for m, n, v, h in archs:
             if compilation:
                 for pz in G.pzs:
                     pz.getting_processed = []
-                dag = create_dag(qasm_file_path)
+                if no_time_taking:
+                    dag = dag_copy
+                else:
+                    dag = create_dag(qasm_file_path)
                 G.locked_gates = {}
                 front_layer_nodes = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
                 pz_info_map = map_front_gates_to_pzs(G, front_layer_nodes=front_layer_nodes)
@@ -218,6 +230,7 @@ for m, n, v, h in archs:
 
                 sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, compilation=compilation)
                 G.sequence = sequence
+                dag_copy = dag.copy()
             else:
                 dag = None
 
@@ -233,6 +246,8 @@ for m, n, v, h in archs:
 
             timesteps_array.append(timesteps)
             cpu_time_array.append(cpu_time)
+
+            del dag
 
             # # save timesteps in a file
             # with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
@@ -251,8 +266,8 @@ for m, n, v, h in archs:
         # save averages
         with open(f"src/MultiShuttler/Outside/benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(
-                f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, compilation: {compilation}, paths: {paths}\n"
-            )
+            f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, avg_ts: {timesteps_average[num_pzs]}, avg_cpu_time: {cpu_time_average[num_pzs]}, gates: {seq_length}, baseline: {None}, compilation: {compilation}, paths: {paths}\n"
+        )
 
 for num_pzs in number_of_pzs:
     print(f"{m, n, v, h}, ions{number_of_chains}/pos{number_of_mz_edges}: {number_of_chains/number_of_mz_edges}, #pzs: {num_pzs}, average_ts: {timesteps_average[num_pzs]}, average_cpu_time: {cpu_time_average[num_pzs]}, compilation: {compilation}, paths: {paths}")

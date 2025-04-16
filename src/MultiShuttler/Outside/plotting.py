@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from graph_utils import get_idx_from_idc
+from graph_utils import get_idx_from_idc, get_idc_from_idx
 
 
 # Plotting function
@@ -11,11 +11,11 @@ def plot_state(
     plot_ions=True,
     show_plot=False,
     save_plot=False,
-    plot_cycle=False,
+    plot_cycle=False,#[73],#5, 6, 7, 8, 9, 17, 21, 30, 29, 28, 20, 16, 44, 45, 46, 47, 48, 57, 58, 61, 62, 65, 67, 68, 52, 53, 54, 55, 56, 59, 60, 63, 64, 72, 73, 74],
     plot_pzs=False,
     filename="graph.pdf",
 ):
-    plot_paper = False
+    plot_paper = True
     idc_dict = graph.idc_dict
     pos = {(x, y): (y, -x) for i, (x, y) in enumerate(list(graph.nodes()))}
     if plot_ions is True:
@@ -61,8 +61,12 @@ def plot_state(
                 )
 
     if plot_cycle is not False:
-        for edge in plot_cycle:
+        for edge_idx in plot_cycle:
+            edge = get_idc_from_idx(graph.idc_dict, edge_idx)
             graph.add_edge(edge[0], edge[1], color="r")
+            for node in edge:
+                if nx.get_node_attributes(graph, "node_type")[node] != "junction_node":
+                    graph.add_node(node, color="r")
 
     if plot_pzs is not False:
         for pz in graph.pzs:
@@ -74,7 +78,7 @@ def plot_state(
         edge_labels = nx.get_edge_attributes(graph, "ions")
     node_size = list(nx.get_node_attributes(graph, "node_size").values())
 
-    plt.figure(figsize=(10, 10))#figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
+    plt.figure(figsize=(20, 9))#figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
 
     with_labels = not(plot_paper)
 
@@ -86,20 +90,20 @@ def plot_state(
         node_color=node_color,
         width=8,
         edge_color=edge_color,
-        font_size=6,
+        font_size=16,
     )
     if plot_paper == False:
         nx.draw_networkx_edge_labels(graph, pos, edge_labels)
 
-        # # reset edge labels for following iterations?
-        # for edge in graph.edges:
-        #     if edge in ion_holder:
-        #         graph.add_edge(edge[0], edge[1], ions=[], color="k")
+    # # reset edge labels for following iterations?
+    # for edge in graph.edges:
+    #     if edge in ion_holder:
+    #         graph.add_edge(edge[0], edge[1], ions=[], color="k")
 
-        labels0, labels1 = labels
-        plt.plot([], [], label=labels0)
-        plt.plot([], [], label=labels1)
-        plt.legend()
+    labels0, labels1 = labels
+    plt.plot([], [], label=labels0)
+    plt.plot([], [], label=labels1)
+        #plt.legend()
 
     if show_plot is True:
         plt.show()
