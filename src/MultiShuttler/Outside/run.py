@@ -42,7 +42,7 @@ num_pzs_config = config.get("num_pzs", 1)
 seed = config.get("seed", 0) # Default seed to 0 if not provided
 algorithm_name = config.get("algorithm_name")
 num_ions_config = config.get("num_ions")
-use_compilation = config.get("use_compilation", True)
+use_dag = config.get("use_dag", True)
 use_paths = config.get("use_paths", False)
 max_timesteps = config.get("max_timesteps", 100000) # Provide a default max
 plot_flag = config.get("plot", False)
@@ -83,7 +83,7 @@ if not pzs_to_use:
 print(f"Using {len(pzs_to_use)} PZs: {[pz.name for pz in pzs_to_use]}")
 print(f"Architecture: {arch}, Seed: {seed}")
 print(f"Algorithm: {algorithm_name}, ions: {num_ions_config}")
-print(f"Compilation: {use_compilation}, Conflict Resolution: {cycle_or_paths_str}")
+print(f"DAG-Compilation: {use_dag}, Conflict Resolution: {cycle_or_paths_str}")
 
 # --- Graph Creation ---
 basegraph_creator = GraphCreator(m, n, v, h, failing_junctions, pzs_to_use)
@@ -108,7 +108,6 @@ for pz in G.pzs:
     # Populate edge_to_pz_map for edges belonging *only* to this PZ's structure
     for edge_idx in pz.pz_edges_idx:
         G.edge_to_pz_map[edge_idx] = pz
-print(f"Parking Edges Idxs: {G.parking_edges_idxs}")
 
 G.max_num_parking = 2 # Make this configurable?
 for pz in G.pzs:
@@ -196,10 +195,10 @@ if missing_qubits:
 # Check for overlaps if needed (already done within map_to_pz creation loop)
 
 
-# --- Compilation Setup (if enabled) ---
+# --- DAG-Compilation Setup (if enabled) ---
 dag = None
 dag_copy = None # Store original DAG if needed
-if use_compilation:
+if use_dag:
     try:
         dag = create_dag(qasm_file_path)
         dag_copy = dag.copy() # Keep a copy of the original DAG if needed later
@@ -207,27 +206,24 @@ if use_compilation:
         G.dist_dict = create_dist_dict(G)
         state_idxs = get_state_idxs(G) # {ion: edge_idx}
         G.dist_map = update_distance_map(G, state_idxs) # {ion: {pz_name: dist}}
-        # This sequence update is destructive to the DAG passed in
-        # sequence, flat_sequence, _ = create_updated_sequence_destructive(G, qasm_file_path, dag, compilation=use_compilation)
-        # G.sequence = sequence # Overwrite initial sequence
-        print("Compilation enabled, using DAG-based scheduling.")
+        print("Using DAG-based scheduling.")
     except Exception as e:
         print(f"Error during DAG creation or initial sequence update: {e}")
         print("Falling back to non-compiled sequence.")
-        use_compilation = False # Disable compilation if setup fails
+        use_dag = False # Disable use_dag if setup fails
         dag = None
         G.sequence = create_initial_sequence(qasm_file_path) # Revert to basic sequence
 else:
-    print("Compilation disabled, using static QASM sequence.")
+    print("DAG disabled, using static QASM sequence.")
 
 # --- Run Simulation ---
-print("\nStarting shuttling simulation...")
+print("\nStarted shuttling simulation...")
 # Initialize PZ states
 for pz in G.pzs:
     pz.getting_processed = [] # Track nodes being processed by this PZ
 
 # Run the main shuttling logic
-final_timesteps = run_shuttle_main(G, partition, dag, cycle_or_paths_str, compilation=use_compilation)
+final_timesteps = run_shuttle_main(G, partition, dag, cycle_or_paths_str, use_dag=use_dag)
 
 # --- Results ---
 end_time = datetime.now()
@@ -242,7 +238,7 @@ print(f"Total CPU time: {cpu_time}")
 # benchmark_output = (
 #     f"{arch}, ions{number_of_ions}/pos{number_of_mz_edges}: {number_of_ions/number_of_mz_edges if number_of_mz_edges > 0 else 0:.2f}, "
 #     f"#pzs: {len(pzs_to_use)}, ts: {final_timesteps}, cpu_time: {cpu_time.total_seconds():.2f}, "
-#     f"gates: {seq_length}, baseline: {None}, compilation: {use_compilation}, paths: {use_paths}, "
+#     f"gates: {seq_length}, baseline: {None}, DAG-Compilation: {use_dag}, paths: {use_paths}, "
 #     f"seed: {seed}, failing_jcts: {failing_junctions}\n"
 # )
 # try:

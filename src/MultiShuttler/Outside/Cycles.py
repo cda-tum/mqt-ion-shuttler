@@ -1,7 +1,7 @@
 import networkx as nx
 import random
 from more_itertools import pairwise
-from graph_utils import get_idx_from_idc
+from graph_utils import get_idx_from_idc, get_idc_from_idx
 
 from more_itertools import distinct_combinations
 
@@ -85,7 +85,7 @@ def get_ions(graph):
     # Iterate over all edges in the graph
     for u, v, data in graph.edges(data=True):
         try:
-            ions = data["ions"]
+            ions_on_edge = data["ions"]
             # make indices of edge consistent
             edge_idc = tuple(sorted((u, v), key=sum))
 
@@ -93,7 +93,7 @@ def get_ions(graph):
                 raise ValueError(
                     f"Edge ({u}, {v}) has more than two ions: {data['ions']}"
                 )
-            for ion in ions:
+            for ion in ions_on_edge:
                 ions[ion] = edge_idc
 
         except (KeyError, IndexError):
@@ -346,6 +346,7 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
             cycle_or_path = cycles_dict[cycle]
 
         # if cycle is only a path -> can skip first and last node
+        # extra clause for when there is a stop at the end? -> if last two edges are same -> skip last two edges?
         elif cycles_dict[cycle][-1] == cycles_dict[cycle][-2]:
             cycle_or_path = cycles_dict[cycle][1:-2]
         else:
