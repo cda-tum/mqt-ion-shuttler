@@ -1,36 +1,19 @@
 import matplotlib.pyplot as plt
-import networkx as nx
 from qiskit.dagcircuit import DAGDependency
 from qiskit import QuantumCircuit
-
 from qiskit.converters import circuit_to_dagdependency
 from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
-
 import math
 import re
+
 from pathlib import Path
 from scheduling import pick_pz_for_2_q_gate
-
-
-from graph_utils import GraphCreator, PZCreator, ProcessingZone, create_idc_dictionary
-from Cycles import create_starting_config, find_path_edge_to_edge, get_state_idxs
-from scheduling import get_ions
-import math
-import networkx as nx
-import numpy as np
-from datetime import datetime
-from plotting import plot_state
-from graph_utils import get_idx_from_idc, create_dist_dict, update_distance_map
+from Cycles import get_state_idxs
+from graph_utils import create_dist_dict, update_distance_map
 
 
 
-def is_qasm_file(filename):
-    # Check if the file has a .qasm extension
-    if not filename.endswith(".qasm"):
-        return False
-
-    
-    file_path = Path(filename)
+def is_qasm_file(file_path):    
     with Path.open(file_path) as file:
         # Read the first line of the file (7th line, specific to MQT Bench)
         for _f in range(7):
@@ -99,7 +82,7 @@ def remove_node(dag, node):
     #        dag._multi_graph.remove_edge(node.node_id, successor)
     dag._multi_graph.remove_node(node.node_id)
 
-# TODO 26.03.: hier pz1 für [10, 11] gepicked, weil einzige in front layer und pz1 erste in Schleife mit best gate -> eig shuttled zu pz2
+
 def find_best_gate(graph, front_layer, dist_map, gate_info_map):
     """Find the best gate to execute based on distance."""
     min_gate_cost = math.inf
@@ -186,26 +169,6 @@ def create_updated_sequence_destructive(graph, filename, dag_dep, compilation):
 
     return seq, flat_seq, dag_dep#, next_node
 
-# def update_sequence(dag, dist_map, sequence, max_number_of_front_gates=4):
-#     """Get the sequence of gates from the DAG.
-#     Creates a new DAG and removes all gates from it while creating the sequence."""
-#     working_dag = manual_copy_dag(dag)
-#     ordered_sequence = []
-#     i = 0
-#     while i < max_number_of_front_gates:
-#         first_gates = get_front_layer(working_dag)
-#         if not first_gates:
-#             break
-#         first_gate_to_excute = find_best_gate(first_gates, dist_map)
-#         if i == 0:
-#             first_node = first_gate_to_excute
-#         i += 1
-#         remove_node(working_dag, first_gate_to_excute)
-#         print(tuple(first_gate_to_excute.qindices))
-#         sequence.remove(tuple(first_gate_to_excute.qindices))
-#         ordered_sequence.append(tuple(first_gate_to_excute.qindices))
-#     sequence = ordered_sequence + sequence
-#     return sequence, first_node
 
 
 def get_front_layer_non_destructive(dag, virtually_processed_nodes):
@@ -277,7 +240,6 @@ def map_front_gates_to_pzs(graph, front_layer_nodes):
             # gates_of_pz_info[pz].append(seq_elem[0])
             # gates_of_pz_info[pz].append(seq_elem[1])
         else:
-            print([node.qindices for node in front_layer_nodes], seq_elem)
             raise ValueError("wrong gate type")
         
         gates_of_pz_info[pz].append(seq_node)
@@ -375,237 +337,3 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_roun
     graph.sequence = ordered_sequence + graph.sequence
     
     return first_nodes_by_pz
-
-# if __name__ == "__main__":
-#     """
-#     num_ion_chains = 3
-#     distance_map = {0: 10, 1: 33, 2: 5}#, 3: 11, 4: 2, 5: 3}
-#     partition =  {'pz1': [2], 'pz2': [1], 'pz3': [0]}#{'pz1': [2, 4], 'pz2': [5, 1], 'pz3': [3], 'pz4': [0]}
-#     filename = f"QASM_files/qft_no_swaps_nativegates_quantinuum_tket/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
-#     seq, flat_seq, dag_dep, next_node_initial = create_initial_sequence(
-#                 distance_map, filename, compilation=True
-#             )
-#     print('initial sequence: \n', seq)
-
-#     processed_gates = [(2, 1), (2,), (0,)]
-#     update_dag_and_sequence(dag_dep, seq, processed_gates=processed_gates)
-#     print('updated sequence: \n', seq)
-
-#     seq = remove_processed_gates_from_sequence_non_destructive(None, dag_dep, distance_map, seq, max_number_of_front_gates=40)
-
-
-    
-#     while True:
-#         processed_gates = [tuple(node.qindices) for node in dag_dep.get_nodes()][:3]
-#         update_dag_and_sequence(dag_dep, seq, processed_gates=processed_gates)
-#         seq = restructure_sequence_non_destructive(dag_dep, distance_map, seq, max_number_of_front_gates=40)
-
-#         print(len([node for node in dag_dep.get_nodes()]))
-
-#         if len([node for node in dag_dep.get_nodes()]) == 0:
-#             break
-#     """
-    
-#     #dag_dep.draw(filename='dags.png')
-
-
-#     m, n, v, h = 3, 3, 1, 1
-#     number_of_pz = 3
-#     failing_junctions = 0
-#     seed = 0
-#     plot = False
-#     save = False
-
-#     height = -1.5 # height > -1 (position of pz outside of mz) -> all edges can be ordered by sum -> if height -1 -> edge may be smaller in edge_idc (important for get_idx_from_idc())
-
-#     exit1 = (float((m-1)*v), float((n-1)*h))
-#     entry1 = (float((m-1)*v), float(0))
-#     processing_zone1 = (float((m-1)*v-height), float((n-1)*h/2))
-
-#     exit2 = (0.0, 0.0)
-#     entry2 = (0.0, float((n-1)*h))
-#     processing_zone2 = (float(height), float((n-1)*h/2))
-
-#     exit3 = (float((m-1)*v), float(0))
-#     entry3 = (float(0), float(0))
-#     processing_zone3 = (float((m-1)*v/2), float(height))
-
-#     exit4 = (float(0), float((n-1)*h))
-#     entry4 = (float((m-1)*v), float((n-1)*h))
-#     processing_zone4 = (float((m-1)*v/2), float((n-1)*h-height))
-
-#     pz1 = ProcessingZone("pz1", [exit1, entry1, processing_zone1])
-#     pz2 = ProcessingZone("pz2", [exit2, entry2, processing_zone2])
-#     pz3 = ProcessingZone("pz3", [exit3, entry3, processing_zone3])
-#     pz4 = ProcessingZone("pz4", [exit4, entry4, processing_zone4])
-#     pzs = [pz1, pz2, pz3, pz4][0:number_of_pz]
-
-#     basegraph_creator = GraphCreator(m, n, v, h, failing_junctions, pzs)
-#     MZ_graph = basegraph_creator.get_graph()        
-#     pzgraph_creator = PZCreator(m, n, v, h, failing_junctions, pzs)
-#     G = pzgraph_creator.get_graph()
-#     G.mz_graph = MZ_graph
-    
-#     G.seed = seed
-
-#     G.idc_dict = create_idc_dictionary(G)
-#     G.pzs = pzs
-#     G.parking_edges_idxs = []
-#     G.pzs_name_map = {}
-#     G.edge_to_pz_map = {}
-#     for pz in G.pzs:
-#         G.parking_edges_idxs.append(get_idx_from_idc(G.idc_dict, pz.parking_edge))
-#         G.pzs_name_map[pz.name] = pz
-#         for edge_idx in pz.path_to_pz_idxs:
-#             G.edge_to_pz_map[edge_idx] = pz
-#         G.edge_to_pz_map[get_idx_from_idc(G.idc_dict, pz.parking_edge)] = pz
-#         for edge_idx in pz.path_from_pz_idxs:
-#             G.edge_to_pz_map[edge_idx] = pz
-#     print(f"parking_edges_idxs: {G.parking_edges_idxs}")
-    
-#     G.max_num_parking = 2
-#     for pz in G.pzs:
-#         pz.max_num_parking = G.max_num_parking # if changed here (meaning pzs can hold different amounts of ions), also change in shuttle.py (check_duplicates) and check for further updates to max_num_parking
-
-#     G.plot = plot
-#     G.save = save
-#     G.arch = str([m, n, v, h])
-
-#     number_of_mz_edges = len(MZ_graph.edges())
-#     number_of_chains = math.ceil(.5*len(MZ_graph.edges()))
-    
-
-#     # plot for paper
-#     # plot_state(
-#     #     G, (None, None), plot_ions=True, show_plot=plot, save_plot=save
-#     # )
-
-#     print(f"Number of chains: {number_of_chains}")
-#     #algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
-#     algorithm = "full_register_access"
-#     qasm_file_path = (
-#         #f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
-#         #f"QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
-#         f"QASM_files/with_measure/qft_nativegates_quantinuum_tket_3.qasm"
-#     )
-
-#     edges = list(G.edges())
-#     create_starting_config(G, number_of_chains, seed=seed)
-#     G.idc_dict = create_idc_dictionary(G)
-#     G.state = get_ions(G)
-
-#     G.sequence = create_initial_sequence(qasm_file_path)
-#     G.getting_processed = []
-#     G.locked_gates = {}
-
-#     # if there is a real tuple in sequence (2-qbuit gate) use partitioning
-#     # if any(len(i) > 1 for i in sequence):
-#     #     part = get_partition(qasm_file_path, len(G.pzs))
-#     #     partition = {pz.name: part[i] for i, pz in enumerate(G.pzs)}
-#     #     num_pzs = len(G.pzs)
-#     # else:
-#     if True:
-#         # else place them in the closest processing zone (equally distributed)
-#         # TODO double check
-#         partition = {pz.name: [] for pz in G.pzs}
-#         # Assign each ion to the closest processing zone
-#         for ion, position in G.state.items():
-#             closest_pz = None
-#             min_distance = float("inf")
-#             for pz in G.pzs:
-#                 distance = len(find_path_edge_to_edge(G, position, pz.parking_edge))
-#                 if distance < min_distance:
-#                     min_distance = distance
-#                     closest_pz = pz
-#             partition[closest_pz.name].append(ion)
-#         # Balance the ions among the processing zones
-#         all_ions = [ion for ions in partition.values() for ion in ions]
-#         all_ions.sort(key=lambda ion: G.state[ion])
-#         num_pzs = len(G.pzs)
-#         ions_per_pz = len(all_ions) // num_pzs
-#         for i, pz in enumerate(G.pzs):
-#             start_index = i * ions_per_pz
-#             end_index = start_index + ions_per_pz
-#             partition[pz.name] = all_ions[start_index:end_index]
-#         # Distribute any remaining ions
-#         remaining_ions = all_ions[num_pzs * ions_per_pz :]
-#         for i, ion in enumerate(remaining_ions):
-#             partition[G.pzs[i % num_pzs].name].append(ion)
-
-#     print('partition: ', partition)
-
-#     # Create a reverse mapping from element to partition name
-#     map_to_pz = {
-#         element: pz
-#         for pz, elements in partition.items()
-#         for element in elements
-#     }
-#     G.map_to_pz = map_to_pz
-
-#     # Ensure all elements are in one of the partitions
-#     all_partition_elements = []
-#     for elements in partition.values():
-#         all_partition_elements.extend(elements)
-#     unique_sequence = []
-#     for seq_elem in G.sequence:
-#         for elem in seq_elem:
-#             if elem not in unique_sequence:
-#                 unique_sequence.append(elem)
-#     assert all(element in all_partition_elements for element in unique_sequence)
-
-#     if len(G.pzs) > 1:
-#         # and no element is in both partitions
-#         pz_sets = {pz: set(elements) for pz, elements in partition.items()}
-#         common_elements = set.intersection(*pz_sets.values())
-#         assert (
-#             not common_elements
-#         ), f"{common_elements} are overlapping in partitions"
-
-
-
-#     best_gates = True
-
-#     if best_gates:
-#         dag = create_dag(qasm_file_path)
-#         dag.draw(filename='dag_with_measure.png')
-#     else:
-#         dag = None
-
-
-#     front_layer_nodes = get_front_layer_non_destructive(dag, virtually_processed_nodes=[])
-#     #front_layer_gates = [node.qindices for node in front_layer]
-#     print(front_layer_nodes)
-#     pz_info_map = map_front_gates_to_pzs(G, front_layer_nodes=front_layer_nodes)
-#     print('pz info map: ', pz_info_map)
-#     gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
-#     print('gate info map: ', gate_info_map)
-
-
-#     G.dist_dict = create_dist_dict(G)
-#     print('\n dist_dict: ', G.dist_dict)
-#     state = get_state_idxs(G)
-#     G.dist_map = update_distance_map(G, state)
-#     print('\n dist_map: ', G.dist_map)
-
-#     print('initial sequence: ', G.sequence)
-#     sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, compilation=best_gates)
-
-#     G.sequence = sequence
-
-
-
-
-
-
-
-
-
-#     print('pre restructure: ', G.sequence)
-#     next_processable_gates = get_all_first_gates_and_update_sequence_non_destructive(G, dag)
-#     print('after restructure: ', G.sequence)
-#     print('\n next gates to process: ', next_processable_gates)
-#     processed_gates = next_processable_gates
-
-#     remove_processed_gates(G, dag, processed_gates)
-#     #dag.draw(filename='dags_new.png')
-#     print('after processing: ', G.sequence)

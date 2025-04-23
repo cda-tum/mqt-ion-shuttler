@@ -12,32 +12,6 @@ def create_path_via_bfs_directional(graph, current_edge, next_edge, other_next_e
     # towards is first edge in graph (can't be (0,0) because it may be deleted)
         towards = list(graph.edges())[0][0]
     
-    #     # move from entry to memory zone
-    # if get_idx_from_idc(graph.idc_dict, current_edge) == get_idx_from_idc(
-    #     graph.idc_dict, graph.pzgraph_creator.entry_edge
-    # ):  # in graph.pzgraph_creator.path_from_pz_idxs:
-    #     target_edge = graph.bfs_free_edge(towards, other_next_edges)
-    #     # calc path to target edge
-    #     path0 = get_path_to_node(
-    #         graph,
-    #         graph.pzgraph_creator.processing_zone,
-    #         target_edge[0],
-    #         exclude_exit=True,
-    #         exclude_first_entry_connection=False,
-    #     )
-    #     path1 = get_path_to_node(
-    #         graph,
-    #         graph.pzgraph_creator.processing_zone,
-    #         target_edge[1],
-    #         exclude_exit=True,
-    #         exclude_first_entry_connection=False,
-    #     )
-    #     if len(path1) > len(path0):
-    #         edge_path = [*path0, (target_edge[0], target_edge[1])]
-    #     else:
-    #         edge_path = [*path1, (target_edge[1], target_edge[0])]
-    #     return edge_path
-    
     # Define the starting node (the middle node where edges meet)
     common_node, next_node = (next_edge[0], next_edge[1]) if next_edge[0] in current_edge else (next_edge[1], next_edge[0])
 
@@ -70,7 +44,6 @@ def create_path_via_bfs_directional(graph, current_edge, next_edge, other_next_e
             # Continue BFS
             if neighbor not in visited:
                 queue.append((neighbor, path + [current_node]))
-    print("No path found for edge", current_edge, next_edge)
     return None  # No valid path found
 
 
@@ -135,7 +108,6 @@ def find_nonfree_paths(graph, paths_idcs_dict):
             #and graph.pzgraph_creator.processing_zone not in nodes1.intersection(nodes2)
         ):
             conflicting_paths.append((path_ion_1, path_ion_2))
-    print("conflicting_paths", conflicting_paths)
     return conflicting_paths
 
 

@@ -1,7 +1,7 @@
 import networkx as nx
 import random
 from more_itertools import pairwise
-from graph_utils import get_idx_from_idc, get_idc_from_idx
+from graph_utils import get_idx_from_idc
 
 from more_itertools import distinct_combinations
 
@@ -51,7 +51,7 @@ def find_least_import_ion_in_parking(seq, ions_in_parking):
                 return ions_in_parking[0]
     return ions_in_parking[-1]
 
-def create_starting_config(graph, n_of_chains, seed=None):
+def create_starting_config(graph, n_of_ions, seed=None):
     # Initialize ions on edges using an edge attribute
     nx.set_edge_attributes(graph, {edge: [] for edge in graph.edges}, "ions")
 
@@ -59,10 +59,9 @@ def create_starting_config(graph, n_of_chains, seed=None):
         random.seed(seed)
         starting_traps = []
         traps = [edges for edges in graph.edges() if graph.get_edge_data(edges[0], edges[1])["edge_type"] == "trap"]
-        print(traps)
         n_of_traps = len(traps)
 
-        random_starting_traps = random.sample(range(n_of_traps), (n_of_chains))
+        random_starting_traps = random.sample(range(n_of_traps), (n_of_ions))
         for trap in random_starting_traps:
             starting_traps.append(traps[trap])
     else:
@@ -70,19 +69,19 @@ def create_starting_config(graph, n_of_chains, seed=None):
             edges
             for edges in graph.edges()
             if graph.get_edge_data(edges[0], edges[1])["edge_type"] == "trap"
-        ][:n_of_chains]
+        ][:n_of_ions]
     number_of_registers = len(starting_traps)
 
     # place ions onto traps (ion0 on starting_trap0)
-    ion_chains = {}
+    ions = {}
     for ion, idc in enumerate(starting_traps):
         graph.edges[idc]["ions"] = [ion]
 
-    return ion_chains, number_of_registers
+    return ions, number_of_registers
 
 
 def get_ions(graph):
-    ion_chains = {}
+    ions = {}
     # Iterate over all edges in the graph
     for u, v, data in graph.edges(data=True):
         try:
@@ -95,30 +94,25 @@ def get_ions(graph):
                     f"Edge ({u}, {v}) has more than two ions: {data['ions']}"
                 )
             for ion in ions:
-                ion_chains[ion] = edge_idc
+                ions[ion] = edge_idc
 
         except (KeyError, IndexError):
             pass
 
-    return ion_chains
+    return ions
 
 
 def get_edge_state(graph):
-    # TODO is wrong for multiple ions on one edge (only returns one ion)
     state_dict = {}
     # Iterate over all edges in the graph
     for u, v, data in graph.edges(data=True):
         try:
-            chains = data["ions"]
-            # if len(data["ions"]) > 1:
-            #     raise ValueError(
-            #         f"Edge ({u}, {v}) has more than one ion entry: {data['ions']}"
-            #     )
+            ions = data["ions"]
             # make indices of edge consistent
             edge_idc = tuple(sorted((u, v), key=sum))
-            state_dict[edge_idc] = chains
-            # assert chains is list type
-            assert isinstance(chains, list)
+            state_dict[edge_idc] = ions
+            # assert ions is list type
+            assert isinstance(ions, list)
 
         except (KeyError, IndexError):
             pass
@@ -138,11 +132,10 @@ def have_common_junction_node(graph, edge1, edge2):
 
 
 def check_if_edge_is_filled(graph, edge_idc):
-    chain = graph.edges()[edge_idc]["ions"]
-    if len(chain) > 1:
-        # raise ValueError(f"Edge {edge_idc} has more than one ion entry: {chain}")
-        print(f"{edge_idc} has more than one ion: {chain} (while check if edge filled)")
-    return len(chain) > 0  # == 1
+    ion = graph.edges()[edge_idc]["ions"]
+    if len(ion) > 1:
+        raise ValueError(f"Edge {edge_idc} has more than one ion: {ion}")
+    return len(ion) > 0  # == 1
 
 
 # include option to exclude first entry connection - then change get_path_to_node to this in scheduling.py
@@ -303,9 +296,6 @@ def create_cycle(
 ):
     idc_dict = graph.idc_dict
 
-    #print(get_idx_from_idc(graph.idc_dict, ((0.0, 4.0), (-1.0, 5.0))))
-    #edge_idc, next_edge = find_ordered_edges(graph, edge_idc, next_edge)
-
     # cycles within memory zone
     node_path = nx.shortest_path(
         graph,
@@ -341,10 +331,6 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
                 assert (
                     cycles_dict[cycle][0][1] == cycles_dict[cycle][1][0]
                 ), f"cycle is not two edges? Middle node should be the same ({cycles_dict[cycle]})"
-                # if middle node is exit or exit connection -> skip also middle node -> can always push through to parking edge
-                # TODO unskip? (not needed anymore since it is managed in scheduling.py - create_cycles_for_moves())
-                # Now needed again (changed moving to exit in scheduling.py -> to simplify always pushing through (cost: may push important ions out of pz)
-                # -> if in exit connections, ions always in move_list -> if one in front is less important (both in exit connections) may block the one behind -> need to exclude exit nodes here)
                 if (
                     nx.get_node_attributes(graph, "node_type")[cycles_dict[cycle][0][1]] in ("exit_node", "exit_connection_node")
                 ):
@@ -352,9 +338,6 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
 
             # new if same edge twice is parking edge -> skip completely
             elif get_idx_from_idc(graph.idc_dict, cycles_dict[cycle][0]) in graph.parking_edges_idxs:
-                # if self.count_chains_in_parking() >= self.max_num_parking:
-                #     cycle_or_path = [(cycles_dict[cycle][0][0], cycles_dict[cycle][0][0])]
-                # else:
                 cycle_or_path = []
             else:  # else if path is same edge twice skip (but of course keep first node -> no movement into this edge)
                 cycle_or_path = [(cycles_dict[cycle][0][0], cycles_dict[cycle][0][0])]
@@ -363,7 +346,6 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
             cycle_or_path = cycles_dict[cycle]
 
         # if cycle is only a path -> can skip first and last node
-        # extra clause for when there is a stop at the end? -> if last two edges are same -> skip last two edges?
         elif cycles_dict[cycle][-1] == cycles_dict[cycle][-2]:
             cycle_or_path = cycles_dict[cycle][1:-2]
         else:
@@ -382,8 +364,6 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
     for cycle1, cycle2 in combinations_of_cycles:
         nodes1 = get_cycle_nodes(cycle1, graph)
         nodes2 = get_cycle_nodes(cycle2, graph)
-
-        #if 
 
         # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)
         # extra: if both end in same edge -> don't execute (scenario where path out of pz ends in same edge as next edge for other) 
@@ -404,5 +384,4 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
             ):
                 junction_shared_pairs.append((cycle1, cycle2))
             
-    print(f"junction_shared_pairs: {junction_shared_pairs}")
     return junction_shared_pairs

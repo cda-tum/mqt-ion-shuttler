@@ -179,7 +179,6 @@ class PZCreator(GraphCreator):
             pz.rest_of_path_to_pz = {edge: pz.path_to_pz[i + 1 :] for i, edge in enumerate(pz.path_to_pz)}
             pz.rest_of_path_from_pz = {edge: pz.path_from_pz[i + 1 :] for i, edge in enumerate(pz.path_from_pz)}
             pz.pz_edges_idx = [*pz.path_to_pz_idxs, get_idx_from_idc(self.idc_dict, pz.parking_edge), *pz.path_from_pz_idxs]
-            print('pz_edges_idx: ' ,pz.pz_edges_idx)
             for edge in pz.pz_edges_idx:
                 self.get_pz_from_edge[edge] = pz
 
