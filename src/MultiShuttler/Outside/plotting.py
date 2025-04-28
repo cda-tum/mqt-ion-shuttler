@@ -11,7 +11,7 @@ def plot_state(
     plot_ions=True,
     show_plot=False,
     save_plot=False,
-    plot_cycle=False,#[73],#5, 6, 7, 8, 9, 17, 21, 30, 29, 28, 20, 16, 44, 45, 46, 47, 48, 57, 58, 61, 62, 65, 67, 68, 52, 53, 54, 55, 56, 59, 60, 63, 64, 72, 73, 74],
+    plot_cycle=False,
     plot_pzs=False,
     filename="graph.pdf",
 ):

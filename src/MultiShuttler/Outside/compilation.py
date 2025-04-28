@@ -288,7 +288,6 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_roun
     # update dist map
     state = get_state_idxs(graph)
     dist_map = update_distance_map(graph, state)
-    #print('dist_map: ', dist_map)
     for round in range(max_rounds):
         # Get front layer excluding already processed nodes
         front_layer_nodes = get_front_layer_non_destructive(dag, processed_nodes)
@@ -298,7 +297,6 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_roun
             break
             
         pz_info_map = map_front_gates_to_pzs(graph, front_layer_nodes)
-        #print('pz info map: ', {pz_name: node.qindices for pz_name, nodes in pz_info_map.items() for node in nodes })
         gate_info_map = {value: key for key, values in pz_info_map.items() for value in values}
         
         # Track gates processed in this round to ensure maximum parallelism
@@ -309,9 +307,7 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_roun
             if pz_info_map[pz_name]:
                 
                 # Find the best gate for this processing zone
-                #print('in process', pz_name, graph.pzs_name_map[pz_name].getting_processed)
                 best_gate = find_best_gate(graph, pz_info_map[pz_name], dist_map, gate_info_map)
-                #print('found best gate: ', pz_name, best_gate.qindices)
 
                 # Save the first gate that can be processed for each pz (only of first round, since otherwise can not be simultaneously processed)
                 if round == 0 and pz_name not in first_nodes_by_pz:
@@ -325,8 +321,6 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_roun
                 
                 # Mark as processed
                 processed_nodes.add(best_gate.node_id)
-                
-                #print(f'Selected gate for PZ {pz_name} in round {round}: {best_gate}')
         
         # Remove all processed gates from the original sequence
         for gate in round_processed_gates:

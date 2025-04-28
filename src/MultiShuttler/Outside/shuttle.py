@@ -190,15 +190,13 @@ def main(graph, partition, dag, cycle_or_paths, use_dag):
                         and ion2 in next_gate_at_pz_dict[pz.name]
                     ):
                         graph.in_process.append(ion1)
-                        #print(f"Added ion {ion1} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
                     if (
                         state2 == pz.parking_edge
                         and ion1 in next_gate_at_pz_dict[pz.name]
                         and ion2 in next_gate_at_pz_dict[pz.name]
                     ):
                         graph.in_process.append(ion2)
-                        #print(f"Added ion {ion2} to in_process, pz: {pz.name}, {ion1 in next_gate_at_pz_dict[pz.name]}, {ion2 in next_gate_at_pz_dict[pz.name]}, next gate at pz: {next_gate_at_pz_dict[pz.name]}")
-
+                        
         # shuttle one timestep
         shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_folder)
 

@@ -576,7 +576,6 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
         if pz.rotate_entry:    
             if pz.out_of_parking_move is not None and pz.ion_to_move_out_of_pz != pz.out_of_parking_move:
                 pass
-                #print(f'ion {ion} does not move out of pz since {pz.out_of_parking_move} is moving out anyway')
             else:
                 graph.edges[pz.parking_edge]["ions"].remove(pz.ion_to_move_out_of_pz)
                 graph.edges[pz.path_from_pz[0]]["ions"].append(pz.ion_to_move_out_of_pz)
