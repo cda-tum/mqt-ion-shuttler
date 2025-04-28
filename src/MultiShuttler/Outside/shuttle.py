@@ -333,7 +333,6 @@ def main(graph, partition, dag, cycle_or_paths, use_dag):
                 graph.sequence.remove(gate)
 
         if len(graph.sequence) == 0:
-            print(f"All ions have arrived at their destination in {timestep} timesteps")
             break
 
         timestep += 1

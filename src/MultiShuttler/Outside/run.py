@@ -20,7 +20,6 @@ from plotting import plot_state
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description="Run MQT IonShuttler")
 parser.add_argument("config_file", help="Path to the JSON configuration file")
-# Add any other command-line args if needed, e.g., overriding plot/save
 # parser.add_argument("--plot", action="store_true", help="Show plots during execution")
 # parser.add_argument("--save", action="store_true", help="Save plots to 'runs' directory")
 args = parser.parse_args()
@@ -39,34 +38,33 @@ except json.JSONDecodeError:
 # --- Extract Parameters from Config ---
 arch = config.get("arch")
 num_pzs_config = config.get("num_pzs", 1)
-seed = config.get("seed", 0) # Default seed to 0 if not provided
+seed = config.get("seed", 0)
 algorithm_name = config.get("algorithm_name")
-num_ions_config = config.get("num_ions")
+num_ions = config.get("num_ions")
 use_dag = config.get("use_dag", True)
 use_paths = config.get("use_paths", False)
-max_timesteps = config.get("max_timesteps", 100000) # Provide a default max
+max_timesteps = config.get("max_timesteps", 100000)
 plot_flag = config.get("plot", False)
 save_flag = config.get("save", False)
 failing_junctions = config.get("failing_junctions", 0)
 # Define base path for QASM files if needed
-qasm_base_dir = config.get("qasm_base_dir", "../../../QASM_files") # Example, adjust as needed
+qasm_base_dir = config.get("qasm_base_dir", "../../../QASM_files")
 
 # --- Validate Config ---
-if not all([arch, algorithm_name, num_ions_config]):
+if not all([arch, algorithm_name, num_ions]):
     print("Error: Missing required parameters in config file (arch, algorithm_name, num_ions)")
     exit(1)
 if not isinstance(arch, list) or len(arch) != 4:
     print("Error: 'arch' must be a list of 4 integers [m, n, v, h]")
     exit(1)
-# Add more validation as needed...
 
 # --- Setup ---
 start_time = datetime.now()
 cycle_or_paths_str = "Paths" if use_paths else "Cycles"
 m, n, v, h = arch
 
-# --- PZ Definitions (Could also be part of JSON if more complex) ---
-height = -4.5 # Consider making this configurable if it varies
+# --- PZ Definitions ---
+height = -4.5
 pz_definitions = {
     "pz1": ProcessingZone("pz1", [(float((m-1)*v), float((n-1)*h)), (float((m-1)*v), float(0)), (float((m-1)*v-height), float((n-1)*h/2))]),
     "pz2": ProcessingZone("pz2", [(0.0, 0.0), (0.0, float((n-1)*h)), (float(height), float((n-1)*h/2))]),
@@ -82,7 +80,7 @@ if not pzs_to_use:
 
 print(f"Using {len(pzs_to_use)} PZs: {[pz.name for pz in pzs_to_use]}")
 print(f"Architecture: {arch}, Seed: {seed}")
-print(f"Algorithm: {algorithm_name}, ions: {num_ions_config}")
+print(f"Algorithm: {algorithm_name}, ions: {num_ions}")
 print(f"DAG-Compilation: {use_dag}, Conflict Resolution: {cycle_or_paths_str}")
 
 # --- Graph Creation ---
@@ -100,12 +98,12 @@ G.pzs_name_map = {} # Map from pz name to pz object
 G.edge_to_pz_map = {} # Map from edge index to owning pz object (for non-MZ edges)
 for pz in G.pzs:
     if not hasattr(pz, 'parking_edge'): # Ensure PZCreator added this
-         print(f"Error: PZ {pz.name} seems malformed (missing parking_edge).")
-         exit(1)
+        print(f"Error: PZ {pz.name} seems malformed (missing parking_edge).")
+        exit(1)
     parking_idx = get_idx_from_idc(G.idc_dict, pz.parking_edge)
     G.parking_edges_idxs.append(parking_idx)
     G.pzs_name_map[pz.name] = pz
-    # Populate edge_to_pz_map for edges belonging *only* to this PZ's structure
+    # Populate edge_to_pz_map for edges belonging to this PZ's structure
     for edge_idx in pz.pz_edges_idx:
         G.edge_to_pz_map[edge_idx] = pz
 
@@ -118,35 +116,23 @@ G.save = save_flag
 G.arch = str(arch) # For plotting/logging
 
 number_of_mz_edges = len(MZ_graph.edges())
-# Ensure num_ions is determined correctly (either fixed or based on graph size)
-if isinstance(num_ions_config, str) and "ceil" in num_ions_config:
-    # Handle formulas like "ceil(0.5*num_edges)" - requires careful parsing
-    # For simplicity, let's assume num_ions is given as an int or calculated based on MZ size
-    try:
-         factor = float(num_ions_config.split('*')[0].split('(')[1])
-         number_of_ions = math.ceil(factor * number_of_mz_edges)
-    except:
-         print("Warning: Could not parse num_ions formula, defaulting to config value if integer.")
-         number_of_ions = num_ions_config if isinstance(num_ions_config, int) else number_of_mz_edges # Fallback
-else:
-    number_of_ions = int(num_ions_config)
 
 
-print(f"Number of ions: {number_of_ions}")
+print(f"Number of ions: {num_ions}")
 
-qasm_file_path = pathlib.Path(qasm_base_dir) / algorithm_name / f"{algorithm_name}_{number_of_ions}.qasm"
+qasm_file_path = pathlib.Path(qasm_base_dir) / algorithm_name / f"{algorithm_name}_{num_ions}.qasm"
 
 if not qasm_file_path.is_file():
     print(f"Error: QASM file not found at {qasm_file_path}")
     exit(1)
 
 # --- Initial State & Sequence ---
-create_starting_config(G, number_of_ions, seed=seed)
+create_starting_config(G, num_ions, seed=seed)
 G.state = get_ions(G) # Get initial state {ion: edge_idc}
 
 G.sequence = create_initial_sequence(qasm_file_path)
 seq_length = len(G.sequence)
-print(f'Initial sequence length: {seq_length}')
+print(f'Number of Gates: {seq_length}')
 
 # --- Partitioning ---
 partitioning = True # Make configurable?
@@ -206,7 +192,6 @@ if use_dag:
         G.dist_dict = create_dist_dict(G)
         state_idxs = get_state_idxs(G) # {ion: edge_idx}
         G.dist_map = update_distance_map(G, state_idxs) # {ion: {pz_name: dist}}
-        print("Using DAG-based scheduling.")
     except Exception as e:
         print(f"Error during DAG creation or initial sequence update: {e}")
         print("Falling back to non-compiled sequence.")
@@ -217,10 +202,12 @@ else:
     print("DAG disabled, using static QASM sequence.")
 
 # --- Run Simulation ---
-print("\nStarted shuttling simulation...")
+
 # Initialize PZ states
 for pz in G.pzs:
     pz.getting_processed = [] # Track nodes being processed by this PZ
+
+print("\nStarted shuttling simulation...")
 
 # Run the main shuttling logic
 final_timesteps = run_shuttle_main(G, partition, dag, cycle_or_paths_str, use_dag=use_dag)
@@ -232,11 +219,11 @@ cpu_time = end_time - start_time
 print(f"\nSimulation finished in {final_timesteps} timesteps.")
 print(f"Total CPU time: {cpu_time}")
 
-# # --- Benchmarking Output (Optional) ---
+# # --- Benchmarking Output ---
 # bench_filename = f"benchmarks/{start_time.strftime('%Y%m%d_%H%M%S')}_{algorithm_name}.txt"
 # pathlib.Path("benchmarks").mkdir(exist_ok=True)
 # benchmark_output = (
-#     f"{arch}, ions{number_of_ions}/pos{number_of_mz_edges}: {number_of_ions/number_of_mz_edges if number_of_mz_edges > 0 else 0:.2f}, "
+#     f"{arch}, ions{num_ions}/pos{number_of_mz_edges}: {num_ions/number_of_mz_edges if number_of_mz_edges > 0 else 0:.2f}, "
 #     f"#pzs: {len(pzs_to_use)}, ts: {final_timesteps}, cpu_time: {cpu_time.total_seconds():.2f}, "
 #     f"gates: {seq_length}, baseline: {None}, DAG-Compilation: {use_dag}, paths: {use_paths}, "
 #     f"seed: {seed}, failing_jcts: {failing_junctions}\n"
