@@ -24,7 +24,7 @@
   </figure>
 </p>
 
-The exact solution guarantees optimality but is limited to a single PZ, while the heuristic method scales to many qubits and PZs. In the heuristic workflow, an optional **compilation** feature `use_dag` allows for dynamic rescheduling of gates based on the current ion positions and dependencies, potentially reducing shuttling overhead compared to executing a fixed sequence.
+The exact solution guarantees optimality but is limited to a single PZ, while the heuristic method scales to many qubits and PZs. In the heuristic workflow, an optional **compilation** feature (`use_dag`) allows for dynamic rescheduling of gates based on the current ion positions and dependencies, potentially reducing shuttling overhead compared to executing a fixed sequence.
 
 <i>MQT IonShuttler</i> is part of the [_Munich Quantum Toolkit_](https://mqt.readthedocs.io) (MQT) developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/).
 
@@ -54,8 +54,8 @@ python3 -m venv .venv
 . .venv/bin/activate
 pip install .
 python3 run_heuristic.py --help
-# Example with 12 logical qubits executed on four PZs
-python3 run_heuristic.py algorithms_heuristic/qft_12.json
+# Example with 60 qubits executed on four PZs
+python3 run_heuristic.py algorithms_heuristic/qft_60_4pzs.json
 ```
 
 In addition to the parameters shown by `--help`, the heuristic flow offers the optional `--compile` switch that triggers the dynamic compilation step described above.
