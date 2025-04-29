@@ -61,8 +61,6 @@ python3 run_heuristic.py --help
 python3 run_heuristic.py algorithms_heuristic/qft_60_4pzs.json
 ```
 
-In addition to the parameters shown by `--help`, the heuristic flow offers the optional `--compile` switch that triggers the dynamic compilation step described above.
-
 Architectures and algorithms are specified in JSON files—see the examples in [`algorithms_heuristic/`](algorithms_heuristic/).
 
 ---
