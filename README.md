@@ -11,18 +11,20 @@
 
 # MQT IonShuttler
 
-<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for grid-like trapped-ion quantum computers based on the Quantum CCD (QCCD) architecture. It supports
+<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for grid-like trapped-ion quantum computers based on the Quantum Charge Coupled Device (QCCD) architecture. It supports
 
 * **exact shuttling schedules** for small architectures with **a single processing zone (PZ)**, and
 * **heuristic shuttling schedules** for larger devices with **one _or_ multiple processing zones**.
 
 <p align="center">
-  <figure>
-    <object data="docs/figures/QCCD_device.pdf" type="application/pdf" width="48%"></object>
-    <object data="docs/figures/graph.pdf" type="application/pdf" width="48%"></object>
-    <figcaption><b>Figure&nbsp;1:</b> (<b>a</b>) Potential QCCD device with four processing zones; (<b>b</b>) corresponding graph used by <i>MQT IonShuttler</i>.</figcaption>
-  </figure>
+  <a href="docs/figures/QCCD_device.pdf">
+    <img src="docs/figures/QCCD_device.png" width="48%" alt="(a) Potential QCCD device with four processing zones">
+  </a>
+  <a href="docs/figures/graph.pdf">
+    <img src="docs/figures/graph.png" width="48%" alt="(b) Corresponding interaction graph">
+  </a>
 </p>
+<p align="center"><b>Figure&nbsp;1:</b> (<b>a</b>) Potential QCCD device with four processing zones; (<b>b</b>) corresponding interaction graph used by.</p>
 
 The exact solution guarantees optimality but is limited to a single PZ, while the heuristic method scales to many qubits and PZs. In the heuristic workflow, an optional **compilation** feature (`use_dag`) allows for dynamic rescheduling of gates based on the current ion positions and dependencies, potentially reducing shuttling overhead compared to executing a fixed sequence.
 
