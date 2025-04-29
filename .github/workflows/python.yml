@@ -31,11 +31,11 @@ jobs:
       # Test the first script (run.py)
       - name: Test run.py
         run: |
-          python run.py --help
-          python run.py algorithms/qft_05.json
+          python run_exact.py --help
+          python run_exact.py algorithms_exact/qft_05.json
 
       # Test the second script (run_heuristic.py)
       - name: Test run_heuristic.py
         run: |
           python run_heuristic.py --help
-          python run_heuristic.py algorithms_heuristic/qft_6.json
+          python run_heuristic.py algorithms_heuristic/qft_06_2pzs.json
