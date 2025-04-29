@@ -18,13 +18,14 @@
 
 <p align="center">
   <a href="docs/figures/QCCD_device.pdf">
-    <img src="docs/figures/QCCD_device.png" width="48%" alt="(a) Potential QCCD device with four processing zones">
+    <img src="docs/figures/QCCD_device.png" width="63%" alt="(a) Potential QCCD device with four processing zones">
   </a>
   <a href="docs/figures/graph.pdf">
-    <img src="docs/figures/graph.png" width="48%" alt="(b) Corresponding interaction graph">
+    <img src="docs/figures/graph.png" width="33%" alt="(b) Corresponding interaction graph">
   </a>
 </p>
-<p align="center"><b>Figure&nbsp;1:</b> (<b>a</b>) Potential QCCD device with four processing zones; (<b>b</b>) corresponding interaction graph used by.</p>
+<p align="center">
+<b>Figure&nbsp;1:</b> (<b>a</b>) Potential QCCD device with four processing zones; (<b>b</b>) corresponding graph abstraction.</p>
 
 The exact solution guarantees optimality but is limited to a single PZ, while the heuristic method scales to many qubits and PZs. In the heuristic workflow, an optional **compilation** feature (`use_dag`) allows for dynamic rescheduling of gates based on the current ion positions and dependencies, potentially reducing shuttling overhead compared to executing a fixed sequence.
 
@@ -70,7 +71,7 @@ Architectures and algorithms are specified in JSON files—see the examples in [
 
 This implementation is based on the following publications:
 
-1. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, “Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers,” *ASP-DAC 2024*.
+1. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, “Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers,” *ASP-DAC*, 2024.
 2. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, “Shuttling for Scalable Trapped-Ion Quantum Computers,” *IEEE TCAD*, 2024.
 
 ---
