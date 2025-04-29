@@ -59,7 +59,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 pip install .
 python3 run_heuristic.py --help
-# Example with 60 qubits executed on four PZs
+# Example with 60 qubits executed on 4 PZs
 python3 run_heuristic.py algorithms_heuristic/qft_60_4pzs.json
 ```
 
