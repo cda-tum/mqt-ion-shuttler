@@ -1,7 +1,7 @@
 import random
 
 import networkx as nx
-from graph_utils import get_idx_from_idc
+from .graph_utils import get_idx_from_idc
 from more_itertools import distinct_combinations, pairwise
 
 

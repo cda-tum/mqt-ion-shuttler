@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from graph_utils import get_idc_from_idx, get_idx_from_idc
+from .graph_utils import get_idc_from_idx, get_idx_from_idc
 
 
 # Plotting function

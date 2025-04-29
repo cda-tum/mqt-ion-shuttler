@@ -2,11 +2,11 @@ import os
 from collections import Counter
 from datetime import datetime
 
-from compilation import get_all_first_gates_and_update_sequence_non_destructive, remove_processed_gates
-from Cycles import get_ions
-from graph_utils import get_idc_from_idx, get_idx_from_idc
-from plotting import plot_state
-from scheduling import (
+from .compilation import get_all_first_gates_and_update_sequence_non_destructive, remove_processed_gates
+from .Cycles import get_ions
+from .graph_utils import get_idc_from_idx, get_idx_from_idc
+from .plotting import plot_state
+from .scheduling import (
     create_cycles_for_moves,
     create_gate_info_list,
     create_move_list,

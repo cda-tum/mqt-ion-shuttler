@@ -2,13 +2,13 @@ import math
 import re
 from pathlib import Path
 
-from Cycles import get_state_idxs
-from graph_utils import create_dist_dict, update_distance_map
+from .Cycles import get_state_idxs
+from .graph_utils import create_dist_dict, update_distance_map
 from qiskit import QuantumCircuit
 from qiskit.converters import circuit_to_dagdependency
 from qiskit.dagcircuit import DAGDependency
 from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
-from scheduling import pick_pz_for_2_q_gate
+from .scheduling import pick_pz_for_2_q_gate
 
 
 def is_qasm_file(file_path):
