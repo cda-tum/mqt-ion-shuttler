@@ -1,5 +1,5 @@
 [project]
-name = "mqt.ion-shuttler"
+name = "mqt-ion-shuttler"
 description = "A solver for the shuttling problem in QCCD quantum computers"
 readme = "README.md"
 authors = [
@@ -89,4 +89,6 @@ line-length = 120
 line-length = 120
 
 [tool.setuptools]
-py-modules = []
+package-dir = {"" = "src"}             # "src/" is the root of all packages
+packages    = {find = {where = ["src"]}}
+py-modules  = []   
