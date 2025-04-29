@@ -9,7 +9,7 @@ from MultiShuttler.Outside.compilation import (
     create_initial_sequence,
     update_distance_map,
 )
-from MultiShuttler.Outside.Cycles import (  # Removed find_path_edge_to_edge as it's in graph_utils/scheduling now
+from MultiShuttler.Outside.Cycles import (
     create_starting_config,
     get_ions,
     get_state_idxs,
@@ -18,9 +18,8 @@ from MultiShuttler.Outside.Cycles import (  # Removed find_path_edge_to_edge as 
 # Import your project modules
 from MultiShuttler.Outside.graph_utils import GraphCreator, ProcessingZone, PZCreator, create_idc_dictionary, get_idx_from_idc
 
-# from get_baseline import minimal_schedule_qiskit_dagdependency # Assuming you might want this later
 from MultiShuttler.Outside.partition import get_partition
-from MultiShuttler.Outside.shuttle import main as run_shuttle_main  # Rename imported main
+from MultiShuttler.Outside.shuttle import main as run_shuttle_main
 
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description="Run MQT IonShuttler")
