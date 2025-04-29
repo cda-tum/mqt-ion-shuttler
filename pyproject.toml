@@ -89,7 +89,6 @@ line-length = 120
 line-length = 120
 
 [tool.setuptools]
-package-dir = {"" = "src"}   # ➊ root of the packages
-packages = ["MultiShuttler"] # ➋ explicit list …
-
-py-modules = []
+package-dir = {"" = "src"}             # "src/" is the root of all packages
+packages    = {find = {where = ["src"]}}
+py-modules  = []   
