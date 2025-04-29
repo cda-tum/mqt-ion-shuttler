@@ -1,7 +1,7 @@
-import networkx as nx
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
-from graph_utils import get_idx_from_idc, get_idc_from_idx
+from graph_utils import get_idc_from_idx, get_idx_from_idc
 
 
 # Plotting function
@@ -41,7 +41,7 @@ def plot_state(
             colors.append((r, g, b))
         np.random.seed()
 
-    if plot_paper == False:
+    if plot_paper is False:
         # populate ion_holder (saves colors of edges with ions in next loop)
         for edge in graph.edges:
             ions = graph.edges[edge]["ions"]
@@ -74,13 +74,13 @@ def plot_state(
 
     edge_color = nx.get_edge_attributes(graph, "color").values()
     node_color = list(nx.get_node_attributes(graph, "color").values())
-    if plot_paper == False:
+    if plot_paper is False:
         edge_labels = nx.get_edge_attributes(graph, "ions")
     node_size = list(nx.get_node_attributes(graph, "node_size").values())
 
-    plt.figure(figsize=(20, 9))#figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
+    plt.figure(figsize=(20, 9))  # figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
 
-    with_labels = not(plot_paper)
+    with_labels = not (plot_paper)
 
     nx.draw_networkx(
         graph,
@@ -92,7 +92,7 @@ def plot_state(
         edge_color=edge_color,
         font_size=16,
     )
-    if plot_paper == False:
+    if plot_paper is False:
         nx.draw_networkx_edge_labels(graph, pos, edge_labels)
 
     # # reset edge labels for following iterations?
@@ -103,7 +103,7 @@ def plot_state(
     labels0, labels1 = labels
     plt.plot([], [], label=labels0)
     plt.plot([], [], label=labels1)
-        #plt.legend()
+    # plt.legend()
 
     if show_plot is True:
         plt.show()

@@ -1,9 +1,10 @@
 import math
 import time
-from pathlib import Path
+
 import numpy as np
 from Cycles import GraphCreator, MemoryZone
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
+
 
 def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=True):
     """
@@ -26,16 +27,18 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
     for seed in seeds:
         m, n, v, h = arch
         graph = GraphCreator(m, n, v, h, pz).get_graph()
-        n_of_traps = len([trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"])
+        n_of_traps = len(
+            [trap for trap in graph.edges() if graph.get_edge_data(trap[0], trap[1])["edge_type"] == "trap"]
+        )
         num_ion_chains = math.ceil(n_of_traps / 2)
-        
+
         try:
             ion_chains, number_of_registers = create_starting_config(num_ion_chains, graph, seed=seed)
         except:
             continue
         print(f"ion chains: {ion_chains}, number of registers: {number_of_registers}")
         filename = f"../../QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
-        #filename = f"QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
+        # filename = f"QASM_files/QFT_no_swaps/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 
         time_2qubit_gate = 1
@@ -43,8 +46,16 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         max_chains_in_parking = 3
 
         memorygrid = MemoryZone(
-            m, n, v, h, ion_chains, max_timesteps, max_chains_in_parking, pz,
-            time_2qubit_gate=time_2qubit_gate, time_1qubit_gate=time_1qubit_gate
+            m,
+            n,
+            v,
+            h,
+            ion_chains,
+            max_timesteps,
+            max_chains_in_parking,
+            pz,
+            time_2qubit_gate=time_2qubit_gate,
+            time_1qubit_gate=time_1qubit_gate,
         )
 
         memorygrid.update_distance_map()
@@ -53,14 +64,13 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         )
         seq_length = len(seq)
         print(f"seq: {seq}")
-        timestep = run_simulation(
-            memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10
-        )
+        timestep = run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10)
         timestep_arr.append(timestep)
         cpu_time = time.time() - start_time
         cpu_time_arr.append(cpu_time)
 
     return timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length
+
 
 def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=True):
     """
@@ -80,7 +90,7 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     cpu_time_mean = np.mean(cpu_time_arr)
     print(cpu_time_mean)
     print(f"timestep mean: {timestep_mean}, timestep var: {timestep_var}, cpu time mean: {cpu_time_mean}")
-    
+
     # file_path = Path("results.txt")
     # try:
     #     with file_path.open("a") as file:
@@ -92,12 +102,13 @@ def log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_trap
     # except:
     #     pass
 
+
 def main():
     archs = [
         [3, 3, 1, 1],
     ]
-    seeds = [0]#, 1, 2, 3, 4]
-    pz = 'outer'
+    seeds = [0]  # , 1, 2, 3, 4]
+    pz = "outer"
     max_timesteps = 10000000
     compilation = False
 
@@ -105,7 +116,10 @@ def main():
         timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length = run_simulation_for_architecture(
             arch, seeds, pz, max_timesteps, compilation=compilation
         )
-        log_results(arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=compilation)
+        log_results(
+            arch, timestep_arr, cpu_time_arr, number_of_registers, n_of_traps, seq_length, compilation=compilation
+        )
+
 
 if __name__ == "__main__":
     main()

@@ -1,14 +1,15 @@
-from graph_utils import GraphCreator, create_idc_dictionary
-from Cycles import create_starting_config, find_path_edge_to_edge
-from scheduling import ProcessingZone, get_ion_chains
-from shuttle import main
-from partition import get_partition
-from compilation import compile
 import math
+import sys
+from datetime import datetime
+
 import networkx as nx
 import numpy as np
-from datetime import datetime
-import sys
+from compilation import compile
+from Cycles import create_starting_config, find_path_edge_to_edge
+from graph_utils import GraphCreator, create_idc_dictionary
+from partition import get_partition
+from scheduling import ProcessingZone, get_ion_chains
+from shuttle import main
 
 plot = False
 save = False
@@ -62,9 +63,7 @@ for seed in seeds:
     # for number_of_pzs in number_of_pzs_list:
     start_time = datetime.now()
 
-    graph_creator = GraphCreator(
-        m, n, ion_chain_size_vertical, ion_chain_size_horizontal
-    )
+    graph_creator = GraphCreator(m, n, ion_chain_size_vertical, ion_chain_size_horizontal)
     G = graph_creator.get_graph()
     G.plot = plot
     G.save = save
@@ -92,9 +91,7 @@ for seed in seeds:
     def add_processing_zones(graph, num_zones):
         edges = list(graph.edges)
         if len(edges) < num_zones:
-            raise ValueError(
-                "Number of processing zones exceeds number of available edges."
-            )
+            raise ValueError("Number of processing zones exceeds number of available edges.")
 
         # Select edges evenly spaced
         indices = np.linspace(0, len(edges) - 1, num_zones, dtype=int)
@@ -158,9 +155,7 @@ for seed in seeds:
     print(partition)
 
     # Create a reverse mapping from element to partition name
-    map_to_pz = {
-        element: pz for pz, elements in partition.items() for element in elements
-    }
+    map_to_pz = {element: pz for pz, elements in partition.items() for element in elements}
     G.map_to_pz = map_to_pz
 
     # Ensure all elements are in one of the partitions

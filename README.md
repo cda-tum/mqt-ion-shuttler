@@ -13,8 +13,8 @@
 
 <i>MQT IonShuttler</i> is a tool for generating shuttling schedules for trapped-ion quantum computers with a grid-like Memory Zone based on the Quantum Charge Coupled Device (QCCD) architecture. It supports
 
-* **exact shuttling schedules** for small architectures with **a single processing zone (PZ)**, and
-* **heuristic shuttling schedules** for larger devices with **one _or_ multiple processing zones**.
+- **exact shuttling schedules** for small architectures with **a single processing zone (PZ)**, and
+- **heuristic shuttling schedules** for larger devices with **one _or_ multiple processing zones**.
 
 <p align="center">
   <a href="docs/figures/QCCD_device.pdf">
@@ -40,18 +40,20 @@ If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de]
 We strongly recommend using [virtual environments](https://docs.python.org/3/library/venv.html) to set up the tool and install the dependencies.
 
 ### Exact Solution (single PZ)
+
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 pip install .
-python3 run.py --help
+python3 run_exact.py --help
 # Example
-python3 run.py algorithms/qft_05.json
+python3 run_exact.py algorithms/qft_05.json
 ```
 
 The script supports an additional `--plot` argument to visualise the result. All parameters are documented via `--help`. Architectures and algorithms are specified in JSON files—see the examples in [`algorithms/`](algorithms/).
 
 ### Heuristic Solution (single & multiple PZs)
+
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
@@ -69,14 +71,14 @@ Architectures and algorithms are specified in JSON files—see the examples in [
 
 This implementation is based on the following publications:
 
-1. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, “Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers,” *ASP-DAC*, 2024.
-2. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, “Shuttling for Scalable Trapped-Ion Quantum Computers,” *IEEE TCAD*, 2024.
+1. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, "Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers," _ASP-DAC_, 2024.
+2. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, "Shuttling for Scalable Trapped-Ion Quantum Computers," _IEEE TCAD_, 2024.
 
 ---
 
 ## Acknowledgements
 
-The Munich Quantum Toolkit has been supported by the European Union’s Horizon 2020 research and innovation programme (DA QC, grant agreement No. 101001318 and MILLENION, grant agreement No. 101114305), the Bavarian State Ministry for Science and Arts through the Distinguished Professorship Program, as well as the Munich Quantum Valley, which is supported by the Bavarian state government with funds from the Hightech Agenda Bayern Plus.
+The Munich Quantum Toolkit has been supported by the European Union's Horizon 2020 research and innovation programme (DA QC, grant agreement No. 101001318 and MILLENION, grant agreement No. 101114305), the Bavarian State Ministry for Science and Arts through the Distinguished Professorship Program, as well as the Munich Quantum Valley, which is supported by the Bavarian state government with funds from the Hightech Agenda Bayern Plus.
 
 <p align="center">
   <picture>

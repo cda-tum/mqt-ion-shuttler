@@ -1,5 +1,7 @@
-import networkx as nx
 import random
+
+import networkx as nx
+
 
 # create dictionary to swap from idx to idc and vice versa
 def create_idc_dictionary(graph):
@@ -19,7 +21,15 @@ def get_idc_from_idx(edge_dictionary, idx):
 
 
 class GraphCreator:
-    def __init__(self, m: int, n: int, ion_chain_size_vertical: int, ion_chain_size_horizontal: int, failing_junctions: int, pz_info: list):
+    def __init__(
+        self,
+        m: int,
+        n: int,
+        ion_chain_size_vertical: int,
+        ion_chain_size_horizontal: int,
+        failing_junctions: int,
+        pz_info: list,
+    ):
         self.m = m
         self.n = n
         self.ion_chain_size_vertical = ion_chain_size_vertical
@@ -45,7 +55,7 @@ class GraphCreator:
         self._remove_junctions(networkx_graph, self.failing_junctions)
         nx.set_edge_attributes(networkx_graph, "trap", "edge_type")
         nx.set_edge_attributes(networkx_graph, 1, "weight")
-        
+
         return networkx_graph
 
     def _set_trap_nodes(self, networkx_graph: nx.Graph):
@@ -89,16 +99,19 @@ class GraphCreator:
         Removes a specified number of nodes from the graph, excluding nodes of type 'exit_node' or 'entry_node'.
         """
         #  Filter out nodes that are of type 'exit_node' or 'entry_node'
-        nodes_to_remove = [node for node, data in networkx_graph.nodes(data=True) if data.get('node_type') not in ['exit_node', 'entry_node']]
-        
+        nodes_to_remove = [
+            node
+            for node, data in networkx_graph.nodes(data=True)
+            if data.get("node_type") not in ["exit_node", "entry_node"]
+        ]
+
         # Shuffle the list of nodes to remove
         random.seed(0)
         random.shuffle(nodes_to_remove)
-        
+
         # Remove the specified number of nodes
         for node in nodes_to_remove[:num_nodes_to_remove]:
             networkx_graph.remove_node(node)
 
     def get_graph(self) -> nx.Graph:
         return self.networkx_graph
-

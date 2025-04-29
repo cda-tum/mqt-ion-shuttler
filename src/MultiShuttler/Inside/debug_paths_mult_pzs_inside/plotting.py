@@ -1,5 +1,5 @@
-import networkx as nx
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 from graph_utils import get_idx_from_idc
 
@@ -69,7 +69,7 @@ def plot_state(
     edge_color = nx.get_edge_attributes(graph, "color").values()
     node_color = list(nx.get_node_attributes(graph, "color").values())
     edge_labels = nx.get_edge_attributes(graph, "ions")
-    #node_size = list(nx.get_node_attributes(graph, "node_size").values())
+    # node_size = list(nx.get_node_attributes(graph, "node_size").values())
 
     plt.figure(figsize=(max(pos.keys())[1] * 2, max(pos.keys())[0] * 2))
     print(graph.nodes())
@@ -77,7 +77,7 @@ def plot_state(
         graph,
         pos=pos,
         with_labels=True,
-        #node_size=node_size,
+        # node_size=node_size,
         node_color=node_color,
         width=8,
         edge_color=edge_color,

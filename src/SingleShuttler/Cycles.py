@@ -1,21 +1,19 @@
-import matplotlib.pyplot as plt
 import networkx as nx
+from graph_utils import (
+    GraphCreator,
+    MZGraphCreator,
+    calc_dist_to_pz,
+    get_idc_from_idx,
+    get_idx_from_idc,
+    get_path_to_node,
+    order_edges,
+)
 from more_itertools import distinct_combinations, pairwise
-from graph_utils import get_idc_from_idx, get_idx_from_idc, get_path_to_node, calc_dist_to_pz, order_edges, MZGraphCreator, GraphCreator
+
 
 class MemoryZone:
     def __init__(
-        self,
-        m,
-        n,
-        v,
-        h,
-        starting_config,
-        max_timestep,
-        max_num_parking,
-        pz,
-        time_2qubit_gate=2,
-        time_1qubit_gate=1
+        self, m, n, v, h, starting_config, max_timestep, max_num_parking, pz, time_2qubit_gate=2, time_1qubit_gate=1
     ):
         # new graph MZ
         self.mz_Graph_creator = MZGraphCreator(m, n, v, h, pz)
@@ -71,22 +69,22 @@ class MemoryZone:
 
         # precalc all cycles (shortest paths from outer node to outer node)
         self.node_path_dict = {}
-        for (edge_idc, next_edge) in GraphCreator(m, n, v, h, pz).find_connected_edges():
+        for edge_idc, next_edge in GraphCreator(m, n, v, h, pz).find_connected_edges():
             self.node_path_dict[edge_idc, next_edge] = nx.shortest_path(
-                    self.graph,
-                    next_edge[1],
-                    edge_idc[0],
-                    lambda node0, node1, _: [
-                        1e8
-                        if (
-                            get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, edge_idc)
-                            or get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, next_edge)
-                            or get_idx_from_idc(self.idc_dict, (node0, node1))
-                            == get_idx_from_idc(self.idc_dict, self.graph_creator.entry_edge)
-                        )
-                        else 1
-                    ][0],
-                )
+                self.graph,
+                next_edge[1],
+                edge_idc[0],
+                lambda node0, node1, _: [
+                    1e8
+                    if (
+                        get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, edge_idc)
+                        or get_idx_from_idc(self.idc_dict, (node0, node1)) == get_idx_from_idc(self.idc_dict, next_edge)
+                        or get_idx_from_idc(self.idc_dict, (node0, node1))
+                        == get_idx_from_idc(self.idc_dict, self.graph_creator.entry_edge)
+                    )
+                    else 1
+                ][0],
+            )
 
     # get edge idxs of ion chains
     def get_state_idxs(self):

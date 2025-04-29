@@ -1,7 +1,9 @@
 import networkx as nx
-from more_itertools import distinct_combinations, pairwise
+from more_itertools import pairwise
+
 # global delete_node
 # delete_node = (3, 4)
+
 
 # create dictionary to swap from idx to idc and vice versa
 def create_idc_dictionary(nx_g):
@@ -10,12 +12,15 @@ def create_idc_dictionary(nx_g):
         edge_dict[edge_idx] = tuple(sorted(edge_idc, key=sum))
     return edge_dict
 
+
 def get_idx_from_idc(edge_dictionary, idc):
     idc = tuple(sorted(idc, key=sum))
     return list(edge_dictionary.values()).index(idc)
 
+
 def get_idc_from_idx(edge_dictionary, idx):
     return edge_dictionary[idx]
+
 
 def order_edges(edge1, edge2):
     # Find the common node shared between the two edges
@@ -32,8 +37,9 @@ def order_edges(edge1, edge2):
     else:
         edge1_in_order = (edge1[0], common_node)
         edge2_in_order = (common_node, edge2[1]) if edge2[0] == common_node else (common_node, edge2[0])
-    
+
     return edge1_in_order, edge2_in_order
+
 
 def get_path_to_node(nx_g, src, tar, exclude_exit=False, exclude_first_entry_connection=True):
     edge_path = []
@@ -109,10 +115,10 @@ class MZGraphCreator:
         self._remove_vertical_edges(networkx_graph)
         self._remove_horizontal_nodes(networkx_graph)
         self._set_junction_nodes(networkx_graph)
-        if self.pz == 'mid':
+        if self.pz == "mid":
             self._remove_mid_part(networkx_graph)
         nx.set_edge_attributes(networkx_graph, "trap", "edge_type")
-        #self._delete_junction(networkx_graph, delete_node)
+        # self._delete_junction(networkx_graph, delete_node)
 
         return networkx_graph
 
@@ -197,11 +203,11 @@ class GraphCreator:
         self._remove_vertical_edges(networkx_graph)
         self._remove_horizontal_nodes(networkx_graph)
         self._set_junction_nodes(networkx_graph)
-        if self.pz == 'mid':
+        if self.pz == "mid":
             self._remove_mid_part(networkx_graph)
         nx.set_edge_attributes(networkx_graph, "trap", "edge_type")
         self._set_processing_zone(networkx_graph)
-        #self._delete_junction(networkx_graph, delete_node)
+        # self._delete_junction(networkx_graph, delete_node)
 
         return networkx_graph
 
@@ -240,15 +246,16 @@ class GraphCreator:
 
         assert self.m % 2 == 1
 
-        assert self.ion_chain_size_vertical >= 2 and self.ion_chain_size_horizontal >= 2
- 
+        assert self.ion_chain_size_vertical >= 2
+        assert self.ion_chain_size_horizontal >= 2
+
     def _set_junction_nodes(self, networkx_graph):
         for i in range(0, self.m_extended, self.ion_chain_size_vertical):
             for j in range(0, self.n_extended, self.ion_chain_size_horizontal):
                 networkx_graph.add_node((i, j), node_type="junction_node", color="g")
 
     def _set_processing_zone(self, networkx_graph):
-        if self.pz == 'mid':      
+        if self.pz == "mid":
             self.exit = (self.m_extended // 2, self.n_extended // 2 + self.ion_chain_size_vertical)
             self.entry = (self.m_extended // 2, self.n_extended // 2 - self.ion_chain_size_vertical)
             self.processing_zone = (self.m_extended // 2, self.n_extended // 2)
@@ -265,37 +272,74 @@ class GraphCreator:
             self.path_to_pz = []
             self.path_from_pz = []
 
-            for i in range(1, self.ion_chain_size_horizontal+1):
+            for i in range(1, self.ion_chain_size_horizontal + 1):
                 if i == self.ion_chain_size_horizontal:
-                    node_type="exit_node"
-                    self.exit_edge = ((self.m_extended // 2, self.n_extended // 2 + i), (self.m_extended // 2, self.n_extended // 2 + i - 1))
+                    node_type = "exit_node"
+                    self.exit_edge = (
+                        (self.m_extended // 2, self.n_extended // 2 + i),
+                        (self.m_extended // 2, self.n_extended // 2 + i - 1),
+                    )
                 else:
-                    node_type="exit_connection_node"
-                networkx_graph.add_node((self.m_extended // 2, self.n_extended // 2 + i), node_type=node_type, color="y")
-                networkx_graph.add_edge((self.m_extended // 2, self.n_extended // 2 + i), (self.m_extended // 2, self.n_extended // 2 + i - 1), edge_type="exit", color="k")
-                
-                self.path_to_pz.insert(0, ((self.m_extended // 2, self.n_extended // 2 + i), (self.m_extended // 2, self.n_extended // 2 + i - 1)))
-            
-            for i in range(1, self.ion_chain_size_horizontal+1):
+                    node_type = "exit_connection_node"
+                networkx_graph.add_node(
+                    (self.m_extended // 2, self.n_extended // 2 + i), node_type=node_type, color="y"
+                )
+                networkx_graph.add_edge(
+                    (self.m_extended // 2, self.n_extended // 2 + i),
+                    (self.m_extended // 2, self.n_extended // 2 + i - 1),
+                    edge_type="exit",
+                    color="k",
+                )
+
+                self.path_to_pz.insert(
+                    0,
+                    (
+                        (self.m_extended // 2, self.n_extended // 2 + i),
+                        (self.m_extended // 2, self.n_extended // 2 + i - 1),
+                    ),
+                )
+
+            for i in range(1, self.ion_chain_size_horizontal + 1):
                 if i == 1:
-                    node_type="entry_connection_node"
-                    edge_type="first_entry_connection"
-                    self.first_entry_connection_from_pz = ((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i))
+                    node_type = "entry_connection_node"
+                    edge_type = "first_entry_connection"
+                    self.first_entry_connection_from_pz = (
+                        (self.m_extended // 2, self.n_extended // 2 - i + 1),
+                        (self.m_extended // 2, self.n_extended // 2 - i),
+                    )
                     if self.ion_chain_size_horizontal == 1:
-                        self.entry_edge = ((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i))
+                        self.entry_edge = (
+                            (self.m_extended // 2, self.n_extended // 2 - i + 1),
+                            (self.m_extended // 2, self.n_extended // 2 - i),
+                        )
                 elif i == self.ion_chain_size_horizontal:
-                    node_type="entry_node"
-                    edge_type="entry"
-                    self.entry_edge = ((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i))
+                    node_type = "entry_node"
+                    edge_type = "entry"
+                    self.entry_edge = (
+                        (self.m_extended // 2, self.n_extended // 2 - i + 1),
+                        (self.m_extended // 2, self.n_extended // 2 - i),
+                    )
                 else:
-                    node_type="entry_connection_node"
-                    edge_type="entry"
-                networkx_graph.add_node((self.m_extended // 2, self.n_extended // 2 - i), node_type=node_type, color="orange")
-                networkx_graph.add_edge((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i), edge_type=edge_type, color="k")
+                    node_type = "entry_connection_node"
+                    edge_type = "entry"
+                networkx_graph.add_node(
+                    (self.m_extended // 2, self.n_extended // 2 - i), node_type=node_type, color="orange"
+                )
+                networkx_graph.add_edge(
+                    (self.m_extended // 2, self.n_extended // 2 - i + 1),
+                    (self.m_extended // 2, self.n_extended // 2 - i),
+                    edge_type=edge_type,
+                    color="k",
+                )
 
-                self.path_from_pz.append(((self.m_extended // 2, self.n_extended // 2 - i + 1), (self.m_extended // 2, self.n_extended // 2 - i)))
+                self.path_from_pz.append(
+                    (
+                        (self.m_extended // 2, self.n_extended // 2 - i + 1),
+                        (self.m_extended // 2, self.n_extended // 2 - i),
+                    )
+                )
 
-        elif self.pz == 'outer':
+        elif self.pz == "outer":
             # Define the key nodes
             self.exit = (self.m_extended - 1, self.n_extended - 1)
             self.processing_zone = (self.m_extended + self.num_edges - 1, self.n_extended + self.num_edges - 1)
@@ -339,13 +383,14 @@ class GraphCreator:
                 # if entry is one edge only -> first entry connection is the same as entry edge
                 if entry_node == self.processing_zone:
                     self.first_entry_connection_from_pz = (entry_node, previous_entry_node)
-                    networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="first_entry_connection", color="k")
+                    networkx_graph.add_edge(
+                        previous_entry_node, entry_node, edge_type="first_entry_connection", color="k"
+                    )
                 else:
                     networkx_graph.add_edge(previous_entry_node, entry_node, edge_type="entry", color="k")
                 self.path_from_pz.insert(0, (entry_node, previous_entry_node))
 
                 previous_entry_node = entry_node
-            
 
             assert exit_node == entry_node, "Exit and entry do not end in same node"
             assert exit_node == self.processing_zone, "Exit and entry do not end in processing zone"
@@ -356,18 +401,16 @@ class GraphCreator:
             # new parking edge
             networkx_graph.add_node(self.parking_node, node_type="parking_node", color="r")
             networkx_graph.add_edge(self.parking_edge[0], self.parking_edge[1], edge_type="parking_edge", color="g")
-        
-        else:
-            raise ValueError("pz must be 'mid' or 'outer'")  
 
-    def _delete_junction(self, networkx_graph, junction_node):        
+        else:
+            raise ValueError("pz must be 'mid' or 'outer'")
+
+    def _delete_junction(self, networkx_graph, junction_node):
         # Remove the junction node
         networkx_graph.remove_node(junction_node)
-   
-             
+
     def get_graph(self):
         return self.networkx_graph
-
 
     def find_connected_edges(self):
         connected_edge_pairs = set()
@@ -384,7 +427,9 @@ class GraphCreator:
                     edge_pair = tuple(sorted([edge, (node2, neighbor)]))
                     connected_edge_pairs.add(edge_pair)
         # order edges (also include reverse order -> opposite direction moves are now needed if a junction fails)
-        connected_edge_pairs = [order_edges(edge_pair[0], edge_pair[1]) for edge_pair in connected_edge_pairs] + [order_edges(edge_pair[1], edge_pair[0]) for edge_pair in connected_edge_pairs]
+        connected_edge_pairs = [order_edges(edge_pair[0], edge_pair[1]) for edge_pair in connected_edge_pairs] + [
+            order_edges(edge_pair[1], edge_pair[0]) for edge_pair in connected_edge_pairs
+        ]
         # Convert set of tuples to a list of lists
         connected_edge_pairs = [list(pair) for pair in connected_edge_pairs]
 

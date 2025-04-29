@@ -1,7 +1,7 @@
-from qiskit import QuantumCircuit
-from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 import networkx as nx
 from networkx.algorithms.community import kernighan_lin_bisection
+from qiskit import QuantumCircuit
+from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 
 
 def read_qasm_file(file_path):
@@ -120,7 +120,6 @@ def construct_interaction_graph(circuit):
 #     return partition
 
 
-
 def partition_graph_balanced(graph, n):
     """
     Partitions 'graph' into n subgraphs, attempting to keep them balanced
@@ -170,11 +169,10 @@ def get_partition(qasm_file_path, n):
     return partition
 
 
-
 if __name__ == "__main__":
     # Example usage
     qasm_file_path = (
-        #"QASM_files/full_register_access/full_register_access_2.qasm"
+        # "QASM_files/full_register_access/full_register_access_2.qasm"
         "QASM_files/qft_no_swaps_nativegates_quantinuum_tket/qft_no_swaps_nativegates_quantinuum_tket_36.qasm"
     )
     n = 4

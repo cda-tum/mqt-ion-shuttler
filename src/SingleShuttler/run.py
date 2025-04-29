@@ -43,7 +43,7 @@ if __name__ == "__main__":
     else:
         starting_traps = [
             edges for edges in graph.edges() if graph.get_edge_data(edges[0], edges[1])["edge_type"] == "trap"
-        ][: num_ion_chains]
+        ][:num_ion_chains]
     number_of_registers = len(starting_traps)
 
     # place ions onto traps (ion0 on starting_trap0)

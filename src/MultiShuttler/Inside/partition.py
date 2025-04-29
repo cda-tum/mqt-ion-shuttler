@@ -1,7 +1,7 @@
-from qiskit import QuantumCircuit
-from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 import networkx as nx
 from networkx.algorithms.community import kernighan_lin_bisection
+from qiskit import QuantumCircuit
+from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 
 
 def read_qasm_file(file_path):
@@ -91,7 +91,7 @@ def partition_graph_new(graph, n):
     new_partitions = []
     while len(partitions) < n:
         len_partitions = len(partitions)
-        for i, partition in enumerate(partitions):
+        for _i, partition in enumerate(partitions):
             if len_partitions + len(new_partitions) < n:
                 if len(partition) < 2:
                     new_partitions.append(partition)

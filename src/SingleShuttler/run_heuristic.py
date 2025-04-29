@@ -2,12 +2,15 @@ import argparse
 import json
 import pathlib
 import time
-from pathlib import Path
+
 import numpy as np
 from Cycles import GraphCreator, MemoryZone
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
 
-def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, time_1qubit_gate=1, time_2qubit_gate=3, max_chains_in_parking=3, compilation=True):
+
+def run_simulation_for_architecture(
+    arch, seeds, pz, max_timesteps, time_1qubit_gate=1, time_2qubit_gate=3, max_chains_in_parking=3, compilation=True
+):
     """
     Runs simulations for the given architecture and seeds, logs the results.
 
@@ -36,17 +39,23 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, time_1qubit_
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 
         memorygrid = MemoryZone(
-            m, n, v, h, ion_chains, max_timesteps, max_chains_in_parking, pz,
-            time_2qubit_gate=time_2qubit_gate, time_1qubit_gate=time_1qubit_gate
+            m,
+            n,
+            v,
+            h,
+            ion_chains,
+            max_timesteps,
+            max_chains_in_parking,
+            pz,
+            time_2qubit_gate=time_2qubit_gate,
+            time_1qubit_gate=time_1qubit_gate,
         )
 
         memorygrid.update_distance_map()
         seq, flat_seq, dag_dep, next_node_initial = create_initial_sequence(
             memorygrid.distance_map, filename, compilation=compilation
         )
-        timestep = run_simulation(
-            memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10
-        )
+        timestep = run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_initial, max_length=10)
         timestep_arr.append(timestep)
         cpu_time = time.time() - start_time
         cpu_time_arr.append(cpu_time)
@@ -57,7 +66,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, time_1qubit_
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("config_file", help="path to json config file")
-    #parser.add_argument("--plot", action="store_true", help="plot grid")
+    # parser.add_argument("--plot", action="store_true", help="plot grid")
     args = parser.parse_args()
 
     with pathlib.Path(args.config_file).open("r") as f:
@@ -68,9 +77,7 @@ if __name__ == "__main__":
     filename = config["qu_alg"]
 
     seeds = [0]
-    pz = 'outer'
+    pz = "outer"
 
-    timestep_arr, cpu_time_arr = run_simulation_for_architecture(
-            arch, seeds, pz, max_timesteps
-        )
+    timestep_arr, cpu_time_arr = run_simulation_for_architecture(arch, seeds, pz, max_timesteps)
     print(f"CPU time: {np.mean(cpu_time_arr)} s")

@@ -1,19 +1,19 @@
-import logging
+from collections import OrderedDict, defaultdict
+
 import numpy as np
-from more_itertools import pairwise, distinct_combinations
 from Cycles import (
-    get_ion_chains,
-    get_edge_state,
-    find_path_edge_to_edge,
-    find_next_edge,
-    find_ordered_edges,
     check_if_edge_is_filled,
     create_cycle,
+    find_next_edge,
+    find_ordered_edges,
+    find_path_edge_to_edge,
+    get_edge_state,
+    get_ion_chains,
     have_common_junction_node,
 )
-from Paths import create_path_via_bfs_directional, find_nonfree_paths
 from graph_utils import get_idx_from_idc
-from collections import OrderedDict, defaultdict
+from more_itertools import distinct_combinations, pairwise
+from Paths import create_path_via_bfs_directional, find_nonfree_paths
 
 # Set up logging configuration
 # logging.basicConfig(
@@ -87,9 +87,9 @@ def pick_pz_for_2_q_gate_new(graph, ion0, ion1):
     min_distance = float("inf")
     for pz_name in [graph.map_to_pz[ion0], graph.map_to_pz[ion1]]:
         pz_edge_idc = get_edge_idc_by_pz_name(graph, pz_name)
-        distance = len(
-            find_path_edge_to_edge(graph, graph.state[ion0], pz_edge_idc)
-        ) + len(find_path_edge_to_edge(graph, graph.state[ion1], pz_edge_idc))
+        distance = len(find_path_edge_to_edge(graph, graph.state[ion0], pz_edge_idc)) + len(
+            find_path_edge_to_edge(graph, graph.state[ion1], pz_edge_idc)
+        )
         if distance < min_distance:
             min_distance = distance
             closest_pz = pz_name
@@ -133,9 +133,7 @@ def create_priority_queue(graph, sequence, max_length=10):
         elif len(seq_elem) == 2:
             if seq_elem not in graph.locked_gates:
                 # pick processing zone for 2-qubit gate
-                pz_for_2_q_gate = pick_pz_for_2_q_gate_new(
-                    graph, seq_elem[0], seq_elem[1]
-                )
+                pz_for_2_q_gate = pick_pz_for_2_q_gate_new(graph, seq_elem[0], seq_elem[1])
                 # new in multishuttler outside:
                 # graph.locked_gates[seq_elem] = pz_for_2_q_gate
             else:
@@ -257,7 +255,9 @@ def create_cycles_for_moves(graph, move_list, cycle_or_paths, pz):
             if cycle_or_paths == "Cycles":
                 all_cycles[rotate_chain] = create_cycle(graph, edge_idc, next_edge)
             else:
-                all_cycles[rotate_chain] = create_path_via_bfs_directional(graph, edge_idc, next_edge, other_next_edges=None) #TODO other next edges for pz
+                all_cycles[rotate_chain] = create_path_via_bfs_directional(
+                    graph, edge_idc, next_edge, other_next_edges=None
+                )  # TODO other next edges for pz
     return all_cycles
 
 
@@ -277,14 +277,12 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
             elif cycle in graph.stop_moves:
                 cycle_or_path = cycles_dict[cycle]
             else:
-                cycle_or_path = (
-                    []
-                )  # [(cycles_dict[cycle][0][0], cycles_dict[cycle][0][0])]
+                cycle_or_path = []  # [(cycles_dict[cycle][0][0], cycles_dict[cycle][0][0])]
         elif cycles_dict[cycle][0] == cycles_dict[cycle][-1]:
             cycle_or_path = cycles_dict[cycle]
         else:
-            cycle_or_path = cycles_dict[cycle] #TODO should be only for paths, for cycles -> ValueError
-            #raise ValueError("cycle is not two edges or a real cycle?")
+            cycle_or_path = cycles_dict[cycle]  # TODO should be only for paths, for cycles -> ValueError
+            # raise ValueError("cycle is not two edges or a real cycle?")
         nodes = set()
         for edge in cycle_or_path:
             node1, node2 = edge
@@ -308,7 +306,7 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
 
 
 def find_movable_cycles(graph, all_cycles, priority_queue, cycle_or_paths):
-    print('all_cycles', all_cycles)
+    print("all_cycles", all_cycles)
     if cycle_or_paths == "Cycles":
         nonfree_cycles = find_conflict_cycle_idxs(graph, all_cycles)
     else:
@@ -363,9 +361,7 @@ def rotate(graph, ion, cycle_idcs):
             ##print("didn't rotate %s" % current_ion)
             pass
         if (
-            current_ion != []
-            and current_ion != last_ion
-            and current_ion not in graph.in_process
+            current_ion != [] and current_ion != last_ion and current_ion not in graph.in_process
         ):  # and not ion in pz and needed in 2-qubit gate
             graph.edges[current_edge]["ions"].remove(current_ion)
             graph.edges[new_edge]["ions"].append(current_ion)
@@ -382,13 +378,12 @@ def rotate_free_cycles(graph, all_cycles, free_cycles_idxs):
             rotate_cycles_idcs[cycle_ion] = all_cycles[cycle_ion]
         except KeyError:
             pass
-    
+
     # skip stop moves
     for ion, indiv_cycle_idcs in rotate_cycles_idcs.items():
-        if len(indiv_cycle_idcs) == 2:
-            if indiv_cycle_idcs[0] == indiv_cycle_idcs[1]:
-                # print(f"Skipping rotating ion {ion} along
-                # cycle {indiv_cycle_idcs}, since it is a stop move")
-                continue
+        if len(indiv_cycle_idcs) == 2 and indiv_cycle_idcs[0] == indiv_cycle_idcs[1]:
+            # print(f"Skipping rotating ion {ion} along
+            # cycle {indiv_cycle_idcs}, since it is a stop move")
+            continue
         # print(f"Rotating ion {ion} along cycle {indiv_cycle_idcs}")
         rotate(graph, ion, indiv_cycle_idcs)

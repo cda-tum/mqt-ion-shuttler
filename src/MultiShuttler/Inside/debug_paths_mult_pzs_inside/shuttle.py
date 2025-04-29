@@ -1,17 +1,18 @@
-from Cycles import get_ion_chains
-from scheduling import (
-    create_move_list,
-    create_priority_queue,
-    get_partitioned_priority_queues,
-    find_movable_cycles,
-    rotate_free_cycles,
-    create_cycles_for_moves,
-    preprocess,
-    create_gate_info_list,
-)
-from plotting import plot_state
 import os
 from datetime import datetime
+
+from Cycles import get_ion_chains
+from plotting import plot_state
+from scheduling import (
+    create_cycles_for_moves,
+    create_gate_info_list,
+    create_move_list,
+    create_priority_queue,
+    find_movable_cycles,
+    get_partitioned_priority_queues,
+    preprocess,
+    rotate_free_cycles,
+)
 
 
 def find_pz_order(graph, gate_info_list):
@@ -124,9 +125,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
         save_plot=graph.save,
         plot_cycle=False,
         plot_pzs=False,
-        filename=os.path.join(
-            unique_folder, "%s_timestep_%s.png" % (graph.arch, timestep)
-        ),
+        filename=os.path.join(unique_folder, f"{graph.arch}_timestep_{timestep}.png"),
     )
 
 
@@ -147,9 +146,7 @@ def main(graph, sequence, partition, cycle_or_paths):
         save_plot=graph.save,
         plot_cycle=False,
         plot_pzs=True,
-        filename=os.path.join(
-            unique_folder, "%s_timestep_%s.png" % (graph.arch, timestep)
-        ),
+        filename=os.path.join(unique_folder, f"{graph.arch}_timestep_{timestep}.png"),
     )
 
     graph.in_process = []
@@ -175,18 +172,10 @@ def main(graph, sequence, partition, cycle_or_paths):
                     state1 = graph.state[ion1]
                     state2 = graph.state[ion2]
                     # append ion to in_process if it is in the correct processing zone
-                    if (
-                        state1 == pz.edge_idc
-                        and ion1 in next_gate_at_pz[pz.name]
-                        and ion2 in next_gate_at_pz[pz.name]
-                    ):
+                    if state1 == pz.edge_idc and ion1 in next_gate_at_pz[pz.name] and ion2 in next_gate_at_pz[pz.name]:
                         graph.in_process.append(ion1)
                         # print(f"Added ion {ion1} to in_process")
-                    if (
-                        state2 == pz.edge_idc
-                        and ion1 in next_gate_at_pz[pz.name]
-                        and ion2 in next_gate_at_pz[pz.name]
-                    ):
+                    if state2 == pz.edge_idc and ion1 in next_gate_at_pz[pz.name] and ion2 in next_gate_at_pz[pz.name]:
                         graph.in_process.append(ion2)
                         # print(f"Added ion {ion2} to in_process")
 
@@ -254,9 +243,8 @@ def main(graph, sequence, partition, cycle_or_paths):
                         pzs.remove(pz)
 
                         # remove the locked pz of the processed two-qubit gate
-                        if gate in graph.locked_gates:
-                            if graph.locked_gates[gate] == pz.name:
-                                graph.locked_gates.pop(gate)
+                        if gate in graph.locked_gates and graph.locked_gates[gate] == pz.name:
+                            graph.locked_gates.pop(gate)
                         break
                 else:
                     raise ValueError("Invalid gate format")

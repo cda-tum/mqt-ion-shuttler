@@ -3,16 +3,15 @@ import random
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-import time
+
 import networkx as nx
 import numpy as np
-from qiskit import QuantumCircuit
-from qiskit.converters import circuit_to_dagdependency
-from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
-
 from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
 from Cycles import get_idc_from_idx, get_idx_from_idc
 from plotting import plot_state
+from qiskit import QuantumCircuit
+from qiskit.converters import circuit_to_dagdependency
+from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
 
 show_plot = False
 save_plot = False
@@ -359,7 +358,8 @@ def update_sequence_and_process_gate(
         gate_execution_finished = False
 
         time_in_pz_counter += 1
-        plot_state(memorygrid.graph,
+        plot_state(
+            memorygrid.graph,
             [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
             labels=[
                 "time step %s" % timestep,
@@ -369,9 +369,11 @@ def update_sequence_and_process_gate(
             save_plot=save_plot,
             filename=[plot_filename if save_plot else None][0],
         )
-        
+
         # print time step and gate (gate x out of y)
-        print(f"time step: {timestep}, execution of gate ({memorygrid.seq_length-len(seq)+1}/{memorygrid.seq_length}) on qubit(s) {seq[0]}")
+        print(
+            f"time step: {timestep}, execution of gate ({memorygrid.seq_length-len(seq)+1}/{memorygrid.seq_length}) on qubit(s) {seq[0]}"
+        )
         time_gate = memorygrid.time_2qubit_gate if next_gate_is_two_qubit_gate else memorygrid.time_1qubit_gate
 
         if time_in_pz_counter == time_gate:
@@ -417,7 +419,8 @@ def update_sequence_and_process_gate(
                 new_gate_starting = gate_element in chains_in_parking
 
     else:
-        plot_state(memorygrid.graph,
+        plot_state(
+            memorygrid.graph,
             [get_idx_from_idc(memorygrid.idc_dict, edge_idc) for edge_idc in memorygrid.ion_chains.values()],
             labels=["time step %s" % timestep, f"next seq elem: {seq[0]}"],
             show_plot=show_plot,
@@ -462,7 +465,7 @@ def run_simulation(memorygrid, max_timesteps, seq, flat_seq, dag_dep, next_node_
     new_gate_starting = False
     timestep = 0
     next_node = next_node_initial
-    
+
     seq_length = len(seq)
     memorygrid.seq_length = seq_length
 

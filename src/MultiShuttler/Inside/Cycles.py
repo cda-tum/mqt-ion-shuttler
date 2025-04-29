@@ -1,7 +1,8 @@
-import networkx as nx
 import random
-from more_itertools import pairwise
+
+import networkx as nx
 from graph_utils import get_idx_from_idc
+from more_itertools import pairwise
 
 
 def create_starting_config(graph, n_of_chains, seed=None):
@@ -11,7 +12,7 @@ def create_starting_config(graph, n_of_chains, seed=None):
     if seed is not None:
         random.seed(seed)
         starting_traps = []
-        traps = [edges for edges in graph.edges()]
+        traps = list(graph.edges())
         n_of_traps = len(traps)
 
         random_starting_traps = random.sample(range(n_of_traps), (n_of_chains))
@@ -19,9 +20,7 @@ def create_starting_config(graph, n_of_chains, seed=None):
             starting_traps.append(traps[trap])
     else:
         starting_traps = [
-            edges
-            for edges in graph.edges()
-            if graph.get_edge_data(edges[0], edges[1])["edge_type"] == "trap"
+            edges for edges in graph.edges() if graph.get_edge_data(edges[0], edges[1])["edge_type"] == "trap"
         ][:n_of_chains]
     number_of_registers = len(starting_traps)
 
@@ -43,9 +42,7 @@ def get_ion_chains(graph):
             edge_idc = tuple(sorted((u, v), key=sum))
 
             if len(data["ions"]) > 2:
-                raise ValueError(
-                    f"Edge ({u}, {v}) has more than two ions: {data['ions']}"
-                )
+                raise ValueError(f"Edge ({u}, {v}) has more than two ions: {data['ions']}")
             for chain in chains:
                 ion_chains[chain] = edge_idc
 
@@ -83,9 +80,7 @@ def have_common_junction_node(graph, edge1, edge2):
     nodes_edge2 = set(edge2)
 
     # Check if the edges have any common junction nodes
-    common_junction_nodes = nodes_edge1.intersection(nodes_edge2).intersection(
-        graph.junction_nodes
-    )
+    common_junction_nodes = nodes_edge1.intersection(nodes_edge2).intersection(graph.junction_nodes)
 
     return len(common_junction_nodes) > 0
 
@@ -154,23 +149,13 @@ def find_ordered_edges(graph, edge1, edge2):
     common_node = common_node.pop()
     if edge1[0] == common_node:
         edge1_in_order = (edge1[1], common_node)
-        edge2_in_order = (
-            (common_node, edge2[1])
-            if edge2[0] == common_node
-            else (common_node, edge2[0])
-        )
+        edge2_in_order = (common_node, edge2[1]) if edge2[0] == common_node else (common_node, edge2[0])
     else:
         edge1_in_order = (edge1[0], common_node)
-        edge2_in_order = (
-            (common_node, edge2[1])
-            if edge2[0] == common_node
-            else (common_node, edge2[0])
-        )
+        edge2_in_order = (common_node, edge2[1]) if edge2[0] == common_node else (common_node, edge2[0])
 
     # if same edge twice don't change order (for blocking moves)
-    if get_idx_from_idc(idc_dict, edge1_in_order) == get_idx_from_idc(
-        idc_dict, edge2_in_order
-    ):
+    if get_idx_from_idc(idc_dict, edge1_in_order) == get_idx_from_idc(idc_dict, edge2_in_order):
         edge2_in_order = edge1_in_order
 
     return edge1_in_order, edge2_in_order
@@ -191,10 +176,8 @@ def create_cycle(
         lambda node0, node1, _: [
             1e8
             if (
-                get_idx_from_idc(idc_dict, (node0, node1))
-                == get_idx_from_idc(idc_dict, edge_idc)
-                or get_idx_from_idc(idc_dict, (node0, node1))
-                == get_idx_from_idc(idc_dict, next_edge)
+                get_idx_from_idc(idc_dict, (node0, node1)) == get_idx_from_idc(idc_dict, edge_idc)
+                or get_idx_from_idc(idc_dict, (node0, node1)) == get_idx_from_idc(idc_dict, next_edge)
             )
             else 1
         ][0],

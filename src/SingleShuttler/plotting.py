@@ -1,8 +1,8 @@
-import networkx as nx
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
+from graph_utils import create_idc_dictionary, get_idc_from_idx, get_idx_from_idc
 
-from graph_utils import get_idc_from_idx, get_idx_from_idc, create_idc_dictionary
 
 # plotting
 def plot_state(graph, ion_moves, labels, plot_ions=True, show_plot=False, save_plot=False, filename=""):
@@ -40,16 +40,16 @@ def plot_state(graph, ion_moves, labels, plot_ions=True, show_plot=False, save_p
             ion_holder[ion_place] = [i]
     for i, ion_place in enumerate(ion_moves):
         ion_edge_idc = get_idc_from_idx(idc_dict, ion_place)
-        graph.add_edge(
-            ion_edge_idc[0], ion_edge_idc[1], ion_chain=ion_holder[ion_place], color=colors[i]
-        )
+        graph.add_edge(ion_edge_idc[0], ion_edge_idc[1], ion_chain=ion_holder[ion_place], color=colors[i])
 
     edge_color = nx.get_edge_attributes(graph, "color").values()
     node_color = list(nx.get_node_attributes(graph, "color").values())
     edge_labels = nx.get_edge_attributes(graph, "ion_chain")
 
     # plt.figure(figsize=(25, 15))
-    plt.figure(figsize=(max(pos.keys())[0]*3, max(pos.keys())[1]*3))#self.n * self.ion_chain_size_horizontal, self.m * self.ion_chain_size_vertical))
+    plt.figure(
+        figsize=(max(pos.keys())[0] * 3, max(pos.keys())[1] * 3)
+    )  # self.n * self.ion_chain_size_horizontal, self.m * self.ion_chain_size_vertical))
     nx.draw_networkx(
         graph,
         pos=pos,

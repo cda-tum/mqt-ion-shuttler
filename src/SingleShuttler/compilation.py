@@ -38,7 +38,7 @@ def parse_qasm(filename):
     gates_and_qubits = []
     # if filename is str
     if not isinstance(filename, Path):
-        filename = Path(filename) 
+        filename = Path(filename)
     with Path.open(filename) as file:
         for _line in file:
             line = _line.strip()

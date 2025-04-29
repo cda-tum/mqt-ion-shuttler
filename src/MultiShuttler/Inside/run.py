@@ -1,13 +1,13 @@
-from graph_utils import GraphCreator, create_idc_dictionary
-from Cycles import create_starting_config, find_path_edge_to_edge
-from scheduling import ProcessingZone, get_ion_chains
-from shuttle import main
-from compilation import compile
 import math
+from datetime import datetime
+
 import networkx as nx
 import numpy as np
-from datetime import datetime
-from plotting import plot_state
+from compilation import compile
+from Cycles import create_starting_config, find_path_edge_to_edge
+from graph_utils import GraphCreator, create_idc_dictionary
+from scheduling import ProcessingZone, get_ion_chains
+from shuttle import main
 
 plot = False
 save = False
@@ -17,16 +17,16 @@ cycle_or_paths = "Paths" if paths else "Cycles"
 
 number_of_pzs_list = [1, 2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
-        [3, 3, 1, 1],   # time 2 qubit gate = 1?
-        [3, 3, 2, 2],
-        [3, 3, 3, 3],
-        [4, 4, 1, 1],
-        [4, 4, 2, 2],
-        [4, 4, 3, 3],
-        [5, 5, 1, 1],
-        [5, 5, 2, 2]
+    [3, 3, 1, 1],  # time 2 qubit gate = 1?
+    [3, 3, 2, 2],
+    [3, 3, 3, 3],
+    [4, 4, 1, 1],
+    [4, 4, 2, 2],
+    [4, 4, 3, 3],
+    [5, 5, 1, 1],
+    [5, 5, 2, 2],
 ]
-seeds = [3]#, 1, 2, 3, 4]
+seeds = [3]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
@@ -55,13 +55,11 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
 
             print(f"Number of chains: {number_of_chains}")
             algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
-            #algorithm = "full_register_access"
-            qasm_file_path = (
-                f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
-            )
+            # algorithm = "full_register_access"
+            qasm_file_path = f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
 
             edges = list(G.edges())
-            #print("edges", math.ceil(len(edges)))
+            # print("edges", math.ceil(len(edges)))
             # # Select the middle edge
             # middle_index = math.ceil(len(edges) / 2)
             # middle_edge = edges[middle_index]
@@ -78,9 +76,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
             def add_processing_zones(graph, num_zones):
                 edges = list(graph.edges)
                 if len(edges) < num_zones:
-                    raise ValueError(
-                        "Number of processing zones exceeds number of available edges."
-                    )
+                    raise ValueError("Number of processing zones exceeds number of available edges.")
 
                 # Select edges evenly spaced
                 indices = np.linspace(0, len(edges) - 1, num_zones, dtype=int)
@@ -145,11 +141,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
             print(partition)
 
             # Create a reverse mapping from element to partition name
-            map_to_pz = {
-                element: pz
-                for pz, elements in partition.items()
-                for element in elements
-            }
+            map_to_pz = {element: pz for pz, elements in partition.items() for element in elements}
             G.map_to_pz = map_to_pz
 
             # Ensure all elements are in one of the partitions
@@ -167,9 +159,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
                 # and no element is in both partitions
                 pz_sets = {pz: set(elements) for pz, elements in partition.items()}
                 common_elements = set.intersection(*pz_sets.values())
-                assert (
-                    not common_elements
-                ), f"{common_elements} are overlapping in partitions"
+                assert not common_elements, f"{common_elements} are overlapping in partitions"
 
             timesteps = main(G, sequence, partition, cycle_or_paths)
             end_time = datetime.now()
@@ -189,7 +179,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
         cpu_time_array = np.array(cpu_time_array)
         timesteps_average = np.mean(timesteps_array)
         cpu_time_average = np.mean(cpu_time_array)
-        print('time: ', cpu_time_average)
+        print("time: ", cpu_time_average)
         # save averages
         with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(

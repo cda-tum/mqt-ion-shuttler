@@ -27,13 +27,13 @@ jobs:
         run: |
           pip install -U pip setuptools wheel
           pip install .
-          
+
       # Test the first script (run.py)
       - name: Test run.py
         run: |
           python run.py --help
           python run.py algorithms/qft_05.json
-          
+
       # Test the second script (run_heuristic.py)
       - name: Test run_heuristic.py
         run: |

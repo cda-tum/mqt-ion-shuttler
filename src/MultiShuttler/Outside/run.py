@@ -1,21 +1,26 @@
 import argparse
 import json
 import pathlib
-import math
-import networkx as nx
-import numpy as np
 from datetime import datetime
-import time # Use time for CPU timing if needed
+
+from MultiShuttler.Outside.compilation import (
+    create_dag,
+    create_dist_dict,
+    create_initial_sequence,
+    update_distance_map,
+)
+from MultiShuttler.Outside.Cycles import (  # Removed find_path_edge_to_edge as it's in graph_utils/scheduling now
+    create_starting_config,
+    get_ions,
+    get_state_idxs,
+)
 
 # Import your project modules
-from graph_utils import GraphCreator, PZCreator, ProcessingZone, create_idc_dictionary, get_idx_from_idc
-from Cycles import create_starting_config, get_ions, get_state_idxs # Removed find_path_edge_to_edge as it's in graph_utils/scheduling now
-from scheduling import get_partitioned_priority_queues, create_priority_queue # Import necessary functions
-from shuttle import main as run_shuttle_main # Rename imported main
-from compilation import create_dag, create_updated_sequence_destructive, get_all_first_gates_and_update_sequence_non_destructive, map_front_gates_to_pzs, create_dist_dict, update_distance_map, create_initial_sequence
+from MultiShuttler.Outside.graph_utils import GraphCreator, ProcessingZone, PZCreator, create_idc_dictionary, get_idx_from_idc
+
 # from get_baseline import minimal_schedule_qiskit_dagdependency # Assuming you might want this later
-from partition import get_partition
-from plotting import plot_state
+from MultiShuttler.Outside.partition import get_partition
+from MultiShuttler.Outside.shuttle import main as run_shuttle_main  # Rename imported main
 
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description="Run MQT IonShuttler")
@@ -66,10 +71,26 @@ m, n, v, h = arch
 # --- PZ Definitions ---
 height = -4.5
 pz_definitions = {
-    "pz1": ProcessingZone("pz1", [(float((m-1)*v), float((n-1)*h)), (float((m-1)*v), float(0)), (float((m-1)*v-height), float((n-1)*h/2))]),
-    "pz2": ProcessingZone("pz2", [(0.0, 0.0), (0.0, float((n-1)*h)), (float(height), float((n-1)*h/2))]),
-    "pz3": ProcessingZone("pz3", [(float((m-1)*v), float(0)), (float(0), float(0)), (float((m-1)*v/2), float(height))]),
-    "pz4": ProcessingZone("pz4", [(float(0), float((n-1)*h)), (float((m-1)*v), float((n-1)*h)), (float((m-1)*v/2), float((n-1)*h-height))])
+    "pz1": ProcessingZone(
+        "pz1",
+        [
+            (float((m - 1) * v), float((n - 1) * h)),
+            (float((m - 1) * v), float(0)),
+            (float((m - 1) * v - height), float((n - 1) * h / 2)),
+        ],
+    ),
+    "pz2": ProcessingZone("pz2", [(0.0, 0.0), (0.0, float((n - 1) * h)), (float(height), float((n - 1) * h / 2))]),
+    "pz3": ProcessingZone(
+        "pz3", [(float((m - 1) * v), float(0)), (float(0), float(0)), (float((m - 1) * v / 2), float(height))]
+    ),
+    "pz4": ProcessingZone(
+        "pz4",
+        [
+            (float(0), float((n - 1) * h)),
+            (float((m - 1) * v), float((n - 1) * h)),
+            (float((m - 1) * v / 2), float((n - 1) * h - height)),
+        ],
+    ),
 }
 available_pz_names = list(pz_definitions.keys())
 pzs_to_use = [pz_definitions[name] for name in available_pz_names[:num_pzs_config]]
@@ -88,16 +109,16 @@ basegraph_creator = GraphCreator(m, n, v, h, failing_junctions, pzs_to_use)
 MZ_graph = basegraph_creator.get_graph()
 pzgraph_creator = PZCreator(m, n, v, h, failing_junctions, pzs_to_use)
 G = pzgraph_creator.get_graph()
-G.mz_graph = MZ_graph # Attach MZ graph for BFS lookups if needed by Cycles/Paths
+G.mz_graph = MZ_graph  # Attach MZ graph for BFS lookups if needed by Cycles/Paths
 
 G.seed = seed
 G.idc_dict = create_idc_dictionary(G)
-G.pzs = pzs_to_use # List of ProcessingZone objects
+G.pzs = pzs_to_use  # List of ProcessingZone objects
 G.parking_edges_idxs = []
-G.pzs_name_map = {} # Map from pz name to pz object
-G.edge_to_pz_map = {} # Map from edge index to owning pz object (for non-MZ edges)
+G.pzs_name_map = {}  # Map from pz name to pz object
+G.edge_to_pz_map = {}  # Map from edge index to owning pz object (for non-MZ edges)
 for pz in G.pzs:
-    if not hasattr(pz, 'parking_edge'): # Ensure PZCreator added this
+    if not hasattr(pz, "parking_edge"):  # Ensure PZCreator added this
         print(f"Error: PZ {pz.name} seems malformed (missing parking_edge).")
         exit(1)
     parking_idx = get_idx_from_idc(G.idc_dict, pz.parking_edge)
@@ -107,13 +128,13 @@ for pz in G.pzs:
     for edge_idx in pz.pz_edges_idx:
         G.edge_to_pz_map[edge_idx] = pz
 
-G.max_num_parking = 2 # Make this configurable?
+G.max_num_parking = 2  # Make this configurable?
 for pz in G.pzs:
     pz.max_num_parking = G.max_num_parking
 
 G.plot = plot_flag
 G.save = save_flag
-G.arch = str(arch) # For plotting/logging
+G.arch = str(arch)  # For plotting/logging
 
 number_of_mz_edges = len(MZ_graph.edges())
 
@@ -128,30 +149,30 @@ if not qasm_file_path.is_file():
 
 # --- Initial State & Sequence ---
 create_starting_config(G, num_ions, seed=seed)
-G.state = get_ions(G) # Get initial state {ion: edge_idc}
+G.state = get_ions(G)  # Get initial state {ion: edge_idc}
 
 G.sequence = create_initial_sequence(qasm_file_path)
 seq_length = len(G.sequence)
-print(f'Number of Gates: {seq_length}')
+print(f"Number of Gates: {seq_length}")
 
 # --- Partitioning ---
-partitioning = True # Make configurable?
+partitioning = True  # Make configurable?
 if partitioning:
     part = get_partition(qasm_file_path, len(G.pzs))
     # Ensure partition list length matches num_pzs
     if len(part) != len(G.pzs):
-         print(f"Warning: Partitioning returned {len(part)} parts, but expected {len(G.pzs)}. Adjusting...")
-         # Simple fix: assign remaining qubits to the last partition, or distribute evenly.
-         # This might need a more sophisticated balancing strategy.
-         if len(part) < len(G.pzs):
-             print("Error: Partitioning failed to produce enough parts.")
-             # Handle error appropriately, maybe fall back to non-partitioned approach or exit.
-             exit(1)
-         else: # More parts than PZs, merge extra parts into the last ones
-             part = part[:len(G.pzs)-1] + [qubit for sublist in part[len(G.pzs)-1:] for qubit in sublist]
+        print(f"Warning: Partitioning returned {len(part)} parts, but expected {len(G.pzs)}. Adjusting...")
+        # Simple fix: assign remaining qubits to the last partition, or distribute evenly.
+        # This might need a more sophisticated balancing strategy.
+        if len(part) < len(G.pzs):
+            print("Error: Partitioning failed to produce enough parts.")
+            # Handle error appropriately, maybe fall back to non-partitioned approach or exit.
+            exit(1)
+        else:  # More parts than PZs, merge extra parts into the last ones
+            part = part[: len(G.pzs) - 1] + [qubit for sublist in part[len(G.pzs) - 1 :] for qubit in sublist]
 
     partition = {pz.name: part[i] for i, pz in enumerate(G.pzs)}
-    print(f'Partition: {partition}')
+    print(f"Partition: {partition}")
 else:
     # Fallback: Assign ions to closest PZ (example logic)
     print("Partitioning disabled. Assigning ions to closest PZ (basic method).")
@@ -166,13 +187,15 @@ for pz_name, elements in partition.items():
     all_partition_elements.extend(elements)
     for element in elements:
         if element in map_to_pz:
-            print(f"Warning: Qubit {element} assigned to multiple partitions ({map_to_pz[element]}, {pz_name}). Check partitioning logic.")
+            print(
+                f"Warning: Qubit {element} assigned to multiple partitions ({map_to_pz[element]}, {pz_name}). Check partitioning logic."
+            )
             # Decide on a conflict resolution strategy if needed
         map_to_pz[element] = pz_name
 G.map_to_pz = map_to_pz
 
 # Validation
-unique_sequence_qubits = set(item for sublist in G.sequence for item in sublist)
+unique_sequence_qubits = {item for sublist in G.sequence for item in sublist}
 missing_qubits = unique_sequence_qubits - set(all_partition_elements)
 if missing_qubits:
     print(f"Error: Qubits {missing_qubits} from sequence are not in any partition.")
@@ -183,21 +206,21 @@ if missing_qubits:
 
 # --- DAG-Compilation Setup (if enabled) ---
 dag = None
-dag_copy = None # Store original DAG if needed
+dag_copy = None  # Store original DAG if needed
 if use_dag:
     try:
         dag = create_dag(qasm_file_path)
-        dag_copy = dag.copy() # Keep a copy of the original DAG if needed later
+        dag_copy = dag.copy()  # Keep a copy of the original DAG if needed later
         # Initial DAG-based sequence update
         G.dist_dict = create_dist_dict(G)
-        state_idxs = get_state_idxs(G) # {ion: edge_idx}
-        G.dist_map = update_distance_map(G, state_idxs) # {ion: {pz_name: dist}}
+        state_idxs = get_state_idxs(G)  # {ion: edge_idx}
+        G.dist_map = update_distance_map(G, state_idxs)  # {ion: {pz_name: dist}}
     except Exception as e:
         print(f"Error during DAG creation or initial sequence update: {e}")
         print("Falling back to non-compiled sequence.")
-        use_dag = False # Disable use_dag if setup fails
+        use_dag = False  # Disable use_dag if setup fails
         dag = None
-        G.sequence = create_initial_sequence(qasm_file_path) # Revert to basic sequence
+        G.sequence = create_initial_sequence(qasm_file_path)  # Revert to basic sequence
 else:
     print("DAG disabled, using static QASM sequence.")
 
@@ -205,7 +228,7 @@ else:
 
 # Initialize PZ states
 for pz in G.pzs:
-    pz.getting_processed = [] # Track nodes being processed by this PZ
+    pz.getting_processed = []  # Track nodes being processed by this PZ
 
 print("\nStarted shuttling simulation...")
 
