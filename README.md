@@ -11,7 +11,7 @@
 
 # MQT IonShuttler
 
-<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for grid-like trapped-ion quantum computers based on the Quantum Charge Coupled Device (QCCD) architecture. It supports
+<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for trapped-ion quantum computers with a grid-like Memory Zone based on the Quantum Charge Coupled Device (QCCD) architecture. It supports
 
 * **exact shuttling schedules** for small architectures with **a single processing zone (PZ)**, and
 * **heuristic shuttling schedules** for larger devices with **one _or_ multiple processing zones**.
