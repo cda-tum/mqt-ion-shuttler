@@ -13,3 +13,9 @@ __pycache__/
 .DS_Store
 
 QASM_files/
+
+# Python packaging
+*.egg-info/
+
+__pycache__/
+*.pyc
