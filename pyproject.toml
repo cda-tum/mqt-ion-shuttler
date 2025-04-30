@@ -91,4 +91,4 @@ line-length = 120
 [tool.setuptools]
 package-dir = {"" = "src"}             # "src/" is the root of all packages
 packages    = {find = {where = ["src"]}}
-py-modules  = []   
+py-modules  = []
