@@ -147,8 +147,6 @@ def have_common_junction_node(graph, edge1, edge2):
 
 def check_if_edge_is_filled(graph, edge_idc):
     ion = graph.edges()[edge_idc]["ions"]
-    if len(ion) > 1:
-        raise ValueError("Edge has more than one ion")
     return len(ion) > 0  # == 1
 
 
@@ -218,8 +216,7 @@ def find_path_node_to_edge(graph, node, goal_edge, exclude_exit=False, exclude_f
     if path0 is None:
         if path1 is not None:
             return path1
-        else:
-            return None
+        return None
     if path1 is None and path0 is not None:
         return path0
 
@@ -244,13 +241,14 @@ def find_path_edge_to_edge(graph, edge_idc, goal_edge, exclude_exit=False, exclu
                 graph, edge_idc[1], goal_edge, exclude_exit=False, exclude_first_entry_connection=True
             )
             return node_path
-        elif graph.nodes(data=True)[edge_idc[1]]["node_type"] == "processing_zone_node":
+        if graph.nodes(data=True)[edge_idc[1]]["node_type"] == "processing_zone_node":
             node_path = find_path_node_to_edge(
                 graph, edge_idc[0], goal_edge, exclude_exit=False, exclude_first_entry_connection=True
             )
             return node_path
         else:
-            raise ValueError(f"Edge {edge_idc} is not an entry edge")
+            msg = "Edge is not an entry edge"
+            raise ValueError(msg)
 
     else:
         # find path to goal edge from both nodes

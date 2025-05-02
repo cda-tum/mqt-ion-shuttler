@@ -8,7 +8,7 @@ from .graph_utils import get_idc_from_idx, get_idx_from_idc
 # BFS with direction based on a starting edge and a next edge
 
 
-def create_path_via_bfs_directional(graph, current_edge, next_edge, other_next_edges, towards=(0, 0)):
+def create_path_via_bfs_directional(graph, current_edge, next_edge, towards=(0, 0)):
     if towards == (0, 0):
         # towards is first edge in graph (can't be (0,0) because it may be deleted)
         towards = list(graph.edges())[0][0]

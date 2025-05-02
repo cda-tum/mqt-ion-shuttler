@@ -50,15 +50,14 @@ def parse_qasm(filename):
     return gates_and_qubits
 
 
-def compile(filename):
+def compile_qasm_file(filename):
     """Compile a QASM file and return the compiled sequence of qubits."""
     # Check if the file is a valid QASM file
     if not is_qasm_file(filename):
-        raise ValueError("Invalid QASM file format")
+        msg = "Invalid QASM file format"
+        raise ValueError(msg)
     # Parse the QASM file to extract the qubits used for each gate
-    parse_qasm(filename)
-    sequence = parse_qasm(filename)
-    return sequence
+    return parse_qasm(filename)
 
 
 def get_front_layer(dag):
@@ -115,15 +114,13 @@ def create_dag(filename):
     qc = RemoveBarriers()(qc)
     # Remove measurement operations
     qc = RemoveFinalMeasurements()(qc)
-    dag_dep = circuit_to_dagdependency(qc)
-    return dag_dep
+    return circuit_to_dagdependency(qc)
 
 
 def create_initial_sequence(filename):
     # assert file is a qasm file
     assert is_qasm_file(filename), "The file is not a valid QASM file."
-    seq = parse_qasm(filename)
-    return seq
+    return parse_qasm(filename)
 
 
 def create_updated_sequence_destructive(graph, filename, dag_dep, compilation):
@@ -184,38 +181,6 @@ def get_front_layer_non_destructive(dag, virtually_processed_nodes):
     return front_layer
 
 
-# def remove_node_by_ions(dag, ions):
-#     """
-#     Remove a node from the DAG based on the qubits it operates on.
-
-#     Args:
-#         dag: The directed acyclic graph
-#         qubits: A tuple or list containing the qubits the gate operates on
-
-#     Returns:
-#         bool: True if a node was found and removed, False otherwise
-#     """
-#     target_node = None
-
-#     # Search for the node with matching qubits
-#     for node in dag.get_nodes():
-#         if tuple(node.qindices) == tuple(ions):
-#             target_node = node
-#             break
-
-#     # If found, remove the node
-#     if target_node:
-#         remove_node(dag, target_node)
-#         return True
-
-#     return False
-
-# def update_dag_and_sequence(dag, sequence, processed_gates):
-#  for gate in processed_gates:
-#    remove_node_by_ions(dag, gate)
-#  sequence.remove(gate)
-
-
 def map_front_gates_to_pzs(graph, front_layer_nodes):
     """Create list of all front layer gates at each processing zone."""
     gates_of_pz_info = {pz.name: [] for pz in graph.pzs}
@@ -238,7 +203,8 @@ def map_front_gates_to_pzs(graph, front_layer_nodes):
             # gates_of_pz_info[pz].append(seq_elem[0])
             # gates_of_pz_info[pz].append(seq_elem[1])
         else:
-            raise ValueError("wrong gate type")
+            msg = "wrong gate type"
+            raise ValueError(msg)
 
         gates_of_pz_info[pz].append(seq_node)
     # print('\ngates of pz info: ', {pz: [node.qindices for node in nodes] for pz, nodes in gates_of_pz_info.items()}, '\n')
@@ -286,7 +252,7 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_roun
     # update dist map
     state = get_state_idxs(graph)
     dist_map = update_distance_map(graph, state)
-    for round in range(max_rounds):
+    for round_recalc_fl in range(max_rounds):
         # Get front layer excluding already processed nodes
         front_layer_nodes = get_front_layer_non_destructive(dag, processed_nodes)
 
@@ -307,7 +273,7 @@ def get_all_first_gates_and_update_sequence_non_destructive(graph, dag, max_roun
                 best_gate = find_best_gate(graph, pz_info_map[pz_name], dist_map, gate_info_map)
 
                 # Save the first gate that can be processed for each pz (only of first round, since otherwise can not be simultaneously processed)
-                if round == 0 and pz_name not in first_nodes_by_pz:
+                if round_recalc_fl == 0 and pz_name not in first_nodes_by_pz:
                     first_nodes_by_pz[pz_name] = best_gate
 
                 # Add to the processed list for this round
