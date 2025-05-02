@@ -1,7 +1,7 @@
 from collections import OrderedDict, defaultdict
 
 import numpy as np
-from Cycles import (
+from cycles import (
     check_if_edge_is_filled,
     create_cycle,
     find_next_edge,
@@ -13,7 +13,7 @@ from Cycles import (
 )
 from graph_utils import get_idx_from_idc
 from more_itertools import distinct_combinations, pairwise
-from Paths import create_path_via_bfs_directional, find_nonfree_paths
+from paths import create_path_via_bfs_directional, find_nonfree_paths
 
 # Set up logging configuration
 # logging.basicConfig(

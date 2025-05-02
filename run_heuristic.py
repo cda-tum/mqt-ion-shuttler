@@ -1,6 +1,7 @@
 import argparse
 import json
 import pathlib
+import sys
 from datetime import datetime
 
 from MultiShuttler.Outside.compilation import (
@@ -9,15 +10,20 @@ from MultiShuttler.Outside.compilation import (
     create_initial_sequence,
     update_distance_map,
 )
-from MultiShuttler.Outside.Cycles import (
+from MultiShuttler.Outside.cycles import (
     create_starting_config,
     get_ions,
     get_state_idxs,
 )
 
 # Import your project modules
-from MultiShuttler.Outside.graph_utils import GraphCreator, ProcessingZone, PZCreator, create_idc_dictionary, get_idx_from_idc
-
+from MultiShuttler.Outside.graph_utils import (
+    GraphCreator,
+    ProcessingZone,
+    PZCreator,
+    create_idc_dictionary,
+    get_idx_from_idc,
+)
 from MultiShuttler.Outside.partition import get_partition
 from MultiShuttler.Outside.shuttle import main as run_shuttle_main
 
@@ -34,10 +40,10 @@ try:
         config = json.load(f)
 except FileNotFoundError:
     print(f"Error: Configuration file not found at {args.config_file}")
-    exit(1)
+    sys.exit(1)
 except json.JSONDecodeError:
     print(f"Error: Could not parse JSON file {args.config_file}")
-    exit(1)
+    sys.exit(1)
 
 # --- Extract Parameters from Config ---
 arch = config.get("arch")
@@ -57,10 +63,10 @@ qasm_base_dir = config.get("qasm_base_dir", "../../../QASM_files")
 # --- Validate Config ---
 if not all([arch, algorithm_name, num_ions]):
     print("Error: Missing required parameters in config file (arch, algorithm_name, num_ions)")
-    exit(1)
+    sys.exit(1)
 if not isinstance(arch, list) or len(arch) != 4:
     print("Error: 'arch' must be a list of 4 integers [m, n, v, h]")
-    exit(1)
+    sys.exit(1)
 
 # --- Setup ---
 start_time = datetime.now()
@@ -96,7 +102,7 @@ pzs_to_use = [pz_definitions[name] for name in available_pz_names[:num_pzs_confi
 
 if not pzs_to_use:
     print(f"Error: num_pzs ({num_pzs_config}) is invalid or results in no PZs selected.")
-    exit(1)
+    sys.exit(1)
 
 print(f"Using {len(pzs_to_use)} PZs: {[pz.name for pz in pzs_to_use]}")
 print(f"Architecture: {arch}, Seed: {seed}")
@@ -119,7 +125,7 @@ G.edge_to_pz_map = {}  # Map from edge index to owning pz object (for non-MZ edg
 for pz in G.pzs:
     if not hasattr(pz, "parking_edge"):  # Ensure PZCreator added this
         print(f"Error: PZ {pz.name} seems malformed (missing parking_edge).")
-        exit(1)
+        sys.exit(1)
     parking_idx = get_idx_from_idc(G.idc_dict, pz.parking_edge)
     G.parking_edges_idxs.append(parking_idx)
     G.pzs_name_map[pz.name] = pz
@@ -144,7 +150,7 @@ qasm_file_path = pathlib.Path(qasm_base_dir) / algorithm_name / f"{algorithm_nam
 
 if not qasm_file_path.is_file():
     print(f"Error: QASM file not found at {qasm_file_path}")
-    exit(1)
+    sys.exit(1)
 
 # --- Initial State & Sequence ---
 create_starting_config(G, num_ions, seed=seed)
@@ -166,7 +172,7 @@ if partitioning:
         if len(part) < len(G.pzs):
             print("Error: Partitioning failed to produce enough parts.")
             # Handle error appropriately, maybe fall back to non-partitioned approach or exit.
-            exit(1)
+            sys.exit(1)
         else:  # More parts than PZs, merge extra parts into the last ones
             part = part[: len(G.pzs) - 1] + [qubit for sublist in part[len(G.pzs) - 1 :] for qubit in sublist]
 
@@ -199,7 +205,7 @@ missing_qubits = unique_sequence_qubits - set(all_partition_elements)
 if missing_qubits:
     print(f"Error: Qubits {missing_qubits} from sequence are not in any partition.")
     # This indicates a problem with partitioning or qubit indexing.
-    exit(1)
+    sys.exit(1)
 # Check for overlaps if needed (already done within map_to_pz creation loop)
 
 

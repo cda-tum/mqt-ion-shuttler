@@ -4,7 +4,7 @@ import pathlib
 import time
 
 import numpy as np
-from Cycles import GraphCreator, MemoryZone
+from cycles import GraphCreator, MemoryZone
 from scheduling import create_initial_sequence, create_starting_config, run_simulation
 
 

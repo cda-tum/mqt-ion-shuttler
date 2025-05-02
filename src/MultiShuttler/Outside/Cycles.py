@@ -1,8 +1,9 @@
 import random
 
 import networkx as nx
-from .graph_utils import get_idx_from_idc
 from more_itertools import distinct_combinations, pairwise
+
+from .graph_utils import get_idx_from_idc
 
 
 def get_ions_in_pz_and_connections(graph, pz):
@@ -48,12 +49,11 @@ def find_ion_in_edge(graph, edge_idc):
 
 
 def find_ions_in_parking(graph, pz):
-    ions = [
+    return [
         ion
         for ion, ion_edge_idc in get_ions(graph).items()
         if get_idx_from_idc(graph.idc_dict, ion_edge_idc) == get_idx_from_idc(graph.idc_dict, pz.parking_edge)
     ]
-    return ions
 
 
 # get dict of edge idxs of ions
@@ -109,8 +109,6 @@ def get_ions(graph):
             # make indices of edge consistent
             edge_idc = tuple(sorted((u, v), key=sum))
 
-            if len(data["ions"]) > 1 and graph.get_edge_data(edge_idc[0], edge_idc[1])["edge_type"] == "trap":
-                raise ValueError(f"Edge ({u}, {v}) has more than two ions: {data['ions']}")
             for ion in ions_on_edge:
                 ions[ion] = edge_idc
 
@@ -150,7 +148,7 @@ def have_common_junction_node(graph, edge1, edge2):
 def check_if_edge_is_filled(graph, edge_idc):
     ion = graph.edges()[edge_idc]["ions"]
     if len(ion) > 1:
-        raise ValueError(f"Edge {edge_idc} has more than one ion: {ion}")
+        raise ValueError("Edge has more than one ion")
     return len(ion) > 0  # == 1
 
 

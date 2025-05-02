@@ -4,7 +4,7 @@ from datetime import datetime
 import networkx as nx
 import numpy as np
 from compilation import compile
-from Cycles import create_starting_config, find_path_edge_to_edge
+from cycles import create_starting_config, find_path_edge_to_edge
 from graph_utils import GraphCreator, create_idc_dictionary
 from scheduling import ProcessingZone, get_ion_chains
 from shuttle import main

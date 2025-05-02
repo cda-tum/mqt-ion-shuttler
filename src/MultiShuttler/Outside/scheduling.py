@@ -3,7 +3,9 @@ from collections import OrderedDict, defaultdict
 
 import networkx as nx
 import numpy as np
-from .Cycles import (
+from more_itertools import pairwise
+
+from .cycles import (
     check_if_edge_is_filled,
     create_cycle,
     find_conflict_cycle_idxs,
@@ -20,8 +22,7 @@ from .Cycles import (
     have_common_junction_node,
 )
 from .graph_utils import get_idc_from_idx, get_idx_from_idc
-from more_itertools import pairwise
-from .Paths import create_path_via_bfs_directional, find_nonfree_paths
+from .paths import create_path_via_bfs_directional, find_nonfree_paths
 
 
 def preprocess(graph, priority_queue):
