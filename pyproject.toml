@@ -5,7 +5,7 @@ readme = "README.md"
 authors = [
     { name = "Daniel Schoenberger", email = "daniel.schoenberger@tum.de"}
 ]
-keywords = ["MQT", "quantum computing", "design automatin", "shuttling", "sat solver"]
+keywords = ["MQT", "quantum computing", "compilation", "shuttling", "design automation", "sat solver"]
 license = { file = "LICENSE" }
 
 requires-python = ">=3.8"
