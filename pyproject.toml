@@ -3,7 +3,7 @@ name = "mqt-ion-shuttler"
 description = "A solver for the shuttling problem in QCCD quantum computers"
 readme = "README.md"
 authors = [
-    { name = "Daniel Schönberger", email = "daniel.schoenberger@tum.de"}
+    { name = "Daniel Schoenberger", email = "daniel.schoenberger@tum.de"}
 ]
 keywords = ["MQT", "quantum computing", "design automatin", "shuttling", "sat solver"]
 license = { file = "LICENSE" }
