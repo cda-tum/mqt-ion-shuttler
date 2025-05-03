@@ -26,7 +26,7 @@ def get_idc_from_idx(edge_dictionary, idx):
 
 def create_dist_dict(graph):
     # create dictionary of dictionary with all distances to entry of each edge for each pz
-    from cycles import find_path_edge_to_edge
+    from .cycles import find_path_edge_to_edge
 
     dist_dict = {}
     for pz in graph.pzs:
