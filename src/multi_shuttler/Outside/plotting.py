@@ -14,7 +14,7 @@ def plot_state(
     save_plot=False,
     plot_cycle=False,
     plot_pzs=False,
-    filename="graph.pdf",
+    filename="graph",
 ):
     plot_paper = True
     idc_dict = graph.idc_dict
