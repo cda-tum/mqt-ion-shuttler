@@ -226,7 +226,7 @@ if use_dag:
         G.dist_map = update_distance_map(G, state_idxs)  # {ion: {pz_name: dist}}
         sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, use_dag=use_dag)
         G.sequence = sequence
-        
+
     except Exception as e:
         print(f"Error during DAG creation or initial sequence update: {e}")
         print("Falling back to non-compiled sequence.")
