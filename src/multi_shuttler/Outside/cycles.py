@@ -1,8 +1,9 @@
 import random
 
 import networkx as nx
-from .graph_utils import get_idx_from_idc
 from more_itertools import distinct_combinations, pairwise
+
+from .graph_utils import get_idx_from_idc
 
 
 def get_ions_in_pz_and_connections(graph, pz):
@@ -48,12 +49,11 @@ def find_ion_in_edge(graph, edge_idc):
 
 
 def find_ions_in_parking(graph, pz):
-    ions = [
+    return [
         ion
         for ion, ion_edge_idc in get_ions(graph).items()
         if get_idx_from_idc(graph.idc_dict, ion_edge_idc) == get_idx_from_idc(graph.idc_dict, pz.parking_edge)
     ]
-    return ions
 
 
 # get dict of edge idxs of ions
@@ -109,8 +109,6 @@ def get_ions(graph):
             # make indices of edge consistent
             edge_idc = tuple(sorted((u, v), key=sum))
 
-            if len(data["ions"]) > 1 and graph.get_edge_data(edge_idc[0], edge_idc[1])["edge_type"] == "trap":
-                raise ValueError(f"Edge ({u}, {v}) has more than two ions: {data['ions']}")
             for ion in ions_on_edge:
                 ions[ion] = edge_idc
 
@@ -149,8 +147,6 @@ def have_common_junction_node(graph, edge1, edge2):
 
 def check_if_edge_is_filled(graph, edge_idc):
     ion = graph.edges()[edge_idc]["ions"]
-    if len(ion) > 1:
-        raise ValueError(f"Edge {edge_idc} has more than one ion: {ion}")
     return len(ion) > 0  # == 1
 
 
@@ -220,8 +216,7 @@ def find_path_node_to_edge(graph, node, goal_edge, exclude_exit=False, exclude_f
     if path0 is None:
         if path1 is not None:
             return path1
-        else:
-            return None
+        return None
     if path1 is None and path0 is not None:
         return path0
 
@@ -246,13 +241,14 @@ def find_path_edge_to_edge(graph, edge_idc, goal_edge, exclude_exit=False, exclu
                 graph, edge_idc[1], goal_edge, exclude_exit=False, exclude_first_entry_connection=True
             )
             return node_path
-        elif graph.nodes(data=True)[edge_idc[1]]["node_type"] == "processing_zone_node":
+        if graph.nodes(data=True)[edge_idc[1]]["node_type"] == "processing_zone_node":
             node_path = find_path_node_to_edge(
                 graph, edge_idc[0], goal_edge, exclude_exit=False, exclude_first_entry_connection=True
             )
             return node_path
         else:
-            raise ValueError(f"Edge {edge_idc} is not an entry edge")
+            msg = "Edge is not an entry edge"
+            raise ValueError(msg)
 
     else:
         # find path to goal edge from both nodes

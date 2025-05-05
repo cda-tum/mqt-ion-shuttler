@@ -1,42 +1,17 @@
 # from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
 import networkx as nx
-from Cycles import check_if_edge_is_filled
-from graph_utils import get_idc_from_idx, get_idx_from_idc
 from more_itertools import distinct_combinations
+
+from .cycles import check_if_edge_is_filled
+from .graph_utils import get_idc_from_idx, get_idx_from_idc
 
 # BFS with direction based on a starting edge and a next edge
 
 
-def create_path_via_bfs_directional(graph, current_edge, next_edge, other_next_edges, towards=(0, 0)):
+def create_path_via_bfs_directional(graph, current_edge, next_edge, towards=(0, 0)):
     if towards == (0, 0):
         # towards is first edge in graph (can't be (0,0) because it may be deleted)
         towards = list(graph.edges())[0][0]
-
-    #     # move from entry to memory zone
-    # if get_idx_from_idc(graph.idc_dict, current_edge) == get_idx_from_idc(
-    #     graph.idc_dict, graph.pzgraph_creator.entry_edge
-    # ):  # in graph.pzgraph_creator.path_from_pz_idxs:
-    #     target_edge = graph.bfs_free_edge(towards, other_next_edges)
-    #     # calc path to target edge
-    #     path0 = get_path_to_node(
-    #         graph,
-    #         graph.pzgraph_creator.processing_zone,
-    #         target_edge[0],
-    #         exclude_exit=True,
-    #         exclude_first_entry_connection=False,
-    #     )
-    #     path1 = get_path_to_node(
-    #         graph,
-    #         graph.pzgraph_creator.processing_zone,
-    #         target_edge[1],
-    #         exclude_exit=True,
-    #         exclude_first_entry_connection=False,
-    #     )
-    #     if len(path1) > len(path0):
-    #         edge_path = [*path0, (target_edge[0], target_edge[1])]
-    #     else:
-    #         edge_path = [*path1, (target_edge[1], target_edge[0])]
-    #     return edge_path
 
     # Define the starting node (the middle node where edges meet)
     common_node, next_node = (
@@ -77,11 +52,10 @@ def create_path_via_bfs_directional(graph, current_edge, next_edge, other_next_e
             # Continue BFS
             if neighbor not in visited:
                 queue.append((neighbor, [*path, current_node]))
-    print("No path found for edge", current_edge, next_edge)
     return None  # No valid path found
 
 
-def find_nonfree_paths(graph, paths_idcs_dict):  # TODO change pz (uncomment)
+def find_nonfree_paths(graph, paths_idcs_dict):
     paths_idxs_dict = {}
     for key in paths_idcs_dict:
         paths_idxs_dict[key] = {get_idx_from_idc(graph.idc_dict, edge_idc) for edge_idc in paths_idcs_dict[key]}
@@ -95,36 +69,33 @@ def find_nonfree_paths(graph, paths_idcs_dict):  # TODO change pz (uncomment)
     for path_ion_1, path_ion_2 in combinations_of_paths:
         intersection = paths_idxs_dict[path_ion_1].intersection(paths_idxs_dict[path_ion_2])
         # Skip if the intersection is the exit or entry edge -> allows ions to move to exit and entry right after another ion
-        # remove exit and entry edges from intersection -> can push through to parking edge -> conflicts are managed in scheduling.py - create_circles_for_moves()
+        # remove exit and entry edges (and parking edges now) from intersection -> can push through to parking edge -> conflicts are managed in scheduling.py - create_circles_for_moves()
         intersection = {
             edge
             for edge in intersection
             if graph.get_edge_data(*get_idc_from_idx(graph.idc_dict, edge))["edge_type"]
-            not in ["exit", "entry", "first_entry_connection"]
+            not in ["exit", "entry", "first_entry_connection", "parking_edge"]
         }
 
         # Store the common edges and the conflicting paths
         if intersection:
             common_edges.update(intersection)
             conflicting_paths.append((path_ion_1, path_ion_2))  # Store indices of conflicting paths
-    print("conflicting_paths edges\n", conflicting_paths)
-    # Compare junction nodes (with edge_IDC)
-    junction_nodes = [*graph.junction_nodes]  # , graph.pzgraph_creator.processing_zone] TODO
 
+    # Compare junction nodes (with edge_IDC)
+    junction_nodes = [*graph.junction_nodes]  # , graph.pzgraph_creator.processing_zone]
+    # TODO check hier warum path von pz stop move geblockt wird -> 18 move von 17 in pz geblockt nach timestep 36, checked und situation passt, weil 17 erst reingemoved ist -> junction kann nur einen move executen
     for path_ion_1, path_ion_2 in combinations_of_paths:
         if len(paths_idcs_dict[path_ion_1]) == 2:
             # if same edge twice -> skip (no edge if twice parking edge, otherwise only first node)
             if paths_idcs_dict[path_ion_1][0] == paths_idcs_dict[path_ion_1][1]:
-                # TODO
-                # if get_idx_from_idc(graph.idc_dict, paths_idcs_dict[path_ion_1][0]) == get_idx_from_idc(
-                #     graph.idc_dict, graph.pzgraph_creator.parking_edge
                 if (
                     graph.get_edge_data(
                         *get_idc_from_idx(
                             graph.idc_dict, get_idx_from_idc(graph.idc_dict, paths_idcs_dict[path_ion_1][0])
                         )
                     )["edge_type"]
-                    == "processing"
+                    == "parking_edge"
                 ):
                     nodes1 = set()
                 else:
@@ -141,18 +112,13 @@ def find_nonfree_paths(graph, paths_idcs_dict):  # TODO change pz (uncomment)
         if len(paths_idcs_dict[path_ion_2]) == 2:
             # if same edge twice -> skip (no edge if twice parking edge, otherwise only first node)
             if paths_idcs_dict[path_ion_2][0] == paths_idcs_dict[path_ion_2][1]:
-                # TODO
-                # if get_idx_from_idc(graph.idc_dict, paths_idcs_dict[path_ion_2][0]) == get_idx_from_idc(
-                #     graph.idc_dict, graph.pzgraph_creator.parking_edge
-                # ):
-                #     nodes2 = set()
                 if (
                     graph.get_edge_data(
                         *get_idc_from_idx(
                             graph.idc_dict, get_idx_from_idc(graph.idc_dict, paths_idcs_dict[path_ion_2][0])
                         )
                     )["edge_type"]
-                    == "processing"
+                    == "parking_edge"
                 ):
                     nodes2 = set()
                 else:
@@ -166,7 +132,7 @@ def find_nonfree_paths(graph, paths_idcs_dict):  # TODO change pz (uncomment)
         else:
             nodes2 = {node for edge in paths_idcs_dict[path_ion_2][1:-1] for node in edge}
 
-        # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)
+        # new: exclude processing zone node -> if pz node in circles -> can both be executed -> now not in junction_nodes and also not checked in first check above
         # extra: if both end in same edge -> don't execute (scenario where path out of pz ends in same edge as next edge for other)
         if (
             len(nodes1.intersection(nodes2).intersection(junction_nodes))
@@ -174,5 +140,4 @@ def find_nonfree_paths(graph, paths_idcs_dict):  # TODO change pz (uncomment)
             # and graph.pzgraph_creator.processing_zone not in nodes1.intersection(nodes2)
         ):
             conflicting_paths.append((path_ion_1, path_ion_2))
-    print("conflicting_paths", conflicting_paths)
     return conflicting_paths

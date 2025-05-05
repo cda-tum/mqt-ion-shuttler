@@ -50,7 +50,7 @@ python3 run_exact.py --help
 python3 run_exact.py algorithms_exact/qft_06.json
 ```
 
-The script supports an additional `--plot` argument to visualise the result. All parameters are documented via `--help`. 
+The script supports an additional `--plot` argument to visualise the result. All parameters are documented via `--help`.
 Architectures and algorithms are specified in JSON files—see the examples in [`algorithms_exact/`](algorithms_exact/).
 
 ### Heuristic Solution (single & multiple PZs)

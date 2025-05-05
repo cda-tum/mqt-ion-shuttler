@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from Cycles import get_ion_chains
+from cycles import get_ion_chains
 from plotting import plot_state
 from scheduling import (
     create_cycles_for_moves,

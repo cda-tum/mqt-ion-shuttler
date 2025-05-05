@@ -5,7 +5,7 @@ import random
 import sys
 import time
 
-from SingleShuttler.SAT import MemorySAT, create_graph
+from single_shuttler.SAT import MemorySAT, create_graph
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

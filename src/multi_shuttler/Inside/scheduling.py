@@ -1,7 +1,7 @@
 from collections import OrderedDict, defaultdict
 
 import numpy as np
-from Cycles import (
+from cycles import (
     check_if_edge_is_filled,
     create_cycle,
     find_next_edge,
@@ -13,7 +13,7 @@ from Cycles import (
 )
 from graph_utils import get_idx_from_idc
 from more_itertools import distinct_combinations, pairwise
-from Paths import create_path_via_bfs_directional, find_nonfree_paths
+from paths import create_path_via_bfs_directional, find_nonfree_paths
 
 # Set up logging configuration
 # logging.basicConfig(
@@ -134,6 +134,8 @@ def create_priority_queue(graph, sequence, max_length=10):
             if seq_elem not in graph.locked_gates:
                 # pick processing zone for 2-qubit gate
                 pz_for_2_q_gate = pick_pz_for_2_q_gate_new(graph, seq_elem[0], seq_elem[1])
+                # new in multishuttler outside:
+                # graph.locked_gates[seq_elem] = pz_for_2_q_gate
             else:
                 pz_for_2_q_gate = graph.locked_gates[seq_elem]
 

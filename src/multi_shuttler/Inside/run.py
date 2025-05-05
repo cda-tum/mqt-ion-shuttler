@@ -4,7 +4,7 @@ from datetime import datetime
 import networkx as nx
 import numpy as np
 from compilation import compile
-from Cycles import create_starting_config, find_path_edge_to_edge
+from cycles import create_starting_config, find_path_edge_to_edge
 from graph_utils import GraphCreator, create_idc_dictionary
 from scheduling import ProcessingZone, get_ion_chains
 from shuttle import main
@@ -12,14 +12,21 @@ from shuttle import main
 plot = False
 save = False
 
-paths = True
+paths = False
 cycle_or_paths = "Paths" if paths else "Cycles"
 
-number_of_pzs_list = [2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
+number_of_pzs_list = [1, 2]  # [2, 3, 4]#, 5, 6, 7, 8, 9, 10]
 archs = [
-    [3, 3, 1, 1],
+    [3, 3, 1, 1],  # time 2 qubit gate = 1?
+    [3, 3, 2, 2],
+    [3, 3, 3, 3],
+    [4, 4, 1, 1],
+    [4, 4, 2, 2],
+    [4, 4, 3, 3],
+    [5, 5, 1, 1],
+    [5, 5, 2, 2],
 ]
-seeds = [1]  # , 1, 2, 3, 4]
+seeds = [3]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
@@ -48,7 +55,8 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
 
             print(f"Number of chains: {number_of_chains}")
             algorithm = "qft_no_swaps_nativegates_quantinuum_tket"
-            qasm_file_path = f"../../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
+            # algorithm = "full_register_access"
+            qasm_file_path = f"../../../QASM_files/{algorithm}/{algorithm}_{number_of_chains}.qasm"
 
             edges = list(G.edges())
             # print("edges", math.ceil(len(edges)))
@@ -171,7 +179,7 @@ for m, n, ion_chain_size_vertical, ion_chain_size_horizontal in archs:
         cpu_time_array = np.array(cpu_time_array)
         timesteps_average = np.mean(timesteps_array)
         cpu_time_average = np.mean(cpu_time_array)
-
+        print("time: ", cpu_time_average)
         # save averages
         with open(f"benchmarks/{time}{algorithm}.txt", "a") as f:
             f.write(
