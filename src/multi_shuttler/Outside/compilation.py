@@ -123,12 +123,12 @@ def create_initial_sequence(filename):
     return parse_qasm(filename)
 
 
-def create_updated_sequence_destructive(graph, filename, dag_dep, compilation):
+def create_updated_sequence_destructive(graph, filename, dag_dep, use_dag):
     # assert file is a qasm file
     assert is_qasm_file(filename), "The file is not a valid QASM file."
 
     # generate sequence
-    if compilation is False:
+    if use_dag is False:
         seq = parse_qasm(filename)
         dag_dep = None
     else:

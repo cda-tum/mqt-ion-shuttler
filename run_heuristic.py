@@ -9,6 +9,7 @@ from multi_shuttler.Outside.compilation import (
     create_dist_dict,
     create_initial_sequence,
     update_distance_map,
+    create_updated_sequence_destructive
 )
 from multi_shuttler.Outside.cycles import (
     create_starting_config,
@@ -161,7 +162,7 @@ seq_length = len(G.sequence)
 print(f"Number of Gates: {seq_length}")
 
 # --- Partitioning ---
-partitioning = True  # Make configurable?
+partitioning = True  # Make configurable
 if partitioning:
     part = get_partition(qasm_file_path, len(G.pzs))
     # Ensure partition list length matches num_pzs
@@ -180,10 +181,9 @@ if partitioning:
     print(f"Partition: {partition}")
 else:
     # Fallback: Assign ions to closest PZ (example logic)
-    print("Partitioning disabled. Assigning ions to closest PZ (basic method).")
-    partition = {pz.name: [] for pz in G.pzs}
-    # ... (implement closest PZ assignment logic as in your original file) ...
-    # Make sure this logic correctly assigns *all* ions involved in the sequence.
+    print("Disabling Partitioning has to be implemented.")
+    # TODO
+    # ... (implement closest PZ assignment logic) ...
 
 # Create reverse map and validate partition
 map_to_pz = {}
@@ -195,7 +195,6 @@ for pz_name, elements in partition.items():
             print(
                 f"Warning: Qubit {element} assigned to multiple partitions ({map_to_pz[element]}, {pz_name}). Check partitioning logic."
             )
-            # Decide on a conflict resolution strategy if needed
         map_to_pz[element] = pz_name
 G.map_to_pz = map_to_pz
 
@@ -214,12 +213,20 @@ dag = None
 dag_copy = None  # Store original DAG if needed
 if use_dag:
     try:
+        for pz in G.pzs:
+            pz.getting_processed = []
+        else:
+            dag = create_dag(qasm_file_path)
+        G.locked_gates = {}
         dag = create_dag(qasm_file_path)
         dag_copy = dag.copy()  # Keep a copy of the original DAG if needed later
         # Initial DAG-based sequence update
         G.dist_dict = create_dist_dict(G)
         state_idxs = get_state_idxs(G)  # {ion: edge_idx}
         G.dist_map = update_distance_map(G, state_idxs)  # {ion: {pz_name: dist}}
+        sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, use_dag=use_dag)
+        G.sequence = sequence
+        
     except Exception as e:
         print(f"Error during DAG creation or initial sequence update: {e}")
         print("Falling back to non-compiled sequence.")

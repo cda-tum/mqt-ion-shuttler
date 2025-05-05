@@ -60,7 +60,7 @@ def find_pz_order(graph, gate_info_list):
     return pz_order
 
 
-def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_folder):
+def shuttle(graph, priority_queue, timestep, cycle_or_paths, unique_folder):
     # stop moves (ions that are already in the correct processing zone for a two-qubit gate)
     graph.stop_moves = []
 
@@ -70,7 +70,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
     graph.state = get_ions(graph)
 
     check_duplicates(graph)
-    part_prio_queues = get_partitioned_priority_queues(graph, priority_queue, partition)
+    part_prio_queues = get_partitioned_priority_queues(priority_queue)
 
     all_cycles = {}
     # Iterate over all processing zones
@@ -81,7 +81,7 @@ def shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_f
         prio_queue = part_prio_queues[pz.name]
         move_list = create_move_list(graph, prio_queue, pz)
         cycles, in_and_into_exit_moves = create_cycles_for_moves(
-            graph, move_list, prio_queue, cycle_or_paths, pz, other_next_edges=None
+            graph, move_list, cycle_or_paths, pz, other_next_edges=None
         )
         # add cycles to all_cycles
         all_cycles = {**all_cycles, **cycles}
@@ -204,7 +204,7 @@ def main(graph, partition, dag, cycle_or_paths, use_dag):
                         graph.in_process.append(ion2)
 
         # shuttle one timestep
-        shuttle(graph, priority_queue, partition, timestep, cycle_or_paths, unique_folder)
+        shuttle(graph, priority_queue, timestep, cycle_or_paths, unique_folder)
 
         # reset ions in process
         graph.in_process = []
