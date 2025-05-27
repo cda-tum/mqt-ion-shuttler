@@ -3,23 +3,23 @@ import json
 import pathlib
 from datetime import datetime
 
-from MultiShuttler.Outside.compilation import (
+from src.MultiShuttler.Outside.compilation import (
     create_dag,
     create_dist_dict,
     create_initial_sequence,
     update_distance_map,
 )
-from MultiShuttler.Outside.Cycles import (
+from src.MultiShuttler.Outside.Cycles import (
     create_starting_config,
     get_ions,
     get_state_idxs,
 )
 
 # Import your project modules
-from MultiShuttler.Outside.graph_utils import GraphCreator, ProcessingZone, PZCreator, create_idc_dictionary, get_idx_from_idc
+from src.MultiShuttler.Outside.graph_utils import GraphCreator, ProcessingZone, PZCreator, create_idc_dictionary, get_idx_from_idc
 
-from MultiShuttler.Outside.partition import get_partition
-from MultiShuttler.Outside.shuttle import main as run_shuttle_main
+from src.MultiShuttler.Outside.partition import get_partition
+from src.MultiShuttler.Outside.shuttle import main as run_shuttle_main
 
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description="Run MQT IonShuttler")
