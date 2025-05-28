@@ -1,5 +1,5 @@
 import networkx as nx
-from graph_utils import (
+from .graph_utils import (
     GraphCreator,
     MZGraphCreator,
     calc_dist_to_pz,

@@ -6,9 +6,9 @@ from pathlib import Path
 
 import networkx as nx
 import numpy as np
-from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
-from cycles import get_idc_from_idx, get_idx_from_idc
-from plotting import plot_state
+from .compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
+from .cycles import get_idc_from_idx, get_idx_from_idc
+from .plotting import plot_state
 from qiskit import QuantumCircuit
 from qiskit.converters import circuit_to_dagdependency
 from qiskit.transpiler.passes import RemoveBarriers, RemoveFinalMeasurements
