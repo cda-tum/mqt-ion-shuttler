@@ -1,25 +1,31 @@
 import argparse
 import json
 import pathlib
+import sys
 from datetime import datetime
 
-from src.MultiShuttler.Outside.compilation import (
+from src.multi_shuttler.Outside.compilation import (
     create_dag,
     create_dist_dict,
     create_initial_sequence,
+    create_updated_sequence_destructive,
     update_distance_map,
 )
-from src.MultiShuttler.Outside.Cycles import (
+from src.multi_shuttler.Outside.cycles import (
     create_starting_config,
     get_ions,
     get_state_idxs,
 )
 
-# Import your project modules
-from src.MultiShuttler.Outside.graph_utils import GraphCreator, ProcessingZone, PZCreator, create_idc_dictionary, get_idx_from_idc
-
-from src.MultiShuttler.Outside.partition import get_partition
-from src.MultiShuttler.Outside.shuttle import main as run_shuttle_main
+from src.multi_shuttler.Outside.graph_utils import (
+    GraphCreator,
+    ProcessingZone,
+    PZCreator,
+    create_idc_dictionary,
+    get_idx_from_idc,
+)
+from src.multi_shuttler.Outside.partition import get_partition
+from src.multi_shuttler.Outside.shuttle import main as run_shuttle_main
 
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description="Run MQT IonShuttler")
@@ -34,10 +40,10 @@ try:
         config = json.load(f)
 except FileNotFoundError:
     print(f"Error: Configuration file not found at {args.config_file}")
-    exit(1)
+    sys.exit(1)
 except json.JSONDecodeError:
     print(f"Error: Could not parse JSON file {args.config_file}")
-    exit(1)
+    sys.exit(1)
 
 # --- Extract Parameters from Config ---
 arch = config.get("arch")
@@ -57,10 +63,10 @@ qasm_base_dir = config.get("qasm_base_dir", "../../../QASM_files")
 # --- Validate Config ---
 if not all([arch, algorithm_name, num_ions]):
     print("Error: Missing required parameters in config file (arch, algorithm_name, num_ions)")
-    exit(1)
+    sys.exit(1)
 if not isinstance(arch, list) or len(arch) != 4:
     print("Error: 'arch' must be a list of 4 integers [m, n, v, h]")
-    exit(1)
+    sys.exit(1)
 
 # --- Setup ---
 start_time = datetime.now()
@@ -96,7 +102,7 @@ pzs_to_use = [pz_definitions[name] for name in available_pz_names[:num_pzs_confi
 
 if not pzs_to_use:
     print(f"Error: num_pzs ({num_pzs_config}) is invalid or results in no PZs selected.")
-    exit(1)
+    sys.exit(1)
 
 print(f"Using {len(pzs_to_use)} PZs: {[pz.name for pz in pzs_to_use]}")
 print(f"Architecture: {arch}, Seed: {seed}")
@@ -119,7 +125,7 @@ G.edge_to_pz_map = {}  # Map from edge index to owning pz object (for non-MZ edg
 for pz in G.pzs:
     if not hasattr(pz, "parking_edge"):  # Ensure PZCreator added this
         print(f"Error: PZ {pz.name} seems malformed (missing parking_edge).")
-        exit(1)
+        sys.exit(1)
     parking_idx = get_idx_from_idc(G.idc_dict, pz.parking_edge)
     G.parking_edges_idxs.append(parking_idx)
     G.pzs_name_map[pz.name] = pz
@@ -144,7 +150,7 @@ qasm_file_path = pathlib.Path(qasm_base_dir) / algorithm_name / f"{algorithm_nam
 
 if not qasm_file_path.is_file():
     print(f"Error: QASM file not found at {qasm_file_path}")
-    exit(1)
+    sys.exit(1)
 
 # --- Initial State & Sequence ---
 create_starting_config(G, num_ions, seed=seed)
@@ -155,7 +161,7 @@ seq_length = len(G.sequence)
 print(f"Number of Gates: {seq_length}")
 
 # --- Partitioning ---
-partitioning = True  # Make configurable?
+partitioning = True  # Make configurable
 if partitioning:
     part = get_partition(qasm_file_path, len(G.pzs))
     # Ensure partition list length matches num_pzs
@@ -166,7 +172,7 @@ if partitioning:
         if len(part) < len(G.pzs):
             print("Error: Partitioning failed to produce enough parts.")
             # Handle error appropriately, maybe fall back to non-partitioned approach or exit.
-            exit(1)
+            sys.exit(1)
         else:  # More parts than PZs, merge extra parts into the last ones
             part = part[: len(G.pzs) - 1] + [qubit for sublist in part[len(G.pzs) - 1 :] for qubit in sublist]
 
@@ -174,10 +180,9 @@ if partitioning:
     print(f"Partition: {partition}")
 else:
     # Fallback: Assign ions to closest PZ (example logic)
-    print("Partitioning disabled. Assigning ions to closest PZ (basic method).")
-    partition = {pz.name: [] for pz in G.pzs}
-    # ... (implement closest PZ assignment logic as in your original file) ...
-    # Make sure this logic correctly assigns *all* ions involved in the sequence.
+    print("Disabling Partitioning has to be implemented.")
+    # TODO
+    # ... (implement closest PZ assignment logic) ...
 
 # Create reverse map and validate partition
 map_to_pz = {}
@@ -189,7 +194,6 @@ for pz_name, elements in partition.items():
             print(
                 f"Warning: Qubit {element} assigned to multiple partitions ({map_to_pz[element]}, {pz_name}). Check partitioning logic."
             )
-            # Decide on a conflict resolution strategy if needed
         map_to_pz[element] = pz_name
 G.map_to_pz = map_to_pz
 
@@ -199,7 +203,7 @@ missing_qubits = unique_sequence_qubits - set(all_partition_elements)
 if missing_qubits:
     print(f"Error: Qubits {missing_qubits} from sequence are not in any partition.")
     # This indicates a problem with partitioning or qubit indexing.
-    exit(1)
+    sys.exit(1)
 # Check for overlaps if needed (already done within map_to_pz creation loop)
 
 
@@ -208,12 +212,19 @@ dag = None
 dag_copy = None  # Store original DAG if needed
 if use_dag:
     try:
+        for pz in G.pzs:
+            pz.getting_processed = []
+        dag = create_dag(qasm_file_path)
+        G.locked_gates = {}
         dag = create_dag(qasm_file_path)
         dag_copy = dag.copy()  # Keep a copy of the original DAG if needed later
         # Initial DAG-based sequence update
         G.dist_dict = create_dist_dict(G)
         state_idxs = get_state_idxs(G)  # {ion: edge_idx}
         G.dist_map = update_distance_map(G, state_idxs)  # {ion: {pz_name: dist}}
+        sequence, flat_sequence, dag = create_updated_sequence_destructive(G, qasm_file_path, dag, use_dag=use_dag)
+        G.sequence = sequence
+
     except Exception as e:
         print(f"Error during DAG creation or initial sequence update: {e}")
         print("Falling back to non-compiled sequence.")

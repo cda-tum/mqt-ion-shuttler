@@ -3,9 +3,9 @@ name = "mqt-ion-shuttler"
 description = "A solver for the shuttling problem in QCCD quantum computers"
 readme = "README.md"
 authors = [
-    { name = "Daniel Schönberger", email = "daniel.schoenberger@tum.de"}
+    { name = "Daniel Schoenberger", email = "daniel.schoenberger@tum.de"}
 ]
-keywords = ["MQT", "quantum computing", "design automatin", "shuttling", "sat solver"]
+keywords = ["MQT", "quantum computing", "compilation", "shuttling", "design automation", "sat solver"]
 license = { file = "LICENSE" }
 
 requires-python = ">=3.8"
@@ -91,4 +91,9 @@ line-length = 120
 [tool.setuptools]
 package-dir = {"" = "src"}             # "src/" is the root of all packages
 packages    = {find = {where = ["src"]}}
-py-modules  = []   
+py-modules  = []
+
+
+[tool.ruff.per-file-ignores]
+"src/single_shuttler/*" = ["ALL"]
+"src/multi_shuttler/Inside/*" = ["ALL"]

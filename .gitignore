@@ -13,3 +13,13 @@ __pycache__/
 .DS_Store
 
 QASM_files/
+QASM_files/development/
+benchmarks/
+
+# Python packaging
+*.egg-info/
+
+__pycache__/
+*.pyc
+
+run.py
