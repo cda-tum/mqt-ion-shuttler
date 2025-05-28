@@ -92,3 +92,8 @@ line-length = 120
 package-dir = {"" = "src"}             # "src/" is the root of all packages
 packages    = {find = {where = ["src"]}}
 py-modules  = []
+
+
+[tool.ruff.per-file-ignores]
+"src/single_shuttler/*" = ["ALL"]
+"src/multi_shuttler/Inside/*" = ["ALL"]

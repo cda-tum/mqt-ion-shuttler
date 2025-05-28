@@ -3,6 +3,7 @@ from datetime import datetime
 
 import networkx as nx
 import numpy as np
+
 from .compilation import compile
 from .cycles import create_starting_config, find_path_edge_to_edge
 from .graph_utils import GraphCreator, create_idc_dictionary
@@ -17,7 +18,7 @@ cycle_or_paths = "Paths" if paths else "Cycles"
 
 number_of_pzs_list = [1, 2]
 archs = [
-    [3, 3, 1, 1], 
+    [3, 3, 1, 1],
 ]
 seeds = [3]  # , 1, 2, 3, 4]
 time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

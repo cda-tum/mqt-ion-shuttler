@@ -37,7 +37,7 @@ def run_simulation_for_architecture(arch, seeds, pz, max_timesteps, compilation=
         except:
             continue
         print(f"ion chains: {ion_chains}, number of registers: {number_of_registers}")
-        #filename = f"../../QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
+        # filename = f"../../QASM_files/full_register_access/full_register_access_{num_ion_chains}.qasm"
         filename = f"../../QASM_files/development/qft_no_swaps_nativegates_quantinuum_tket/qft_no_swaps_nativegates_quantinuum_tket_{num_ion_chains}.qasm"
         print(f"arch: {arch}, seed: {seed}, registers: {number_of_registers}\n")
 

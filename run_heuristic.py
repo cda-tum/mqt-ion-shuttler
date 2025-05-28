@@ -8,8 +8,8 @@ from multi_shuttler.Outside.compilation import (
     create_dag,
     create_dist_dict,
     create_initial_sequence,
+    create_updated_sequence_destructive,
     update_distance_map,
-    create_updated_sequence_destructive
 )
 from multi_shuttler.Outside.cycles import (
     create_starting_config,
@@ -215,8 +215,7 @@ if use_dag:
     try:
         for pz in G.pzs:
             pz.getting_processed = []
-        else:
-            dag = create_dag(qasm_file_path)
+        dag = create_dag(qasm_file_path)
         G.locked_gates = {}
         dag = create_dag(qasm_file_path)
         dag_copy = dag.copy()  # Keep a copy of the original DAG if needed later

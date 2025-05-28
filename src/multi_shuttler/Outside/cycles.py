@@ -150,38 +150,32 @@ def check_if_edge_is_filled(graph, edge_idc):
     return len(ion) > 0  # == 1
 
 
-# include option to exclude first entry connection - then change get_path_to_node to this in scheduling.py
 def shortest_path_to_node(nx_g, src, tar, exclude_exit=False, exclude_first_entry_connection=True):
-    # edge_path = []
-    if exclude_first_entry_connection is True:
-        # lambda function to give path over processing zone huge weight -> doesn't take that path if not necessary - now only encludes entry edge -> can use exit (in MemGrid was != trap before and then to exit node -> not PZ node)
-        node_path = nx.shortest_path(
-            nx_g,
-            src,
-            tar,
-            lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] == "first_entry_connection") * 1e8 + 1,
-        )
-        # also exclude exit edge if necessary
-        if exclude_exit is True:
-            node_path = nx.shortest_path(
+    if exclude_first_entry_connection:
+        if exclude_exit:
+            return nx.shortest_path(
                 nx_g,
                 src,
                 tar,
                 lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] in ("first_entry_connection", "exit")) * 1e8
                 + 1,
             )
-
-    # only exclude exit edge
-    elif exclude_exit is True:
-        node_path = nx.shortest_path(
-            nx_g, src, tar, lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] == "exit") * 1e8 + 1
+        return nx.shortest_path(
+            nx_g,
+            src,
+            tar,
+            lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] == "first_entry_connection") * 1e8 + 1,
         )
 
-    else:
-        node_path = nx.shortest_path(nx_g, src, tar)
-    # shortest path should always be the correct path in a grid -> care for changes
+    if exclude_exit:
+        return nx.shortest_path(
+            nx_g,
+            src,
+            tar,
+            lambda _, __, edge_attr_dict: (edge_attr_dict["edge_type"] == "exit") * 1e8 + 1,
+        )
 
-    return node_path
+    return nx.shortest_path(nx_g, src, tar)
 
 
 def find_path_node_to_edge(graph, node, goal_edge, exclude_exit=False, exclude_first_entry_connection=True):
@@ -199,7 +193,7 @@ def find_path_node_to_edge(graph, node, goal_edge, exclude_exit=False, exclude_f
             exclude_exit=exclude_exit,
             exclude_first_entry_connection=exclude_first_entry_connection,
         )
-    except:
+    except (nx.NetworkXNoPath, nx.NodeNotFound):
         path0 = None
     try:
         path1 = shortest_path_to_node(
@@ -209,7 +203,7 @@ def find_path_node_to_edge(graph, node, goal_edge, exclude_exit=False, exclude_f
             exclude_exit=exclude_exit,
             exclude_first_entry_connection=exclude_first_entry_connection,
         )
-    except:
+    except (nx.NetworkXNoPath, nx.NodeNotFound):
         path1 = None
 
     # now still works if one node of target edge is not present in graph
@@ -226,8 +220,7 @@ def find_path_node_to_edge(graph, node, goal_edge, exclude_exit=False, exclude_f
     # return min path
     if len(path1) < len(path0):
         return path1
-    else:
-        return path0
+    return path0
 
 
 def find_path_edge_to_edge(graph, edge_idc, goal_edge, exclude_exit=False, exclude_first_entry_connection=True):
@@ -246,32 +239,29 @@ def find_path_edge_to_edge(graph, edge_idc, goal_edge, exclude_exit=False, exclu
                 graph, edge_idc[0], goal_edge, exclude_exit=False, exclude_first_entry_connection=True
             )
             return node_path
-        else:
-            msg = "Edge is not an entry edge"
-            raise ValueError(msg)
+        msg = "Edge is not an entry edge"
+        raise ValueError(msg)
 
-    else:
-        # find path to goal edge from both nodes
-        path0 = find_path_node_to_edge(
-            graph,
-            edge_idc[0],
-            goal_edge,
-            exclude_exit=exclude_exit,
-            exclude_first_entry_connection=exclude_first_entry_connection,
-        )
-        path1 = find_path_node_to_edge(
-            graph,
-            edge_idc[1],
-            goal_edge,
-            exclude_exit=exclude_exit,
-            exclude_first_entry_connection=exclude_first_entry_connection,
-        )
+    # find path to goal edge from both nodes
+    path0 = find_path_node_to_edge(
+        graph,
+        edge_idc[0],
+        goal_edge,
+        exclude_exit=exclude_exit,
+        exclude_first_entry_connection=exclude_first_entry_connection,
+    )
+    path1 = find_path_node_to_edge(
+        graph,
+        edge_idc[1],
+        goal_edge,
+        exclude_exit=exclude_exit,
+        exclude_first_entry_connection=exclude_first_entry_connection,
+    )
 
     # return min path
     if len(path1) < len(path0):
         return path1
-    else:
-        return path0
+    return path0
 
 
 def find_next_edge(graph, edge_idc, goal_edge, exclude_exit=False, exclude_first_entry_connection=True):
@@ -410,7 +400,7 @@ def find_conflict_cycle_idxs(graph, cycles_dict):
         # new: exclude processing zone node -> if pz node in circles -> can both be executed (TODO check again for moves out of pz)
         # extra: if both end in same edge -> don't execute (scenario where path out of pz ends in same edge as next edge for other)
         # -> new exclude parking edge (can end both in parking edge, since stop moves in parking edge also end in parking edge)
-        if len(nodes1.intersection(nodes2)) > 0 or (
+        if len(nodes1.intersection(nodes2)) > 0 or (  # noqa: SIM102
             get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][-1])
             == (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle2][-1]))
             and (get_idx_from_idc(graph.idc_dict, cycles_dict[cycle1][-1]) not in graph.parking_edges_idxs)

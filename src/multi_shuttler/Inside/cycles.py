@@ -1,8 +1,9 @@
 import random
 
 import networkx as nx
-from .graph_utils import get_idx_from_idc
 from more_itertools import pairwise
+
+from .graph_utils import get_idx_from_idc
 
 
 def create_starting_config(graph, n_of_chains, seed=None):

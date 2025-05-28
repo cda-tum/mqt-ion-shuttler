@@ -1,8 +1,9 @@
 # from compilation import is_qasm_file, manual_copy_dag, parse_qasm, remove_node, update_sequence
 import networkx as nx
+from more_itertools import distinct_combinations
+
 from .cycles import check_if_edge_is_filled
 from .graph_utils import get_idc_from_idx, get_idx_from_idc
-from more_itertools import distinct_combinations
 
 # BFS with direction based on a starting edge and a next edge
 
