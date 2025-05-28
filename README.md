@@ -74,6 +74,7 @@ This implementation is based on the following publications:
 
 1. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, "Using Boolean Satisfiability for Exact Shuttling in Trapped-Ion Quantum Computers," _ASP-DAC_, 2024.
 2. D. Schoenberger, S. Hillmich, M. Brandl, and R. Wille, "Shuttling for Scalable Trapped-Ion Quantum Computers," _IEEE TCAD_, 2024.
+3. D. Schoenberger, R. Wille, "Orchestrating Multi-Zone Shuttling in Trapped-Ion Quantum Computers".
 
 ---
 
