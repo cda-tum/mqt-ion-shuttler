@@ -1,9 +1,9 @@
 import os
 from datetime import datetime
 
-from cycles import get_ion_chains
-from plotting import plot_state
-from scheduling import (
+from .cycles import get_ion_chains
+from .plotting import plot_state
+from .scheduling import (
     create_cycles_for_moves,
     create_gate_info_list,
     create_move_list,
