@@ -1,7 +1,7 @@
 [build-system]
 requires = ["setuptools>=58.0.0", "wheel"]  # Build-time dependencies
 build-backend = "setuptools.build_meta"     # Specifies Setuptools as the build backend
-backend-path = ["."]                        # Indicates the backend can be found in the project root
+# backend-path = ["."]                        # Indicates the backend can be found in the project root
 
 [project]
 name = "mqt-ion-shuttler"
