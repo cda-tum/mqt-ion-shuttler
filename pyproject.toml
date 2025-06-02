@@ -23,10 +23,9 @@ dependencies = [
 ]
 
 [tool.setuptools]
-package-dir = {"" = "src"}  # "src/" is the root for packages
-# This tells setuptools to find all packages under 'src' that start with 'mqt'.
-
-packages    = {find_namespace = {where = ["src"], include = ["mqt*"]}}
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages    = {find = {where = ["src"], include = ["mqt*"], namespaces = true}}
 py-modules  = []
 
 [tool.ruff]
