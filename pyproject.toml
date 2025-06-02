@@ -23,7 +23,6 @@ dependencies = [
 ]
 
 [tool.setuptools]
-[tool.setuptools]
 package-dir = {"" = "src"}
 packages    = {find = {where = ["src"], include = ["mqt*"], namespaces = true}}
 py-modules  = []
