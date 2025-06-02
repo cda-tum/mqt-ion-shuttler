@@ -1,4 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/mqt-ion-shuttler.svg)](https://badge.fury.io/py/mqt-ion-shuttler)
 
 <p align="center">
   <a href="https://mqt.readthedocs.io">
@@ -11,7 +12,7 @@
 
 # MQT IonShuttler
 
-<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for trapped-ion quantum computers with a grid-like Memory Zone based on the Quantum Charge Coupled Device (QCCD) architecture. It supports
+<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for trapped-ion quantum computers with a grid-like Memory Zone based on the Quantum Charge Coupled Device (QCCD) architecture. It supports:
 
 - **exact shuttling schedules** for small architectures with **a single processing zone (PZ)**, and
 - **heuristic shuttling schedules** for larger devices with **one _or_ multiple processing zones**.
@@ -35,9 +36,34 @@ If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de]
 
 ---
 
-## Getting Started
+## Installation
 
-We strongly recommend using [virtual environments](https://docs.python.org/3/library/venv.html) to set up the tool and install the dependencies.
+We strongly recommend using [virtual environments](https://docs.python.org/3/library/venv.html).
+
+To install MQT IonShuttler and its dependencies, you can use pip:
+
+```bash
+pip install mqt-ion-shuttler
+```
+
+This will install the library components from PyPI, making them importable in your Python projects.
+
+## Getting Started with Example Scripts
+The run_exact.py and run_heuristic.py scripts provide examples of how to use MQT IonShuttler. To run these scripts and access the example configuration files, it's best to clone the repository:
+
+```bash
+git clone [https://github.com/cda-tum/mqt-ion-shuttler.git](https://github.com/cda-tum/mqt-ion-shuttler.git)
+cd mqt-ion-shuttler
+```
+
+Then, set up a virtual environment and install the package in editable mode (which also installs dependencies):
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate # Or .\.venv\Scripts\activate on Windows
+pip install -e .
+```
+Alternatively, if you've already installed mqt-ion-shuttler from PyPI into your environment as shown in the "Installation" section, you can skip the pip install -e . step if the scripts are adapted to import directly from the installed package (e.g., from single_shuttler import ... instead of from src.single_shuttler import ...). For now, pip install -e . or pip install . within the cloned repo is the most straightforward way to ensure the scripts run correctly with their current import paths.
 
 ### Exact Solution (single PZ)
 
