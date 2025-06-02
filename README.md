@@ -61,9 +61,10 @@ Then, set up a virtual environment and install the package in editable mode (whi
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate # Or .\.venv\Scripts\activate on Windows
-pip install -e .
+pip install .        # Installs the package and its dependencies
+# For development, you might prefer: pip install -e . (editable install)
 ```
-Alternatively, if you've already installed mqt-ion-shuttler from PyPI into your environment as shown in the "Installation" section, you can skip the pip install -e . step if the scripts are adapted to import directly from the installed package (e.g., from single_shuttler import ... instead of from src.single_shuttler import ...). For now, pip install -e . or pip install . within the cloned repo is the most straightforward way to ensure the scripts run correctly with their current import paths.
+Once this is done, you can run the example scripts as shown below. These scripts currently import modules using `from src...` and are designed to be run from the root of the cloned repository after the local installation.
 
 ### Exact Solution (single PZ)
 

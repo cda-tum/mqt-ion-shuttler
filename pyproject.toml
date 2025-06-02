@@ -1,10 +1,10 @@
 [build-system]
 requires = ["setuptools>=58.0.0", "wheel"]  # Build-time dependencies
 build-backend = "setuptools.build_meta"     # Specifies Setuptools as the build backend
-# backend-path = ["."]                        # Indicates the backend can be found in the project root
+# backend-path = ["."]
 
 [project]
-name = "mqt-ion-shuttler"
+name = "mqt.ionshuttler"
 version = "0.1"
 description = "A solver for the shuttling problem in QCCD quantum computers"
 readme = "README.md"
@@ -20,12 +20,13 @@ dependencies = [
     "networkx==3.0",
     "qiskit==1.0.0",
     "more_itertools==10.1.0"
-    # setuptools was moved to [build-system].requires
 ]
 
 [tool.setuptools]
-package-dir = {"" = "src"}  # "src/" is the root of all packages
-packages    = {find = {where = ["src"]}}
+package-dir = {"" = "src"}  # "src/" is the root for packages
+# This tells setuptools to find all packages under 'src' that start with 'mqt'.
+
+packages    = {find_namespace = {where = ["src"], include = ["mqt*"]}}
 py-modules  = []
 
 [tool.ruff]
@@ -97,5 +98,5 @@ line-length = 120
 line-length = 120
 
 [tool.ruff.per-file-ignores]
-"src/single_shuttler/*" = ["ALL"]
-"src/multi_shuttler/Inside/*" = ["ALL"]
+"src/mqt/ionshuttler/single_shuttler/*"
+"src/mqt/ionshuttler/multi_shuttler/Inside/*"
