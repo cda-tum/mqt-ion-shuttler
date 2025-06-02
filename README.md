@@ -43,7 +43,7 @@ We strongly recommend using [virtual environments](https://docs.python.org/3/lib
 To install MQT IonShuttler and its dependencies, you can use pip:
 
 ```bash
-pip install mqt-ion-shuttler
+pip install mqt.ionshuttler
 ```
 
 This will install the library components from PyPI, making them importable in your Python projects.
@@ -56,7 +56,7 @@ git clone [https://github.com/cda-tum/mqt-ion-shuttler.git](https://github.com/c
 cd mqt-ion-shuttler
 ```
 
-Then, set up a virtual environment and install the package in editable mode (which also installs dependencies):
+Then, set up a virtual environment and install the package (which also installs dependencies):
 
 ```bash
 python3 -m venv .venv
