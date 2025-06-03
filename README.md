@@ -2,17 +2,14 @@
 [![PyPI version](https://badge.fury.io/py/mqt-ion-shuttler.svg)](https://badge.fury.io/py/mqt-ion-shuttler)
 
 <p align="center">
-  <a href="https://mqt.readthedocs.io">
-   <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-banner-dark.svg" width="90%">
-     <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-banner-light.svg" width="90%" alt="MQT Banner">
-   </picture>
+  <a href="https://mqt.readthedocs.io/projects/core">
+  <img width=30% src="https://img.shields.io/badge/documentation-blue?style=for-the-badge&logo=read%20the%20docs" alt="Documentation" />
   </a>
 </p>
 
 # MQT IonShuttler
 
-<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for trapped-ion quantum computers with a grid-like Memory Zone based on the Quantum Charge Coupled Device (QCCD) architecture. It supports:
+<i>MQT IonShuttler</i> is a tool for generating shuttling schedules for trapped-ion quantum computers with a grid-type Memory Zone based on the Quantum Charge Coupled Device (QCCD) architecture. It supports:
 
 - **exact shuttling schedules** for small architectures with **a single processing zone (PZ)**, and
 - **heuristic shuttling schedules** for larger devices with **one _or_ multiple processing zones**.
@@ -34,6 +31,18 @@ The exact solution guarantees optimality but is limited to a single PZ, while th
 
 If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de](mailto:quantum.cda@xcit.tum.de) or by creating an [issue](https://github.com/cda-tum/mqt-ion-shuttler/issues) on GitHub.
 
+## Contributors and Supporters
+
+The _[Munich Quantum Toolkit (MQT)](https://mqt.readthedocs.io)_ is developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/) and supported by the [Munich Quantum Software Company (MQSC)](https://munichquantum.software).
+Among others, it is part of the [Munich Quantum Software Stack (MQSS)](https://www.munich-quantum-valley.de/research/research-areas/mqss) ecosystem, which is being developed as part of the [Munich Quantum Valley (MQV)](https://www.munich-quantum-valley.de) initiative.
+
+<p align="center">
+  <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-logo-banner-dark.svg" width="90%">
+   <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-logo-banner-light.svg" width="90%" alt="MQT Partner Logos">
+  </picture>
+</p>
+
 ---
 
 ## Installation
@@ -46,7 +55,7 @@ To install MQT IonShuttler and its dependencies, you can use pip:
 pip install mqt.ionshuttler
 ```
 
-This will install the library components from PyPI, making them importable in your Python projects.
+This will install the library components from [PyPI](https://pypi.org/project/mqt.ionshuttler/), making them importable in your Python projects.
 
 ## Getting Started with Example Scripts
 The run_exact.py and run_heuristic.py scripts provide examples of how to use MQT IonShuttler. To run these scripts and access the example configuration files, it's best to clone the repository:
