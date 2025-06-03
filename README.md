@@ -64,7 +64,7 @@ This will install the library components from [PyPI](https://pypi.org/project/mq
 The run_exact.py and run_heuristic.py scripts provide examples of how to use MQT IonShuttler. To run these scripts and access the example configuration files, it's best to clone the repository:
 
 ```bash
-git clone [https://github.com/cda-tum/mqt-ion-shuttler.git](https://github.com/cda-tum/mqt-ion-shuttler.git)
+git clone https://github.com/cda-tum/mqt-ion-shuttler.git
 cd mqt-ion-shuttler
 ```
 
