@@ -1,5 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![PyPI version](https://badge.fury.io/py/mqt-ion-shuttler.svg)](https://badge.fury.io/py/mqt-ion-shuttler)
+[![PyPI version](https://badge.fury.io/py/mqt-ion-shuttler.svg)](https://badge.fury.io/py/mqt.ionshuttler)
 
 <p align="center">
   <a href="https://mqt.readthedocs.io/projects/core">
