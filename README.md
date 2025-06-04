@@ -19,10 +19,10 @@
 
 <p align="center">
   <a href="docs/figures/QCCD_device.pdf">
-    <img src="docs/figures/QCCD_device.png" width="63%" alt="(a) Potential QCCD device with four processing zones">
+    <img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/figures/QCCD_device.png" width="63%" alt="(a) Potential QCCD device with four processing zones">
   </a>
   <a href="docs/figures/graph.pdf">
-    <img src="docs/figures/graph.png" width="33%" alt="(b) Corresponding interaction graph">
+    <img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/figures/graph.png" width="33%" alt="(b) Corresponding interaction graph">
   </a>
 </p>
 <p align="center">
