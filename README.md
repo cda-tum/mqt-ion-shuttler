@@ -2,8 +2,11 @@
 [![PyPI version](https://badge.fury.io/py/mqt-ion-shuttler.svg)](https://badge.fury.io/py/mqt.ionshuttler)
 
 <p align="center">
-  <a href="https://mqt.readthedocs.io/projects/core">
-  <img width=30% src="https://img.shields.io/badge/documentation-blue?style=for-the-badge&logo=read%20the%20docs" alt="Documentation" />
+  <a href="https://mqt.readthedocs.io">
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/logo-mqt-dark.svg" width="60%">
+     <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/logo-mqt-light.svg" width="60%" alt="MQT Logo">
+   </picture>
   </a>
 </p>
 
@@ -16,10 +19,10 @@
 
 <p align="center">
   <a href="docs/figures/QCCD_device.pdf">
-    <img src="docs/figures/QCCD_device.png" width="63%" alt="(a) Potential QCCD device with four processing zones">
+    <img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/figures/QCCD_device.png" width="63%" alt="(a) Potential QCCD device with four processing zones">
   </a>
   <a href="docs/figures/graph.pdf">
-    <img src="docs/figures/graph.png" width="33%" alt="(b) Corresponding interaction graph">
+    <img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/figures/graph.png" width="33%" alt="(b) Corresponding interaction graph">
   </a>
 </p>
 <p align="center">
@@ -61,7 +64,7 @@ This will install the library components from [PyPI](https://pypi.org/project/mq
 The run_exact.py and run_heuristic.py scripts provide examples of how to use MQT IonShuttler. To run these scripts and access the example configuration files, it's best to clone the repository:
 
 ```bash
-git clone [https://github.com/cda-tum/mqt-ion-shuttler.git](https://github.com/cda-tum/mqt-ion-shuttler.git)
+git clone https://github.com/cda-tum/mqt-ion-shuttler.git
 cd mqt-ion-shuttler
 ```
 
