@@ -18,15 +18,15 @@
 - **heuristic shuttling schedules** for larger devices with **one _or_ multiple processing zones**.
 
 <p align="center">
-  <a href="docs/figures/QCCD_device.pdf">
+  <a href="https://github.com/cda-tum/mqt-ion-shuttler/blob/main/docs/figures/QCCD_device.pdf">
     <img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/figures/QCCD_device.png" width="63%" alt="(a) Potential QCCD device with four processing zones">
   </a>
-  <a href="docs/figures/graph.pdf">
+  <a href="https://github.com/cda-tum/mqt-ion-shuttler/blob/main/docs/figures/graph.pdf">
     <img src="https://raw.githubusercontent.com/cda-tum/mqt-ion-shuttler/main/docs/figures/graph.png" width="33%" alt="(b) Corresponding interaction graph">
   </a>
 </p>
 <p align="center">
-<b>Figure&nbsp;1:</b> (<b>a</b>) Potential QCCD device with four processing zones; (<b>b</b>) corresponding graph abstraction.</p>
+<b>Figure 1:</b> (<b>a</b>) Potential QCCD device with four processing zones; (<b>b</b>) corresponding graph abstraction.</p>
 
 The exact solution guarantees optimality but is limited to a single PZ, while the heuristic method scales to many qubits and PZs. In the heuristic workflow, an optional **compilation** feature (`use_dag`) allows for dynamic rescheduling of gates based on the current ion positions and dependencies, potentially reducing shuttling overhead compared to executing a fixed sequence.
 
