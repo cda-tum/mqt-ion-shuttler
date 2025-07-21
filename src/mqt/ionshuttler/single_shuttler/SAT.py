@@ -741,7 +741,7 @@ class MemorySAT:
                     np.random.seed()
 
                     for i, ion in enumerate(self.ions):
-                        if self.model.evaluate(self.states[t][get_idx_from_idc(self.idc_dict, edge_idc)][ion]) is True:
+                        if bool(self.model.evaluate(self.states[t][get_idx_from_idc(self.idc_dict, edge_idc)][ion])) is True:
                             ion_trap.append(edge_idc)
                             ion_holder.append(ion)
                             self.graph.add_edge(
