@@ -53,6 +53,58 @@ def test_two_qubit_estimate_uses_any_two_sites_in_one_zone() -> None:
     assert heuristic(state, architecture, [0], gates) == 1
 
 
+def test_two_qubit_estimate_can_prefer_one_processing_zone() -> None:
+    """Measure assigned gates against only their preferred zone's site pairs."""
+    architecture = Architecture(
+        num_sites=9,
+        processing_zones={"left": [1, 2], "right": [7, 8]},
+    )
+    state = make_state(((0, 0), (1, 5)))
+    gates = {0: Rzz(ion_a=0, ion_b=1, theta=1.0)}
+    pairs = {"left": ((1, 2),), "right": ((7, 8),)}
+
+    assert heuristic(state, architecture, [0], gates) == 4
+    assert (
+        heuristic(
+            state,
+            architecture,
+            [0],
+            gates,
+            gate_zone={0: "right"},
+            zone_site_pairs=pairs,
+        )
+        == 8
+    )
+
+
+def test_partition_parameters_omitted_preserve_heuristic_results() -> None:
+    """Keep the original estimate unchanged when partition bias is not supplied."""
+    architecture = Architecture(
+        num_sites=9,
+        processing_zones={"left": [1, 2], "right": [7, 8]},
+    )
+    state = make_state(((0, 0), (1, 5)))
+    gates = {
+        0: Rx(ion=0, theta=0.5),
+        1: Rzz(ion_a=0, ion_b=1, theta=1.0),
+        2: GlobalPulse(gate=GateSpec("rx", 0.25)),
+    }
+    predecessors = {0: frozenset(), 1: frozenset({0}), 2: frozenset()}
+
+    original = heuristic(state, architecture, [0, 1, 2], gates, predecessors)
+    explicit_defaults = heuristic(
+        state,
+        architecture,
+        [0, 1, 2],
+        gates,
+        predecessors,
+        gate_zone=None,
+        zone_site_pairs=None,
+    )
+
+    assert explicit_defaults == original
+
+
 def test_dependency_estimate_uses_the_remaining_critical_path() -> None:
     """Count serial gate depth while allowing independent gates in parallel."""
     architecture = Architecture(num_sites=2)

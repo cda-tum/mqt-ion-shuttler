@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from mqt.ionshuttler.linear.actions import Action, GateAction
 from mqt.ionshuttler.linear.config import LinearCompilerConfig
 from mqt.ionshuttler.linear.parser import parse_circuit
+from mqt.ionshuttler.linear.partition_bias import compute_gate_zone_assignment, zone_site_pairs
 from mqt.ionshuttler.linear.search import search
 from mqt.ionshuttler.linear.state import create_initial_state
 
@@ -70,12 +71,14 @@ class LinearCompiler:
         circuit: CircuitInput,
         *,
         initial_positions: Sequence[int] | None = None,
+        pre_partition: bool = False,
     ) -> CompilationResult:
         """Compile a circuit from QASM text, a QASM file, or Qiskit.
 
         Args:
             circuit: Circuit to compile.
             initial_positions: Optional starting site for each circuit qubit.
+            pre_partition: Bias multi-zone search toward a fine-grained gate partition.
 
         Returns:
             The resulting schedule and completion status.
@@ -95,6 +98,16 @@ class LinearCompiler:
         )
         gate_order = list(range(len(gate_list)))
         gates = dict(zip(gate_order, gate_list, strict=True))
+        gate_zone: dict[int, str] = {}
+        preferred_zone_site_pairs: dict[str, tuple[tuple[int, int], ...]] = {}
+        if pre_partition and len(self.architecture.processing_zones or {}) >= 2:
+            gate_zone = compute_gate_zone_assignment(
+                gate_order,
+                gates,
+                self.architecture,
+                config=self.config.search.pre_partition_config,
+            )
+            preferred_zone_site_pairs = zone_site_pairs(self.architecture)
 
         return search(
             initial_state,
@@ -104,6 +117,8 @@ class LinearCompiler:
             predecessors,
             self.config,
             action_types=action_types,
+            gate_zone=gate_zone,
+            zone_site_pairs=preferred_zone_site_pairs,
         )
 
 

@@ -44,6 +44,7 @@ def test_compiler_config_uses_ready_to_run_defaults() -> None:
         max_compile_time=1800.0,
         use_dependencies=True,
         heuristic_mode="quality",
+        pre_partition_config=None,
     )
 
 

@@ -10,7 +10,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from mqt.ionshuttler.partitioning import FineGrainedTabuConfig
 
 SINGLE_QUBIT_GATE_NAMES = frozenset({"rx", "ry", "rz"})
 TWO_QUBIT_GATE_NAMES = frozenset({"rxx", "ryy", "rzz"})
@@ -133,6 +136,7 @@ class SearchConfig:
     max_compile_time: float | None = 1800.0
     use_dependencies: bool = True
     heuristic_mode: HeuristicMode = "quality"
+    pre_partition_config: FineGrainedTabuConfig | None = None
 
     def __post_init__(self) -> None:
         """Ensure all search limits are meaningful and mutually consistent.

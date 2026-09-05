@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
+from itertools import count
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -21,7 +22,7 @@ import mqt.ionshuttler.linear.search as search_module
 from mqt.ionshuttler.linear.actions import AdvanceTime, Rx, Ry, Rzz, Shuttle
 from mqt.ionshuttler.linear.architecture import Architecture
 from mqt.ionshuttler.linear.config import GateTiming, HeuristicMode, LinearCompilerConfig, SearchConfig
-from mqt.ionshuttler.linear.expand import replay_path
+from mqt.ionshuttler.linear.expand import GenerationMode, replay_path
 from mqt.ionshuttler.linear.parser import parse_qasm_file
 from mqt.ionshuttler.linear.result import CompilationResult, CompilationStatus
 from mqt.ionshuttler.linear.schedule import ActionSchedule
@@ -29,7 +30,6 @@ from mqt.ionshuttler.linear.state import State, create_initial_state, has_pendin
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
-    from itertools import count
 
     from mqt.ionshuttler.linear.actions import Action, GateAction
 
@@ -732,7 +732,12 @@ def test_larger_schedule_remains_deterministic_and_replayable() -> None:
 
 
 def test_six_qubit_qft_matches_frozen_schedule() -> None:
-    """Keep a substantial production schedule exactly reproducible."""
+    """Keep a substantial production schedule exactly reproducible.
+
+    The frozen values changed once when bounded-frontier eviction stopped
+    corrupting heap order: the search reaches the same makespan using eleven
+    fewer shuttles.
+    """
     qasm_path = Path(__file__).parent / "fixtures" / "qft_6.qasm"
     num_qubits, gate_list, predecessors, _ = parse_qasm_file(
         qasm_path,
@@ -761,7 +766,7 @@ def test_six_qubit_qft_matches_frozen_schedule() -> None:
     ).encode()
     assert result.status is CompilationStatus.SUCCESS
     assert len(gates) == 143
-    assert len(result.path) == 426
+    assert len(result.path) == 415
     assert result.num_timesteps == 219
     assert Counter(type(action).__name__ for action in result.path) == {
         "AdvanceTime": 219,
@@ -770,10 +775,10 @@ def test_six_qubit_qft_matches_frozen_schedule() -> None:
         "Ry": 54,
         "Rz": 45,
         "Rzz": 39,
-        "Shuttle": 28,
+        "Shuttle": 17,
     }
     assert hashlib.sha256(encoded_actions, usedforsecurity=False).hexdigest() == (
-        "1557943f721c4019943a4a768cf1598e0f58f986d910b59a068a79c5e03d93b8"
+        "9f0eb19da96b5b34cc86be1afb2617e1873f0fc3365bf36f3835347d7ca69d3c"
     )
     assert result.final_state is not None
     assert result.final_state.completed_gates == frozenset(gates)
@@ -791,3 +796,37 @@ def test_six_qubit_qft_matches_frozen_schedule() -> None:
         )
     assert replayed_state == result.final_state
     assert initial_state.completed_gates == frozenset()
+
+
+@pytest.mark.parametrize("max_frontier_size", [None, 1, 2, 5, 64])
+def test_frontier_returns_nodes_in_best_first_order(max_frontier_size: int | None) -> None:
+    """Take frontier nodes cheapest-first, whether or not the frontier is bounded."""
+    architecture = Architecture(num_sites=5, processing_zones={"pz": [2, 3]})
+    state = create_initial_state(2, architecture, initial_positions=[0, 4])
+    tie_breaker = count()
+    frontier: search_module.Frontier = []
+
+    priorities = [7, 2, 9, 2, 0, 5, 3, 8, 1, 6, 4, 9, 1]
+    for priority in priorities:
+        node = search_module._SearchNode(
+            state=state,
+            path=(),
+            cost_value=priority,
+            heuristic_value=0,
+            generation_mode=GenerationMode.FULL,
+        )
+        search_module._push_frontier(frontier, node, tie_breaker, max_frontier_size)
+        if max_frontier_size is not None:
+            assert len(frontier) <= max_frontier_size
+
+    taken = []
+    while frontier:
+        node, _ = search_module._take_node(None, frontier, max_frontier_size)
+        taken.append(node.cost_value)
+
+    assert taken == sorted(taken)
+    if max_frontier_size is None:
+        assert sorted(taken) == sorted(priorities)
+    else:
+        # A bounded frontier keeps the cheapest entries it was offered.
+        assert taken == sorted(priorities)[: len(taken)]
