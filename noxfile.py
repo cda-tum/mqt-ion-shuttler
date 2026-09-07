@@ -131,8 +131,6 @@ def docs(session: nox.Session) -> None:
         "--no-dev",  # do not auto-install dev dependencies
         "--group",
         "docs",
-        "--extra",
-        "dd",
         "sphinx-autobuild" if serve else "sphinx-build",
         *shared_args,
         env=env,

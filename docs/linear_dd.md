@@ -28,7 +28,7 @@ The Hahn references and the global method use the standard installation. SADD
 also requires OR-Tools:
 
 ```console
-pip install "mqt.ionshuttler[dd]"
+uv pip install "mqt.ionshuttler[dd]"
 ```
 
 OR-Tools is loaded only when SADD reaches an optimization opportunity.

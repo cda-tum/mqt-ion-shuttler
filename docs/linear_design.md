@@ -174,7 +174,8 @@ The inherited behavior requires both ions to be free and located in the same
 available processing zone. The inherited `to_dict` method also serializes the
 gate without another central dispatch branch.
 
-Pass the supported action types when constructing the `Architecture`:
+Pass the supported action types when constructing the
+{py:class}`~mqt.ionshuttler.linear.Architecture`:
 
 ```{code-cell} ipython3
 from mqt.ionshuttler.linear import Architecture

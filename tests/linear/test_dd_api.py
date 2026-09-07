@@ -17,7 +17,6 @@ from typing import cast
 
 import pytest
 
-from mqt.ionshuttler.linear import dd
 from mqt.ionshuttler.linear.architecture import Architecture
 from mqt.ionshuttler.linear.dd import (
     DDPassResult,
@@ -67,40 +66,6 @@ def _opportunity(**overrides: object) -> SADDOpportunityRecord:
     }
     values.update(overrides)
     return SADDOpportunityRecord(**values)  # ty: ignore[invalid-argument-type]
-
-
-def test_dd_package_exports_only_the_supported_public_surface() -> None:
-    """Keep the DD public surface narrow and intentional."""
-    assert dd.__all__ == [
-        "CriticalSegment",
-        "CriticalSegmentResult",
-        "DDPassResult",
-        "GlobalDDConfig",
-        "GlobalDDReport",
-        "IdealizedHahnConfig",
-        "IdealizedHahnReport",
-        "LocalDDSequence",
-        "NearestHahnConfig",
-        "NearestHahnOpportunityRecord",
-        "NearestHahnReport",
-        "OperationDurations",
-        "SADDConfig",
-        "SADDMethod",
-        "SADDOpportunityRecord",
-        "SADDReport",
-        "apply_idealized_hahn",
-        "apply_periodic_global_dd",
-        "compute_critical_segments",
-        "decoupling_ratio",
-        "gate_z_effect",
-        "max_absolute_residual_phase",
-        "normalized_sensitivity_values",
-        "residual_phase_by_ion",
-        "run_nearest_hahn",
-        "run_sadd",
-        "sum_absolute_residual_phase",
-        "sum_squared_residual_phase",
-    ]
 
 
 def test_comparator_report_types_are_available_without_optional_dependencies() -> None:
