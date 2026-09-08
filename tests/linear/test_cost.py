@@ -9,17 +9,10 @@
 
 from __future__ import annotations
 
+import mqt.ionshuttler.linear.cost as linear_cost
 from mqt.ionshuttler.linear.actions import GateSpec, GlobalPulse, Rx, Rzz
 from mqt.ionshuttler.linear.architecture import Architecture
-from mqt.ionshuttler.linear.cost import (
-    # heuristic() returns early on empty remaining work, so this defensive
-    # guard is only reachable by calling the helper directly.
-    _critical_path_length,  # ruff: ignore[import-private-name]
-    cost,
-    heuristic,
-    min_distance_to_valid_pair,
-    zero_heuristic,
-)
+from mqt.ionshuttler.linear.cost import cost, heuristic, min_distance_to_valid_pair, zero_heuristic
 from mqt.ionshuttler.linear.state import State
 
 
@@ -184,7 +177,7 @@ def test_zero_heuristic_matches_the_search_short_circuit() -> None:
 
 def test_empty_remaining_work_has_no_critical_path() -> None:
     """Report no depth once no gate is left to schedule."""
-    assert _critical_path_length([], {}) == 0
+    assert linear_cost._critical_path_length([], {}) == 0
 
 
 def test_estimate_without_dependencies_divides_across_processing_zones() -> None:
