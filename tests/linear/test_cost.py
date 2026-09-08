@@ -11,7 +11,15 @@ from __future__ import annotations
 
 from mqt.ionshuttler.linear.actions import GateSpec, GlobalPulse, Rx, Rzz
 from mqt.ionshuttler.linear.architecture import Architecture
-from mqt.ionshuttler.linear.cost import cost, heuristic, min_distance_to_valid_pair
+from mqt.ionshuttler.linear.cost import (
+    # heuristic() returns early on empty remaining work, so this defensive
+    # guard is only reachable by calling the helper directly.
+    _critical_path_length,  # ruff: ignore[import-private-name]
+    cost,
+    heuristic,
+    min_distance_to_valid_pair,
+    zero_heuristic,
+)
 from mqt.ionshuttler.linear.state import State
 
 
@@ -140,3 +148,80 @@ def test_other_gate_types_add_one_unit_of_remaining_work() -> None:
     gate = GlobalPulse(gate=GateSpec("rx", 0.5))
 
     assert heuristic(state, architecture, [0], {0: gate}) == 2
+
+
+def test_zero_heuristic_estimates_nothing() -> None:
+    """Return no remaining-cost estimate regardless of outstanding work."""
+    architecture = Architecture(num_sites=3, processing_zones={"pz": [1, 2]})
+    state = State(
+        positions=((0, 0), (1, 2)),
+        completed_gates=frozenset(),
+        in_progress_gates=(),
+        ions_busy_until=(),
+        pzs_busy_until=(),
+        time=0,
+    )
+    gates = {0: Rzz(ion_a=0, ion_b=1, theta=1.0)}
+
+    assert zero_heuristic(state, architecture, [0], gates) == 0
+    assert zero_heuristic(state, architecture, [0], gates, {0: frozenset()}) == 0
+
+
+def test_zero_heuristic_matches_the_search_short_circuit() -> None:
+    """Agree with the constant the search substitutes for this estimate."""
+    architecture = Architecture(num_sites=1)
+    state = State(
+        positions=((0, 0),),
+        completed_gates=frozenset(),
+        in_progress_gates=(),
+        ions_busy_until=(),
+        pzs_busy_until=(),
+        time=0,
+    )
+
+    assert zero_heuristic(state, architecture, [0], {0: Rx(ion=0, theta=0.5)}) == 0
+
+
+def test_empty_remaining_work_has_no_critical_path() -> None:
+    """Report no depth once no gate is left to schedule."""
+    assert _critical_path_length([], {}) == 0
+
+
+def test_estimate_without_dependencies_divides_across_processing_zones() -> None:
+    """Spread remaining gates over the zones that can run them."""
+    architecture = Architecture(num_sites=6, processing_zones={"a": [0, 1], "b": [4, 5]})
+    state = State(
+        positions=((0, 0), (1, 1), (2, 4), (3, 5)),
+        completed_gates=frozenset(),
+        in_progress_gates=(),
+        ions_busy_until=(),
+        pzs_busy_until=(),
+        time=0,
+    )
+    gates = {
+        0: Rx(ion=0, theta=0.5),
+        1: Rx(ion=1, theta=0.5),
+        2: Rx(ion=2, theta=0.5),
+        3: Rx(ion=3, theta=0.5),
+    }
+
+    # Four single-qubit gates need no routing and split across two zones.
+    assert heuristic(state, architecture, [0, 1, 2, 3], gates) == 2
+
+
+def test_implicit_processing_zone_keeps_the_estimate_finite() -> None:
+    """Estimate remaining work when no zone is configured explicitly."""
+    architecture = Architecture(num_sites=1)
+    state = State(
+        positions=((0, 0),),
+        completed_gates=frozenset(),
+        in_progress_gates=(),
+        ions_busy_until=(),
+        pzs_busy_until=(),
+        time=0,
+    )
+    gates = {0: Rx(ion=0, theta=0.5)}
+
+    assert architecture.processing_zones is not None
+    assert len(architecture.processing_zones) == 1
+    assert heuristic(state, architecture, [0], gates) == 1

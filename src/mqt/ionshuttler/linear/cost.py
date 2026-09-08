@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from functools import cache
+from functools import lru_cache
 from math import ceil
 from sys import maxsize
 from typing import TYPE_CHECKING, Protocol
@@ -48,7 +48,9 @@ class HeuristicFn(Protocol):
         Args:
             state: Search state to score.
             architecture: Hardware layout the schedule targets.
-            gate_order: Identifiers of every gate the schedule must complete.
+            gate_order: Gates to schedule, including completed and running
+                ones; filter with ``state.completed_gates`` and
+                ``state.in_progress_gates``.
             gates: Gate actions indexed by identifier.
             predecessors: Optional map of which gates must precede others.
 
@@ -81,7 +83,7 @@ def zero_heuristic(
     Args:
         state: Search state to score.
         architecture: Hardware layout the schedule targets.
-        gate_order: Identifiers of every gate the schedule must complete.
+        gate_order: Gates to schedule, including completed and running ones.
         gates: Gate actions indexed by identifier.
         predecessors: Optional map of which gates must precede others.
 
@@ -92,7 +94,10 @@ def zero_heuristic(
     return 0
 
 
-@cache
+# Keys are bounded by the site count squared for one architecture, so this cap
+# holds the whole working set for realistic layouts while keeping a long-lived
+# process from accumulating entries across many different architectures.
+@lru_cache(maxsize=2**16)
 def min_distance_to_valid_pair(
     pos_a: int,
     pos_b: int,

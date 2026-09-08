@@ -272,9 +272,11 @@ guarantee.
 `SearchConfig.heuristic` selects the remaining-cost estimate. Besides the
 default (`None`) and :func:`~mqt.ionshuttler.linear.cost.zero_heuristic`, any
 callable matching :class:`~mqt.ionshuttler.linear.cost.HeuristicFn` may be
-supplied. It receives the current state, the architecture, the gates the
-schedule must still complete, and the dependency map, and returns a nonnegative
-estimate of the remaining schedule time.
+supplied. It receives the current state, the architecture, the gates to
+schedule, and the dependency map, and returns a nonnegative estimate of the
+remaining schedule time. `gate_order` and `gates` also include gates that are
+already completed or running, so you might want to filter them with
+`state.completed_gates` and `state.in_progress_gates`.
 
 Because a larger estimate marks a state as further from the goal, adding a
 penalty steers the search away from the states it describes. This heuristic adds
@@ -289,7 +291,7 @@ from mqt.ionshuttler.linear.cost import heuristic as default_heuristic
 
 
 def prefer_spread_out_ions(state, architecture, gate_order, gates, predecessors=None):
-    """Add estimated work for every pair of ions on neighboring sites."""
+    """Penalize neighboring ions on top of the default estimate."""
     base = default_heuristic(state, architecture, gate_order, gates, predecessors)
     sites = [site for _, site in state.positions]
     crowding = sum(1 for left, right in combinations(sites, 2) if abs(left - right) <= 1)
