@@ -1,5 +1,10 @@
+[![PyPI](https://img.shields.io/pypi/v/mqt.ionshuttler?logo=pypi&style=flat-square)](https://pypi.org/project/mqt.ionshuttler/)
+![OS](https://img.shields.io/badge/os-linux%20%7C%20macos%20%7C%20windows-blue?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![PyPI version](https://badge.fury.io/py/mqt.ionshuttler.svg)](https://badge.fury.io/py/mqt.ionshuttler)
+[![CI](https://img.shields.io/github/actions/workflow/status/munich-quantum-toolkit/ionshuttler/ci.yml?branch=main&style=flat-square&logo=github&label=ci)](https://github.com/munich-quantum-toolkit/ionshuttler/actions/workflows/ci.yml)
+[![CD](https://img.shields.io/github/actions/workflow/status/munich-quantum-toolkit/ionshuttler/cd.yml?style=flat-square&logo=github&label=cd)](https://github.com/munich-quantum-toolkit/ionshuttler/actions/workflows/cd.yml)
+[![Documentation](https://img.shields.io/readthedocs/mqt-ionshuttler?logo=readthedocs&style=flat-square)](https://mqt.readthedocs.io/projects/ionshuttler)
+[![codecov](https://img.shields.io/codecov/c/github/munich-quantum-toolkit/ionshuttler?style=flat-square&logo=codecov)](https://codecov.io/gh/munich-quantum-toolkit/ionshuttler)
 
 <p align="center">
   <a href="https://mqt.readthedocs.io">
@@ -68,7 +73,7 @@ To support this endeavor, please consider:
   requests
 - Citing the MQT in your publications (see [Cite This](#cite-this))
 - Citing our research in your publications (see
-  [References](https://mqt.readthedocs.io/projects/ionshuttler/en/latest/references.html))
+  [References](https://mqt.readthedocs.io/projects/ionshuttler/en/stable/references.html))
 - Using the MQT in research and teaching, and sharing feedback and use cases
 - Sponsoring us on GitHub: <https://github.com/sponsors/munich-quantum-toolkit>
 
