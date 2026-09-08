@@ -21,7 +21,8 @@ import pytest
 import mqt.ionshuttler.linear.search as search_module
 from mqt.ionshuttler.linear.actions import AdvanceTime, Rx, Ry, Rzz, Shuttle
 from mqt.ionshuttler.linear.architecture import Architecture
-from mqt.ionshuttler.linear.config import GateTiming, HeuristicMode, LinearCompilerConfig, SearchConfig
+from mqt.ionshuttler.linear.config import GateTiming, LinearCompilerConfig, SearchConfig
+from mqt.ionshuttler.linear.cost import zero_heuristic
 from mqt.ionshuttler.linear.expand import GenerationMode, replay_path
 from mqt.ionshuttler.linear.parser import parse_qasm_file
 from mqt.ionshuttler.linear.result import CompilationResult, CompilationStatus
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
     from mqt.ionshuttler.linear.actions import Action, GateAction
+    from mqt.ionshuttler.linear.cost import HeuristicFn
 
 
 def exhaustive_config(
@@ -41,7 +43,7 @@ def exhaustive_config(
     num_solutions: int = 1,
     max_frontier_size: int | None = None,
     max_compile_time: float | None = None,
-    heuristic_mode: HeuristicMode = "quality",
+    heuristic: HeuristicFn | None = None,
 ) -> LinearCompilerConfig:
     """Build an exhaustive-search configuration for focused tests."""
     return LinearCompilerConfig(
@@ -53,7 +55,7 @@ def exhaustive_config(
             num_solutions=num_solutions,
             max_frontier_size=max_frontier_size,
             max_compile_time=max_compile_time,
-            heuristic_mode=heuristic_mode,
+            heuristic=heuristic,
         )
     )
 
@@ -92,7 +94,7 @@ def test_zero_heuristic_compiles_with_exact_search_profile() -> None:
         [0],
         {0: gate},
         architecture,
-        config=exhaustive_config(heuristic_mode="zero"),
+        config=exhaustive_config(heuristic=zero_heuristic),
     )
 
     assert result.status is CompilationStatus.SUCCESS
@@ -830,3 +832,129 @@ def test_frontier_returns_nodes_in_best_first_order(max_frontier_size: int | Non
     else:
         # A bounded frontier keeps the cheapest entries it was offered.
         assert taken == sorted(priorities)[: len(taken)]
+
+
+def test_custom_heuristic_replaces_the_built_in_estimate() -> None:
+    """Route a two-qubit gate using a supplied heuristic instead of the default."""
+    architecture = Architecture(num_sites=5, processing_zones={"pz": [2, 3]})
+    initial_state = create_initial_state(2, architecture, initial_positions=[0, 4])
+    gates: dict[int, GateAction] = {0: Rzz(ion_a=0, ion_b=1, theta=1.0)}
+    calls: list[int] = []
+
+    def custom_heuristic(
+        state: State,
+        architecture_: Architecture,
+        gate_order: Sequence[int],
+        gates_: Mapping[int, GateAction],
+        predecessors: Mapping[int, frozenset[int]] | None = None,
+    ) -> int:
+        del architecture_, gates_, predecessors
+        calls.append(state.time)
+        return len([gate_id for gate_id in gate_order if gate_id not in state.completed_gates])
+
+    config = LinearCompilerConfig(
+        search=SearchConfig(
+            horizon=None,
+            committed_gates=1,
+            iterative_diving_search=False,
+            max_frontier_size=None,
+            max_compile_time=None,
+            heuristic=custom_heuristic,
+        )
+    )
+
+    result = search_module.search(initial_state, [0], gates, architecture, config=config)
+
+    assert result.status is CompilationStatus.SUCCESS
+    assert calls, "the supplied heuristic was never consulted"
+    assert_replays(result, initial_state, architecture, [0], gates)
+
+
+def test_custom_heuristic_is_used_by_rolling_horizon_windows() -> None:
+    """Carry the supplied heuristic into every rolling planning window."""
+    architecture = Architecture(num_sites=1)
+    initial_state = create_initial_state(1, architecture)
+    gates: dict[int, GateAction] = {0: Rx(ion=0, theta=1.0), 1: Ry(ion=0, theta=0.5)}
+    predecessors = {0: frozenset[int](), 1: frozenset({0})}
+    windows: list[tuple[int, ...]] = []
+
+    def custom_heuristic(
+        state: State,
+        architecture_: Architecture,
+        gate_order: Sequence[int],
+        gates_: Mapping[int, GateAction],
+        predecessors_: Mapping[int, frozenset[int]] | None = None,
+    ) -> int:
+        del state, architecture_, gates_, predecessors_
+        windows.append(tuple(gate_order))
+        return 0
+
+    config = LinearCompilerConfig(
+        search=SearchConfig(
+            horizon=1,
+            committed_gates=1,
+            iterative_diving_search=False,
+            max_frontier_size=None,
+            max_compile_time=None,
+            heuristic=custom_heuristic,
+        )
+    )
+
+    result = search_module.search(initial_state, [0, 1], gates, architecture, predecessors, config)
+
+    assert result.status is CompilationStatus.SUCCESS
+    assert result.final_state is not None
+    assert result.final_state.completed_gates == frozenset({0, 1})
+    assert set(windows) == {(0,), (1,)}
+
+
+def test_zero_heuristic_yields_an_admissible_estimate() -> None:
+    """Skip estimation entirely when the zero heuristic is selected."""
+    architecture = Architecture(num_sites=1)
+    initial_state = create_initial_state(1, architecture)
+    gates: dict[int, GateAction] = {0: Rx(ion=0, theta=0.5)}
+
+    config = LinearCompilerConfig(
+        search=SearchConfig(
+            horizon=None,
+            committed_gates=1,
+            iterative_diving_search=False,
+            max_frontier_size=None,
+            max_compile_time=None,
+            heuristic=zero_heuristic,
+        )
+    )
+
+    result = search_module.search(initial_state, [0], gates, architecture, config=config)
+
+    assert result.status is CompilationStatus.SUCCESS
+    assert result.path == [gates[0], AdvanceTime()]
+
+
+def test_omitting_a_custom_heuristic_keeps_the_built_in_schedule() -> None:
+    """Produce the same schedule with an explicit ``None`` as with the default."""
+    architecture = Architecture(num_sites=5, processing_zones={"pz": [2, 3]})
+    initial_state = create_initial_state(2, architecture, initial_positions=[0, 4])
+    gates: dict[int, GateAction] = {0: Rzz(ion_a=0, ion_b=1, theta=1.0)}
+
+    default_result = search_module.search(initial_state, [0], gates, architecture, config=exhaustive_config())
+    explicit_result = search_module.search(
+        initial_state,
+        [0],
+        gates,
+        architecture,
+        config=LinearCompilerConfig(
+            search=SearchConfig(
+                horizon=None,
+                committed_gates=1,
+                iterative_diving_search=False,
+                max_frontier_size=None,
+                max_compile_time=None,
+                heuristic=None,
+            )
+        ),
+    )
+
+    assert explicit_result.status is default_result.status
+    assert explicit_result.score == default_result.score
+    assert explicit_result.path == default_result.path

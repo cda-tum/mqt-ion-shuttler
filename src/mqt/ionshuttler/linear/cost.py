@@ -12,7 +12,7 @@ from __future__ import annotations
 from functools import cache
 from math import ceil
 from sys import maxsize
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from mqt.ionshuttler.linear.actions import GateAction, SingleQubitGate, TwoQubitGate
 
@@ -23,9 +23,73 @@ if TYPE_CHECKING:
     from mqt.ionshuttler.linear.state import State
 
 
+class HeuristicFn(Protocol):
+    """Estimate the remaining schedule work for one search state.
+
+    A custom heuristic supplied through
+    :attr:`~mqt.ionshuttler.linear.SearchConfig.heuristic` must accept these
+    arguments. The search always passes them positionally, so an
+    implementation may name its parameters freely. The built-in
+    :func:`heuristic` additionally accepts optional caching arguments, which
+    the search passes only to that default.
+    """
+
+    def __call__(
+        self,
+        state: State,
+        architecture: Architecture,
+        gate_order: Sequence[int],
+        gates: Mapping[int, GateAction],
+        predecessors: Mapping[int, frozenset[int]] | None = None,
+        /,
+    ) -> int:
+        """Estimate the work still needed to finish the requested gates.
+
+        Args:
+            state: Search state to score.
+            architecture: Hardware layout the schedule targets.
+            gate_order: Identifiers of every gate the schedule must complete.
+            gates: Gate actions indexed by identifier.
+            predecessors: Optional map of which gates must precede others.
+
+        Returns:
+            A nonnegative estimate of the remaining schedule time.
+        """
+        ...
+
+
 def cost(state: State) -> int:
     """Return the cost, currently simply the elapsed schedule time."""
     return state.time
+
+
+def zero_heuristic(
+    state: State,
+    architecture: Architecture,
+    gate_order: Sequence[int],
+    gates: Mapping[int, GateAction],
+    predecessors: Mapping[int, frozenset[int]] | None = None,
+    /,
+) -> int:
+    """Estimate nothing about the work left to finish the requested gates.
+
+    This admissible estimate turns the search into a uniform-cost search, so
+    the first complete schedule has the minimum makespan among the schedules
+    the configured hardware and action model can express. It usually explores
+    many more states than the default :func:`heuristic`.
+
+    Args:
+        state: Search state to score.
+        architecture: Hardware layout the schedule targets.
+        gate_order: Identifiers of every gate the schedule must complete.
+        gates: Gate actions indexed by identifier.
+        predecessors: Optional map of which gates must precede others.
+
+    Returns:
+        Always ``0``.
+    """
+    del state, architecture, gate_order, gates, predecessors
+    return 0
 
 
 @cache
@@ -148,4 +212,4 @@ def _critical_path_length(
     return result
 
 
-__all__ = ["cost", "heuristic", "min_distance_to_valid_pair"]
+__all__ = ["HeuristicFn", "cost", "heuristic", "min_distance_to_valid_pair", "zero_heuristic"]

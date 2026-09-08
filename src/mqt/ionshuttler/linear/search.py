@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 from mqt.ionshuttler.linear.actions import DEFAULT_ACTION_TYPES, Action, AdvanceTime, GateAction
 from mqt.ionshuttler.linear.config import LinearCompilerConfig, TransportTiming
-from mqt.ionshuttler.linear.cost import cost, heuristic
+from mqt.ionshuttler.linear.cost import cost, heuristic, zero_heuristic
 from mqt.ionshuttler.linear.expand import ExpansionOptions, GenerationMode, expand, replay_path
 from mqt.ionshuttler.linear.result import CompilationResult, CompilationStatus
 from mqt.ionshuttler.linear.schedule import ActionSchedule
@@ -29,7 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
     from mqt.ionshuttler.linear.architecture import Architecture
-    from mqt.ionshuttler.linear.config import HeuristicMode, SearchConfig
+    from mqt.ionshuttler.linear.config import SearchConfig
+    from mqt.ionshuttler.linear.cost import HeuristicFn
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class _SearchPolicy:
     iterative_diving: bool
     num_solutions: int
     max_frontier_size: int | None
-    heuristic_mode: HeuristicMode
+    heuristic: HeuristicFn | None = None
 
     @classmethod
     def from_config(cls, config: SearchConfig) -> _SearchPolicy:
@@ -90,7 +91,7 @@ class _SearchPolicy:
             iterative_diving=config.iterative_diving_search,
             num_solutions=config.num_solutions,
             max_frontier_size=config.max_frontier_size,
-            heuristic_mode=config.heuristic_mode,
+            heuristic=config.heuristic,
         )
 
     @property
@@ -729,8 +730,19 @@ def _frontier_key(node: _SearchNode, insertion_order: int) -> int:
 
 
 def _heuristic(state: State, context: _SearchContext) -> int:
-    if context.policy.heuristic_mode == "zero":
-        return 0
+    custom = context.policy.heuristic
+    if custom is not None:
+        # The zero estimate is evaluated for every expanded node, so the
+        # built-in one short-circuits instead of paying for a call.
+        if custom is zero_heuristic:
+            return 0
+        return custom(
+            state,
+            context.architecture,
+            context.gate_order,
+            context.gates,
+            context.predecessors,
+        )
     return heuristic(
         state,
         context.architecture,
