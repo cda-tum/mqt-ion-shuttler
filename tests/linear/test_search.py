@@ -958,3 +958,32 @@ def test_omitting_a_custom_heuristic_keeps_the_built_in_schedule() -> None:
     assert explicit_result.status is default_result.status
     assert explicit_result.score == default_result.score
     assert explicit_result.path == default_result.path
+
+
+@pytest.mark.parametrize("horizon", [None, 1])
+@pytest.mark.parametrize("custom", [False, True])
+@pytest.mark.parametrize("assigned", [False, True])
+def test_partition_bias_warning_and_unknown_zone_fallback(
+    caplog: pytest.LogCaptureFixture, horizon: int | None, *, custom: bool, assigned: bool
+) -> None:
+    """Warn once for custom estimates and tolerate unmatched zone names."""
+    architecture = Architecture(num_sites=2)
+    initial_state = create_initial_state(2, architecture)
+    gates = {0: Rzz(ion_a=0, ion_b=1, theta=0.3), 1: Rzz(ion_a=0, ion_b=1, theta=0.5)}
+    config = LinearCompilerConfig(
+        search=SearchConfig(horizon=horizon, committed_gates=1, heuristic=zero_heuristic if custom else None)
+    )
+
+    result = search_module.search(
+        initial_state,
+        [0, 1],
+        gates,
+        architecture,
+        config=config,
+        gate_zone={0: "missing", 1: "missing"} if assigned else {},
+        zone_site_pairs={"other": ((0, 1),)},
+    )
+
+    assert result.status is CompilationStatus.SUCCESS
+    warnings = [record for record in caplog.records if "pre-partition bias is ignored" in record.message]
+    assert len(warnings) == int(custom and assigned)

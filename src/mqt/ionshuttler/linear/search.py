@@ -394,6 +394,8 @@ def _context(
     gate_zone: Mapping[int, str] | None = None,
     zone_site_pairs: Mapping[str, tuple[tuple[int, int], ...]] | None = None,
 ) -> _SearchContext:
+    if config.search.heuristic is not None and gate_zone:
+        logger.warning("The built-in pre-partition bias is ignored when a custom heuristic is supplied.")
     return _SearchContext(
         architecture=architecture,
         gate_order=gate_order,

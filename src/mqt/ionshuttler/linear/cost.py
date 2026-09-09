@@ -160,7 +160,7 @@ def heuristic(
         if isinstance(gate, TwoQubitGate):
             valid_pairs = architecture.valid_two_qubit_site_pairs
             if gate_zone is not None and zone_site_pairs is not None and gate_id in gate_zone:
-                valid_pairs = zone_site_pairs[gate_zone[gate_id]]
+                valid_pairs = zone_site_pairs.get(gate_zone[gate_id], valid_pairs)
             routing_estimate += min_distance_to_valid_pair(
                 positions[gate.ion_a],
                 positions[gate.ion_b],

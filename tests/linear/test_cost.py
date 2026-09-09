@@ -218,3 +218,14 @@ def test_implicit_processing_zone_keeps_the_estimate_finite() -> None:
     assert architecture.processing_zones is not None
     assert len(architecture.processing_zones) == 1
     assert heuristic(state, architecture, [0], gates) == 1
+
+
+def test_unknown_preferred_zone_uses_architecture_pairs() -> None:
+    """Ignore an assignment with no corresponding site-pair entry."""
+    architecture = Architecture(num_sites=4, processing_zones={"left": [0, 1], "right": [2, 3]})
+    state = make_state(((0, 0), (1, 1)))
+    gates = {0: Rzz(ion_a=0, ion_b=1, theta=1.0)}
+
+    assert heuristic(
+        state, architecture, [0], gates, gate_zone={0: "missing"}, zone_site_pairs={"right": ((2, 3),)}
+    ) == heuristic(state, architecture, [0], gates)

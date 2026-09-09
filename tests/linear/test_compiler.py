@@ -449,3 +449,33 @@ def test_compilation_does_not_write_files(tmp_path: Path, monkeypatch: pytest.Mo
 
     assert result.status is CompilationStatus.SUCCESS
     assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("horizon", [None, 1])
+@pytest.mark.parametrize("limit", [1.0, 3.0, None])
+def test_partition_time_counts_toward_compile_budget(
+    monkeypatch: pytest.MonkeyPatch, horizon: int | None, limit: float | None
+) -> None:
+    """Charge partition time to both search modes and elapsed-time metadata."""
+    now = [0.0]
+
+    def partition(*_args: object, **_kwargs: object) -> dict[int, str]:
+        now[0] += 2.0
+        return {0: "left"}
+
+    monkeypatch.setattr(compiler_module, "perf_counter", lambda: now[0])
+    monkeypatch.setattr(search_module, "perf_counter", lambda: now[0])
+    monkeypatch.setattr(compiler_module, "compute_gate_zone_assignment", partition)
+    config = LinearCompilerConfig(search=SearchConfig(horizon=horizon, committed_gates=1, max_compile_time=limit))
+    compiler = LinearCompiler(Architecture(num_sites=4, processing_zones={"left": [0, 1], "right": [2, 3]}), config)
+    circuit = QuantumCircuit(2)
+    circuit.rzz(0.3, 0, 1)
+
+    result = compiler.compile(circuit, pre_partition=True)
+
+    expired = limit is not None and limit < 2.0
+    assert result.status is (CompilationStatus.TIMEOUT if expired else CompilationStatus.SUCCESS)
+    assert result.wall_clock_s == pytest.approx(2.0)
+    assert compiler.config.search.max_compile_time == limit
+    if expired:
+        assert result.path == []
